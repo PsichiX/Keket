@@ -1,0 +1,14 @@
+[package]
+name = "keket"
+version = "0.1.0"
+edition = "2021"
+authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
+description = "Database-like Asset management on top of ECS storage"
+license = "MIT OR Apache-2.0"
+homepage = "https://github.com/PsichiX/keket"
+repository = "https://github.com/PsichiX/keket"
+documentation = "https://docs.rs/keket"
+readme = "../README.md"
+
+[dependencies]
+anput = "0.6"
