@@ -11,7 +11,7 @@ test:
   cargo test --all --all-features
 
 miri:
-  cargo +nightly miri test --manifest-path ./crate/Cargo.toml
+  cargo +nightly miri test --manifest-path ./crates/_/Cargo.toml
 
 clippy:
   cargo clippy --all --all-features
@@ -38,7 +38,7 @@ list-outdated:
   cargo outdated -R -w
 
 update:
-  cargo update --manifest-path ./crate/Cargo.toml --aggressive
+  cargo update --manifest-path ./crates/_/Cargo.toml --aggressive
 
 publish:
-  cargo publish --no-verify --manifest-path ./crate/Cargo.toml
+  cargo publish --no-verify --manifest-path ./crates/_/Cargo.toml

@@ -1,7 +1,7 @@
 use keket::{
     database::{path::AssetPath, AssetDatabase},
     fetch::file::FileAssetFetch,
-    protocol::{bytes::BytesAssetProtocol, serde::SerdeAssetProtocol, text::TextAssetProtocol},
+    protocol::{bundle::BundleAssetProtocol, bytes::BytesAssetProtocol, text::TextAssetProtocol},
 };
 use serde::Deserialize;
 use serde_json::Value;
@@ -26,11 +26,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut database = AssetDatabase::default()
         .with_protocol(TextAssetProtocol)
         .with_protocol(BytesAssetProtocol)
-        .with_protocol(SerdeAssetProtocol::new("json", |bytes| {
-            Ok(serde_json::from_slice::<Value>(&bytes)?)
+        .with_protocol(BundleAssetProtocol::new("json", |bytes| {
+            Ok((serde_json::from_slice::<Value>(&bytes)?,))
         }))
-        .with_protocol(SerdeAssetProtocol::new("person", |bytes| {
-            Ok(serde_json::from_slice::<Person>(&bytes)?)
+        .with_protocol(BundleAssetProtocol::new("person", |bytes| {
+            Ok((serde_json::from_slice::<Person>(&bytes)?,))
         }))
         .with_fetch(FileAssetFetch::default().with_root("resources"));
 
