@@ -24,16 +24,13 @@ impl<Partial: ContainerPartialFetch> ContainerAssetFetch<Partial> {
 impl<Partial: ContainerPartialFetch> AssetFetch for ContainerAssetFetch<Partial> {
     fn load_bytes(
         &mut self,
+        reference: AssetRef,
         path: AssetPath,
         storage: &mut World,
-    ) -> Result<AssetRef, Box<dyn Error>> {
+    ) -> Result<(), Box<dyn Error>> {
         let bytes = self.partial.part(path.clone())?;
-        let bundle = (
-            path.into_static(),
-            AssetBytesAreReadyToProcess(bytes),
-            AssetFromContainer,
-        );
-        let entity = storage.spawn(bundle)?;
-        Ok(AssetRef::new(entity))
+        let bundle = (AssetBytesAreReadyToProcess(bytes), AssetFromContainer);
+        storage.insert(reference.entity(), bundle)?;
+        Ok(())
     }
 }

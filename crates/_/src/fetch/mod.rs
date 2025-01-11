@@ -9,7 +9,7 @@ use std::{
     sync::{Arc, Mutex, RwLock},
 };
 
-pub struct AssetBytesAreLoading;
+pub struct AssetAwaitsResolution;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct AssetBytesAreReadyToProcess(pub Vec<u8>);
@@ -17,9 +17,10 @@ pub struct AssetBytesAreReadyToProcess(pub Vec<u8>);
 pub trait AssetFetch: Send + Sync {
     fn load_bytes(
         &mut self,
+        reference: AssetRef,
         path: AssetPath,
         storage: &mut World,
-    ) -> Result<AssetRef, Box<dyn Error>>;
+    ) -> Result<(), Box<dyn Error>>;
 
     #[allow(unused_variables)]
     fn maintain(&mut self, storage: &mut World) -> Result<(), Box<dyn Error>> {
@@ -30,23 +31,25 @@ pub trait AssetFetch: Send + Sync {
 impl<T: AssetFetch> AssetFetch for Arc<RwLock<T>> {
     fn load_bytes(
         &mut self,
+        reference: AssetRef,
         path: AssetPath,
         storage: &mut World,
-    ) -> Result<AssetRef, Box<dyn Error>> {
+    ) -> Result<(), Box<dyn Error>> {
         self.write()
             .map_err(|error| format!("{}", error))?
-            .load_bytes(path, storage)
+            .load_bytes(reference, path, storage)
     }
 }
 
 impl<T: AssetFetch> AssetFetch for Arc<Mutex<T>> {
     fn load_bytes(
         &mut self,
+        reference: AssetRef,
         path: AssetPath,
         storage: &mut World,
-    ) -> Result<AssetRef, Box<dyn Error>> {
+    ) -> Result<(), Box<dyn Error>> {
         self.lock()
             .map_err(|error| format!("{}", error))?
-            .load_bytes(path, storage)
+            .load_bytes(reference, path, storage)
     }
 }

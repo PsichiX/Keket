@@ -6,10 +6,13 @@ use crate::{
         path::AssetPath,
         reference::{AssetDependency, AssetRef},
     },
-    fetch::AssetFetch,
+    fetch::{AssetAwaitsResolution, AssetFetch},
     protocol::AssetProtocol,
 };
-use anput::{commands::Command, database::WorldDestroyIteratorExt, entity::Entity, world::World};
+use anput::{
+    commands::Command, database::WorldDestroyIteratorExt, entity::Entity, query::Include,
+    world::World,
+};
 use std::{borrow::Cow, collections::HashSet, error::Error};
 
 #[derive(Default)]
@@ -66,6 +69,21 @@ impl AssetDatabase {
             .map(|index| self.protocols.remove(index))
     }
 
+    pub fn find(&self, path: impl Into<AssetPath<'static>>) -> Option<AssetRef> {
+        let path = path.into();
+        self.storage.find_by::<true, _>(&path).map(AssetRef::new)
+    }
+
+    pub fn schedule(
+        &mut self,
+        path: impl Into<AssetPath<'static>>,
+    ) -> Result<AssetRef, Box<dyn Error>> {
+        let path = path.into();
+        Ok(AssetRef::new(
+            self.storage.spawn((path, AssetAwaitsResolution))?,
+        ))
+    }
+
     pub fn ensure(
         &mut self,
         path: impl Into<AssetPath<'static>>,
@@ -75,8 +93,9 @@ impl AssetDatabase {
             return Ok(AssetRef::new(entity));
         }
         if let Some(fetch) = self.fetch_stack.last_mut() {
-            let result = fetch.load_bytes(path.clone(), &mut self.storage)?;
-            if result.bytes_are_ready_to_process(self) {
+            let reference = AssetRef::new(self.storage.spawn((path.clone(),))?);
+            fetch.load_bytes(reference, path.clone(), &mut self.storage)?;
+            if reference.bytes_are_ready_to_process(self) {
                 let Some(protocol) = self
                     .protocols
                     .iter_mut()
@@ -84,9 +103,9 @@ impl AssetDatabase {
                 else {
                     return Err(format!("Missing protocol for asset: `{}`", path).into());
                 };
-                protocol.process_asset(result, &mut self.storage)?;
+                protocol.process_asset(reference, &mut self.storage)?;
             }
-            Ok(result)
+            Ok(reference)
         } else {
             Err("There is no asset fetch on stack!".into())
         }
@@ -120,6 +139,30 @@ impl AssetDatabase {
         }
         for protocol in &mut self.protocols {
             protocol.process_assets(&mut self.storage)?;
+        }
+        let to_resolve = self
+            .storage
+            .query::<true, (AssetRef, &AssetPath, Include<AssetAwaitsResolution>)>()
+            .map(|(reference, path, _)| (reference, path.clone()))
+            .collect::<Vec<_>>();
+        for (reference, path) in to_resolve {
+            if let Some(fetch) = self.fetch_stack.last_mut() {
+                fetch.load_bytes(reference, path.clone(), &mut self.storage)?;
+                if reference.bytes_are_ready_to_process(self) {
+                    let Some(protocol) = self
+                        .protocols
+                        .iter_mut()
+                        .find(|protocol| protocol.name() == path.protocol())
+                    else {
+                        return Err(format!("Missing protocol for asset: `{}`", path).into());
+                    };
+                    protocol.process_asset(reference, &mut self.storage)?;
+                }
+                self.storage
+                    .remove::<(AssetAwaitsResolution,)>(reference.entity())?;
+            } else {
+                return Err("There is no asset fetch on stack!".into());
+            }
         }
         Ok(())
     }

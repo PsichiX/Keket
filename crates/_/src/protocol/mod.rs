@@ -1,6 +1,7 @@
 pub mod bundle;
 pub mod bytes;
 pub mod closure;
+pub mod group;
 pub mod text;
 
 use crate::{
@@ -13,12 +14,15 @@ use std::error::Error;
 pub trait AssetProtocol: Send + Sync {
     fn name(&self) -> &str;
 
+    #[allow(unused_variables)]
     fn process_bytes(
         &mut self,
         reference: AssetRef,
         storage: &mut World,
         bytes: Vec<u8>,
-    ) -> Result<(), Box<dyn Error>>;
+    ) -> Result<(), Box<dyn Error>> {
+        Ok(())
+    }
 
     fn process_asset(
         &mut self,

@@ -13,9 +13,10 @@ pub struct AssetFromCollection;
 impl AssetFetch for Vec<(String, Vec<u8>)> {
     fn load_bytes(
         &mut self,
+        reference: AssetRef,
         path: AssetPath,
         storage: &mut World,
-    ) -> Result<AssetRef, Box<dyn Error>> {
+    ) -> Result<(), Box<dyn Error>> {
         let bytes = self
             .iter()
             .find(|(p, _)| p == path.path())
@@ -29,17 +30,18 @@ impl AssetFetch for Vec<(String, Vec<u8>)> {
             AssetBytesAreReadyToProcess(bytes),
             AssetFromCollection,
         );
-        let entity = storage.spawn(bundle)?;
-        Ok(AssetRef::new(entity))
+        storage.insert(reference.entity(), bundle)?;
+        Ok(())
     }
 }
 
 impl AssetFetch for HashMap<String, Vec<u8>> {
     fn load_bytes(
         &mut self,
+        reference: AssetRef,
         path: AssetPath,
         storage: &mut World,
-    ) -> Result<AssetRef, Box<dyn Error>> {
+    ) -> Result<(), Box<dyn Error>> {
         let bytes = self
             .get(path.path())
             .ok_or_else(|| -> Box<dyn Error> {
@@ -51,29 +53,26 @@ impl AssetFetch for HashMap<String, Vec<u8>> {
             AssetBytesAreReadyToProcess(bytes),
             AssetFromCollection,
         );
-        let entity = storage.spawn(bundle)?;
-        Ok(AssetRef::new(entity))
+        storage.insert(reference.entity(), bundle)?;
+        Ok(())
     }
 }
 
 impl AssetFetch for BTreeMap<String, Vec<u8>> {
     fn load_bytes(
         &mut self,
+        reference: AssetRef,
         path: AssetPath,
         storage: &mut World,
-    ) -> Result<AssetRef, Box<dyn Error>> {
+    ) -> Result<(), Box<dyn Error>> {
         let bytes = self
             .get(path.path())
             .ok_or_else(|| -> Box<dyn Error> {
                 format!("Missing map key: `{}`", path.path()).into()
             })
             .cloned()?;
-        let bundle = (
-            path.into_static(),
-            AssetBytesAreReadyToProcess(bytes),
-            AssetFromCollection,
-        );
-        let entity = storage.spawn(bundle)?;
-        Ok(AssetRef::new(entity))
+        let bundle = (AssetBytesAreReadyToProcess(bytes), AssetFromCollection);
+        storage.insert(reference.entity(), bundle)?;
+        Ok(())
     }
 }

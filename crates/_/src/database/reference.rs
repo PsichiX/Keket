@@ -1,6 +1,6 @@
 use crate::{
     database::AssetDatabase,
-    fetch::{AssetBytesAreLoading, AssetBytesAreReadyToProcess},
+    fetch::{AssetAwaitsResolution, AssetBytesAreReadyToProcess},
 };
 use anput::{
     archetype::Archetype,
@@ -36,8 +36,12 @@ impl AssetRef {
         self.entity
     }
 
-    pub fn bytes_are_loading(self, database: &AssetDatabase) -> bool {
-        self.access_checked::<(Entity, Include<AssetBytesAreLoading>)>(database)
+    pub fn does_exists(self, database: &AssetDatabase) -> bool {
+        database.storage.has_entity(self.entity)
+    }
+
+    pub fn awaits_resolution(self, database: &AssetDatabase) -> bool {
+        self.access_checked::<(Entity, Include<AssetAwaitsResolution>)>(database)
             .is_some()
     }
 
@@ -47,12 +51,15 @@ impl AssetRef {
     }
 
     pub fn is_ready_to_use(self, database: &AssetDatabase) -> bool {
-        self.access_checked::<(
+        let mut lookup = database.storage.lookup_access::<true, (
             Entity,
-            Exclude<AssetBytesAreLoading>,
+            Exclude<AssetAwaitsResolution>,
             Exclude<AssetBytesAreReadyToProcess>,
-        )>(database)
-            .is_some()
+        )>();
+        database
+            .storage
+            .traverse_outgoing::<true, AssetDependency>([self.entity])
+            .all(|entity| lookup.access(entity).is_some())
     }
 
     pub fn give(

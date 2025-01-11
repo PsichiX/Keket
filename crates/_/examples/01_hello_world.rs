@@ -24,6 +24,7 @@ struct PersonHome {
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut database = AssetDatabase::default()
+        // Asset protocols tell how to deserialize bytes into assets.
         .with_protocol(TextAssetProtocol)
         .with_protocol(BytesAssetProtocol)
         .with_protocol(BundleAssetProtocol::new("json", |bytes| {
@@ -32,9 +33,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         .with_protocol(BundleAssetProtocol::new("person", |bytes| {
             Ok((serde_json::from_slice::<Person>(&bytes)?,))
         }))
+        // Asset fetch tells how to get bytes from specific source.
         .with_fetch(FileAssetFetch::default().with_root("resources"));
 
+    // Ensure method either gives existing asset ref or loads if not existent.
     let lorem = database.ensure("text://lorem.txt")?;
+    // Accessing component(s) of asset entry.
+    // Assets can store multiple data associated to them, consider them meta data.
     println!("Lorem Ipsum: {}", lorem.access::<&String>(&database));
 
     let json = database.ensure("json://person.json")?;
@@ -46,6 +51,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let trash = database.ensure("bytes://trash.bin")?;
     println!("Bytes: {:?}", trash.access::<&Vec<u8>>(&database));
 
+    // We can query storage for asset components to process assets, just like with ECS.
     for (asset_path, file_path, metadata) in database
         .storage
         .query::<true, (&AssetPath, &PathBuf, &Metadata)>()

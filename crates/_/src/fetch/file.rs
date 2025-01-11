@@ -22,20 +22,20 @@ impl FileAssetFetch {
 impl AssetFetch for FileAssetFetch {
     fn load_bytes(
         &mut self,
+        reference: AssetRef,
         path: AssetPath,
         storage: &mut World,
-    ) -> Result<AssetRef, Box<dyn Error>> {
+    ) -> Result<(), Box<dyn Error>> {
         let file_path = self.root.join(path.path());
         let bytes = std::fs::read(&file_path)
             .map_err(|error| format!("Failed to load `{:?}` file bytes: {}", file_path, error))?;
         let bundle = (
-            path.into_static(),
             AssetBytesAreReadyToProcess(bytes),
             AssetFromFile,
             std::fs::metadata(&file_path)?,
             file_path,
         );
-        let entity = storage.spawn(bundle)?;
-        Ok(AssetRef::new(entity))
+        storage.insert(reference.entity(), bundle)?;
+        Ok(())
     }
 }
