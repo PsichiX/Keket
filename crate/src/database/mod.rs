@@ -1,10 +1,16 @@
 pub mod path;
 pub mod reference;
 
-use crate::{database::path::AssetPath, fetch::AssetFetch, protocol::AssetProtocol};
+use crate::{
+    database::{
+        path::AssetPath,
+        reference::{AssetDependency, AssetRef},
+    },
+    fetch::AssetFetch,
+    protocol::AssetProtocol,
+};
 use anput::{commands::Command, database::WorldDestroyIteratorExt, entity::Entity, world::World};
-use reference::AssetRef;
-use std::error::Error;
+use std::{borrow::Cow, collections::HashSet, error::Error};
 
 #[derive(Default)]
 pub struct AssetDatabase {
@@ -38,6 +44,17 @@ impl AssetDatabase {
         result
     }
 
+    pub fn using_fetch<R>(
+        &mut self,
+        fetch: impl AssetFetch + 'static,
+        f: impl FnOnce(&mut Self) -> Result<R, Box<dyn Error>>,
+    ) -> Result<R, Box<dyn Error>> {
+        self.push_fetch(fetch);
+        let result = f(self)?;
+        self.pop_fetch();
+        Ok(result)
+    }
+
     pub fn add_protocol(&mut self, protocol: impl AssetProtocol + 'static) {
         self.protocols.push(Box::new(protocol));
     }
@@ -49,7 +66,11 @@ impl AssetDatabase {
             .map(|index| self.protocols.remove(index))
     }
 
-    pub fn ensure(&mut self, path: AssetPath<'static>) -> Result<AssetRef, Box<dyn Error>> {
+    pub fn ensure(
+        &mut self,
+        path: impl Into<AssetPath<'static>>,
+    ) -> Result<AssetRef, Box<dyn Error>> {
+        let path = path.into();
         if let Some(entity) = self.storage.find_by::<true, _>(&path) {
             return Ok(AssetRef::new(entity));
         }
@@ -71,17 +92,25 @@ impl AssetDatabase {
         }
     }
 
-    pub fn unload(&mut self, path: &AssetPath) {
-        self.storage
+    pub fn unload<'a>(&mut self, path: impl Into<AssetPath<'a>>) {
+        let path = path.into();
+        let to_remove = self
+            .storage
             .query::<true, (Entity, &AssetPath)>()
-            .filter(|(_, p)| *p == path)
-            .map(|(entity, _)| entity)
+            .filter(|(_, p)| *p == &path)
+            .map(|(entity, _)| entity);
+        self.storage
+            .traverse_outgoing::<true, AssetDependency>(to_remove)
             .to_despawn_command()
-            .execute(&mut self.storage);
+            .execute(&mut self.storage)
     }
 
-    pub fn reload(&mut self, path: AssetPath<'static>) -> Result<AssetRef, Box<dyn Error>> {
-        self.unload(&path);
+    pub fn reload(
+        &mut self,
+        path: impl Into<AssetPath<'static>>,
+    ) -> Result<AssetRef, Box<dyn Error>> {
+        let path = path.into();
+        self.unload(path.clone());
         self.ensure(path)
     }
 
@@ -93,5 +122,71 @@ impl AssetDatabase {
             protocol.process_assets(&mut self.storage)?;
         }
         Ok(())
+    }
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct AssetTags {
+    tags: HashSet<Cow<'static, str>>,
+}
+
+impl AssetTags {
+    pub fn new(tag: impl Into<Cow<'static, str>>) -> Self {
+        let mut tags = HashSet::with_capacity(1);
+        tags.insert(tag.into());
+        Self { tags }
+    }
+
+    pub fn with(mut self, tag: impl Into<Cow<'static, str>>) -> Self {
+        self.add(tag);
+        self
+    }
+
+    pub fn len(&self) -> usize {
+        self.tags.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.tags.is_empty()
+    }
+
+    pub fn has(&mut self, tag: &str) {
+        self.tags.contains(tag);
+    }
+
+    pub fn add(&mut self, tag: impl Into<Cow<'static, str>>) {
+        self.tags.insert(tag.into());
+    }
+
+    pub fn remove(&mut self, tag: &str) {
+        self.tags.remove(tag);
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &str> + '_ {
+        self.tags.iter().map(|tag| tag.as_ref())
+    }
+
+    pub fn is_subset_of(&self, other: &Self) -> bool {
+        self.tags.is_subset(&other.tags)
+    }
+
+    pub fn is_superset_of(&self, other: &Self) -> bool {
+        self.tags.is_superset(&other.tags)
+    }
+
+    pub fn intersection(&self, other: &Self) -> Self {
+        self.tags.intersection(&other.tags).cloned().collect()
+    }
+
+    pub fn union(&self, other: &Self) -> Self {
+        self.tags.union(&other.tags).cloned().collect()
+    }
+}
+
+impl FromIterator<Cow<'static, str>> for AssetTags {
+    fn from_iter<T: IntoIterator<Item = Cow<'static, str>>>(iter: T) -> Self {
+        Self {
+            tags: iter.into_iter().collect(),
+        }
     }
 }

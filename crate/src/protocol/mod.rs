@@ -1,3 +1,5 @@
+pub mod bytes;
+pub mod serde;
 pub mod text;
 
 use crate::{

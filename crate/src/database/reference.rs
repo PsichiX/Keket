@@ -3,10 +3,12 @@ use crate::{
     fetch::{AssetBytesAreLoading, AssetBytesAreReadyToProcess},
 };
 use anput::{
+    archetype::Archetype,
     bundle::Bundle,
     component::Component,
     entity::Entity,
-    query::{Exclude, Include, TypedLookupFetch},
+    prelude::{Command, WorldDestroyIteratorExt},
+    query::{Exclude, Include, QueryError, TypedLookupFetch, TypedQueryFetch},
 };
 use std::error::Error;
 
@@ -20,6 +22,14 @@ pub struct AssetRef {
 impl AssetRef {
     pub fn new(entity: Entity) -> Self {
         Self { entity }
+    }
+
+    pub fn delete(self, database: &mut AssetDatabase) {
+        database
+            .storage
+            .traverse_outgoing::<true, AssetDependency>([self.entity])
+            .to_despawn_command()
+            .execute(&mut database.storage);
     }
 
     pub fn entity(self) -> Entity {
@@ -99,5 +109,35 @@ impl AssetRef {
             .storage
             .relations_incomming::<true, AssetDependency>(self.entity)
             .map(|(entity, _, _)| Self { entity })
+    }
+}
+
+impl<'a, const LOCKING: bool> TypedQueryFetch<'a, LOCKING> for AssetRef {
+    type Value = AssetRef;
+    type Access = <Entity as TypedQueryFetch<'a, LOCKING>>::Access;
+
+    fn does_accept_archetype(_: &Archetype) -> bool {
+        true
+    }
+
+    fn access(archetype: &'a Archetype) -> Result<Self::Access, QueryError> {
+        <Entity as TypedQueryFetch<'a, LOCKING>>::access(archetype)
+    }
+
+    fn fetch(access: &mut Self::Access) -> Option<Self::Value> {
+        <Entity as TypedQueryFetch<'a, LOCKING>>::fetch(access).map(AssetRef::new)
+    }
+}
+
+impl<'a, const LOCKING: bool> TypedLookupFetch<'a, LOCKING> for AssetRef {
+    type Value = AssetRef;
+    type Access = <Entity as TypedLookupFetch<'a, LOCKING>>::Access;
+
+    fn try_access(archetype: &'a Archetype) -> Option<Self::Access> {
+        <Entity as TypedLookupFetch<'a, LOCKING>>::try_access(archetype)
+    }
+
+    fn fetch(access: &mut Self::Access, entity: Entity) -> Option<Self::Value> {
+        <Entity as TypedLookupFetch<'a, LOCKING>>::fetch(access, entity).map(AssetRef::new)
     }
 }

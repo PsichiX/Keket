@@ -1,0 +1,14 @@
+{
+    "age": 41,
+    "home": {
+        "country": "Antarctica",
+        "address": "439 example street"
+    },
+    "friends": [
+        "Florrie, Etheline",
+        "Lizbeth, Felicity",
+        "Matilda, Suellen",
+        "Glennie, Fidelity",
+        "Simona, Evy"
+    ]
+}
