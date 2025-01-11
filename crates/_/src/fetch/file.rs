@@ -1,9 +1,9 @@
 use crate::{
     database::{path::AssetPath, reference::AssetRef},
-    fetch::{AssetBytesAreReadyToProcess, AssetFetch},
+    fetch::{deferred::DeferredAssetJob, AssetBytesAreReadyToProcess, AssetFetch},
 };
 use anput::world::World;
-use std::{error::Error, path::PathBuf};
+use std::{error::Error, fs::Metadata, path::PathBuf};
 
 pub struct AssetFromFile;
 
@@ -37,5 +37,30 @@ impl AssetFetch for FileAssetFetch {
         );
         storage.insert(reference.entity(), bundle)?;
         Ok(())
+    }
+}
+
+impl DeferredAssetJob for FileAssetFetch {
+    type Result = (
+        AssetBytesAreReadyToProcess,
+        AssetFromFile,
+        Metadata,
+        PathBuf,
+    );
+
+    fn execute(&self, path: AssetPath) -> Self::Result {
+        let file_path = self.root.join(path.path());
+        let bytes = std::fs::read(&file_path).unwrap_or_else(|error| {
+            panic!("Failed to load `{:?}` file bytes: {}", file_path, error)
+        });
+        let metadata = std::fs::metadata(&file_path).unwrap_or_else(|error| {
+            panic!("Failed to read `{:?}` file metadata: {}", file_path, error)
+        });
+        (
+            AssetBytesAreReadyToProcess(bytes),
+            AssetFromFile,
+            metadata,
+            file_path,
+        )
     }
 }

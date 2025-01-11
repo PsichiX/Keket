@@ -1,5 +1,6 @@
 pub mod collections;
 pub mod container;
+pub mod deferred;
 pub mod file;
 
 use crate::database::{path::AssetPath, reference::AssetRef};

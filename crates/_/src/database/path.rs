@@ -38,6 +38,10 @@ impl<'a> AssetPath<'a> {
         }
     }
 
+    pub fn content(&self) -> &str {
+        &self.content
+    }
+
     pub fn protocol(&self) -> &str {
         &self.content[0..self.protocol]
     }
