@@ -6,3 +6,4 @@ Cargo.lock
 *.bat
 *.log
 *.bimp
+resources/database.redb

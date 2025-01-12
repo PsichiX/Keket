@@ -8,6 +8,7 @@ build:
   cargo build --all --all-features
 
 test:
+  just redb-pack
   cargo test --all --all-features
 
 miri:
@@ -24,6 +25,9 @@ checks:
   just test
   just miri
 
+redb-pack:
+  cargo run --manifest-path ./crates/redb-pack/Cargo.toml
+
 clean:
   find . -name target -type d -exec rm -r {} +
   just remove-lockfiles
@@ -37,7 +41,10 @@ list-outdated:
 update:
   cargo update --manifest-path ./crates/_/Cargo.toml --aggressive
   cargo update --manifest-path ./crates/http/Cargo.toml --aggressive
+  cargo update --manifest-path ./crates/redb/Cargo.toml --aggressive
+  cargo update --manifest-path ./crates/redb-pack/Cargo.toml --aggressive
 
 publish:
   cargo publish --no-verify --manifest-path ./crates/_/Cargo.toml
   cargo publish --no-verify --manifest-path ./crates/http/Cargo.toml
+  cargo publish --no-verify --manifest-path ./crates/redb/Cargo.toml

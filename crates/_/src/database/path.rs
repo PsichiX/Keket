@@ -58,6 +58,15 @@ impl<'a> AssetPath<'a> {
         &self.content[self.meta.clone()]
     }
 
+    pub fn try_meta(&self) -> Option<&str> {
+        let meta = self.meta();
+        if meta.is_empty() {
+            None
+        } else {
+            Some(meta)
+        }
+    }
+
     pub fn path_with_meta(&self) -> &str {
         &self.content[self.path.start..self.meta.end]
     }
