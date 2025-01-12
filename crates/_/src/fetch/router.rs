@@ -89,8 +89,12 @@ pub struct RouterAssetFetch {
 
 impl RouterAssetFetch {
     pub fn route(mut self, pattern: RouterPattern, fetch: impl AssetFetch + 'static) -> Self {
-        self.table.push((pattern, Box::new(fetch)));
+        self.add(pattern, fetch);
         self
+    }
+
+    pub fn add(&mut self, pattern: RouterPattern, fetch: impl AssetFetch + 'static) {
+        self.table.push((pattern, Box::new(fetch)));
     }
 }
 
