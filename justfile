@@ -9,6 +9,7 @@ build:
 
 test:
   just redb-pack
+  just fjall-pack
   cargo test --all --all-features
 
 miri:
@@ -28,6 +29,9 @@ checks:
 redb-pack:
   cargo run --manifest-path ./crates/redb-pack/Cargo.toml
 
+fjall-pack:
+  cargo run --manifest-path ./crates/fjall-pack/Cargo.toml
+
 clean:
   find . -name target -type d -exec rm -r {} +
   just remove-lockfiles
@@ -43,8 +47,11 @@ update:
   cargo update --manifest-path ./crates/http/Cargo.toml --aggressive
   cargo update --manifest-path ./crates/redb/Cargo.toml --aggressive
   cargo update --manifest-path ./crates/redb-pack/Cargo.toml --aggressive
+  cargo update --manifest-path ./crates/fjall/Cargo.toml --aggressive
+  cargo update --manifest-path ./crates/fjall-pack/Cargo.toml --aggressive
 
 publish:
   cargo publish --no-verify --manifest-path ./crates/_/Cargo.toml
   cargo publish --no-verify --manifest-path ./crates/http/Cargo.toml
   cargo publish --no-verify --manifest-path ./crates/redb/Cargo.toml
+  cargo publish --no-verify --manifest-path ./crates/fjall/Cargo.toml

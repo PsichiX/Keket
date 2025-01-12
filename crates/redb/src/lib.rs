@@ -6,8 +6,6 @@ pub mod third_party {
     pub use redb;
 }
 
-pub struct AssetFromRedb;
-
 pub struct RedbContainerPartialFetch {
     database: Database,
     default_table_name: String,

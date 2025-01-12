@@ -1,18 +1,18 @@
 [package]
-name = "keket-http"
+name = "keket-fjall"
 version = "0.6.3"
 edition = "2021"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
-description = "HTTP asset fetch for Keket toolkit"
+description = "Fjall asset fetch for Keket toolkit"
 license = "MIT OR Apache-2.0"
 homepage = "https://github.com/PsichiX/keket"
 repository = "https://github.com/PsichiX/keket"
-documentation = "https://docs.rs/keket-http"
+documentation = "https://docs.rs/keket-fjall"
 readme = "../../README.md"
 
 [dependencies]
 keket = { version = "0.6", path = "../_" }
-reqwest = { version = "0.12", features = ["blocking"] }
+fjall = "2.5"
 
 [dev-dependencies]
 serde_json = "1"
