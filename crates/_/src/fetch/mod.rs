@@ -2,6 +2,7 @@ pub mod collections;
 pub mod container;
 pub mod deferred;
 pub mod file;
+pub mod router;
 
 use crate::database::{path::AssetPath, reference::AssetRef};
 use anput::world::World;

@@ -1,4 +1,4 @@
-use std::{borrow::Cow, ops::Range};
+use std::{borrow::Cow, fmt::Write, ops::Range};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AssetPath<'a> {
@@ -29,6 +29,18 @@ impl<'a> AssetPath<'a> {
         }
     }
 
+    pub fn from_parts(protocol: &str, path: &str, meta: &str) -> Self {
+        let mut result = String::new();
+        if !protocol.is_empty() {
+            let _ = write!(&mut result, "{}://", protocol);
+        }
+        let _ = write!(&mut result, "{}", path);
+        if !meta.is_empty() {
+            let _ = write!(&mut result, "?{}", meta);
+        }
+        Self::new(result)
+    }
+
     pub fn into_static(self) -> AssetPath<'static> {
         AssetPath {
             content: Cow::Owned(self.content.into_owned()),
@@ -56,6 +68,19 @@ impl<'a> AssetPath<'a> {
 
     pub fn meta(&self) -> &str {
         &self.content[self.meta.clone()]
+    }
+
+    pub fn meta_items(&self) -> impl Iterator<Item = (&str, &str)> {
+        self.meta()
+            .split("&")
+            .filter(|part| !part.is_empty())
+            .map(|part| {
+                if let Some(index) = part.find("=") {
+                    (part[..index].trim(), part[(index + b"=".len())..].trim())
+                } else {
+                    (part.trim(), "")
+                }
+            })
     }
 
     pub fn try_meta(&self) -> Option<&str> {

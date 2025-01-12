@@ -25,11 +25,7 @@ impl AssetFetch for Vec<(String, Vec<u8>)> {
             })?
             .1
             .clone();
-        let bundle = (
-            path.into_static(),
-            AssetBytesAreReadyToProcess(bytes),
-            AssetFromCollection,
-        );
+        let bundle = (AssetBytesAreReadyToProcess(bytes), AssetFromCollection);
         storage.insert(reference.entity(), bundle)?;
         Ok(())
     }
@@ -48,11 +44,7 @@ impl AssetFetch for HashMap<String, Vec<u8>> {
                 format!("Missing map key: `{}`", path.path()).into()
             })
             .cloned()?;
-        let bundle = (
-            path.into_static(),
-            AssetBytesAreReadyToProcess(bytes),
-            AssetFromCollection,
-        );
+        let bundle = (AssetBytesAreReadyToProcess(bytes), AssetFromCollection);
         storage.insert(reference.entity(), bundle)?;
         Ok(())
     }
