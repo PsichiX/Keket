@@ -48,19 +48,18 @@ impl DeferredAssetJob for FileAssetFetch {
         PathBuf,
     );
 
-    fn execute(&self, path: AssetPath) -> Self::Result {
+    fn execute(&self, path: AssetPath) -> Result<Self::Result, String> {
         let file_path = self.root.join(path.path());
-        let bytes = std::fs::read(&file_path).unwrap_or_else(|error| {
-            panic!("Failed to load `{:?}` file bytes: {}", file_path, error)
-        });
-        let metadata = std::fs::metadata(&file_path).unwrap_or_else(|error| {
-            panic!("Failed to read `{:?}` file metadata: {}", file_path, error)
-        });
-        (
+        let bytes = std::fs::read(&file_path)
+            .map_err(|error| format!("Failed to load `{:?}` file bytes: {}", file_path, error))?;
+        let metadata = std::fs::metadata(&file_path).map_err(|error| {
+            format!("Failed to read `{:?}` file metadata: {}", file_path, error)
+        })?;
+        Ok((
             AssetBytesAreReadyToProcess(bytes),
             AssetFromFile,
             metadata,
             file_path,
-        )
+        ))
     }
 }

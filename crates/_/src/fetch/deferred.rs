@@ -15,12 +15,12 @@ pub struct AssetAwaitsDeferredJob;
 pub trait DeferredAssetJob: Send + Sync + 'static {
     type Result: Bundle + Send + 'static;
 
-    fn execute(&self, path: AssetPath) -> Self::Result;
+    fn execute(&self, path: AssetPath) -> Result<Self::Result, String>;
 }
 
 pub struct DeferredAssetFetch<Job: DeferredAssetJob> {
     #[allow(clippy::type_complexity)]
-    tasks: Vec<(Entity, JoinHandle<Job::Result>)>,
+    tasks: Vec<(Entity, JoinHandle<Result<Job::Result, String>>)>,
     job: Arc<Job>,
     _phantom: PhantomData<fn() -> Job>,
 }
@@ -62,13 +62,13 @@ impl<Job: DeferredAssetJob> AssetFetch for DeferredAssetFetch<Job> {
             let (entity, join) = self.tasks.swap_remove(index);
             let result = join.join().map_err(|_| {
                 format!(
-                    "Error during job execution of `{}` asset!",
+                    "Job execution of `{}` asset panicked!",
                     storage
                         .component::<true, AssetPath>(entity)
                         .map(|path| path.content().to_owned())
                         .unwrap_or_default()
                 )
-            })?;
+            })??;
             storage.remove::<(AssetAwaitsDeferredJob,)>(entity)?;
             storage.insert(entity, result)?;
         }

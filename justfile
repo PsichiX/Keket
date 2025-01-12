@@ -24,9 +24,6 @@ checks:
   just test
   just miri
 
-demo:
-  cargo run --release --manifest-path ./demo/Cargo.toml
-
 clean:
   find . -name target -type d -exec rm -r {} +
   just remove-lockfiles
@@ -39,6 +36,8 @@ list-outdated:
 
 update:
   cargo update --manifest-path ./crates/_/Cargo.toml --aggressive
+  cargo update --manifest-path ./crates/http/Cargo.toml --aggressive
 
 publish:
   cargo publish --no-verify --manifest-path ./crates/_/Cargo.toml
+  cargo publish --no-verify --manifest-path ./crates/http/Cargo.toml
