@@ -32,6 +32,13 @@ impl AssetRef {
             .execute(&mut database.storage);
     }
 
+    pub fn refresh(self, database: &mut AssetDatabase) -> Result<(), Box<dyn Error>> {
+        database
+            .storage
+            .insert(self.entity, (AssetAwaitsResolution,))?;
+        Ok(())
+    }
+
     pub fn entity(self) -> Entity {
         self.entity
     }

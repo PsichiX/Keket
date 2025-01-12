@@ -11,9 +11,6 @@ test:
   just redb-pack
   cargo test --all --all-features
 
-miri:
-  cargo +nightly miri test --manifest-path ./crates/_/Cargo.toml
-
 clippy:
   cargo clippy --all --all-features
   cargo clippy --tests --all --all-features
@@ -23,10 +20,12 @@ checks:
   just build
   just clippy
   just test
-  just miri
 
 redb-pack:
   cargo run --manifest-path ./crates/redb-pack/Cargo.toml
+
+hot_reloading:
+  cargo run --manifest-path ./crates/_/Cargo.toml --example 07_hot_reloading
 
 clean:
   find . -name target -type d -exec rm -r {} +

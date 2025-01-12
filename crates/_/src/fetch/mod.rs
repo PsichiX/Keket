@@ -2,6 +2,8 @@ pub mod collections;
 pub mod container;
 pub mod deferred;
 pub mod file;
+#[cfg(feature = "hotreload")]
+pub mod hotreload;
 pub mod router;
 
 use crate::database::{path::AssetPath, reference::AssetRef};
