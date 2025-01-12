@@ -29,11 +29,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                 ),
         );
 
-    // This asset will select file router.
     let lorem = database.ensure("text://lorem.txt")?;
     println!("Lorem Ipsum: {}", lorem.access::<&String>(&database));
 
-    // This asset will select memory router.
     let trash = database.ensure("bytes://dlc/trash.bin")?;
     println!("Bytes: {:?}", trash.access::<&Vec<u8>>(&database));
 
