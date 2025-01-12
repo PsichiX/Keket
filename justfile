@@ -27,6 +27,9 @@ redb-pack:
 hot_reloading:
   cargo run --manifest-path ./crates/_/Cargo.toml --example 07_hot_reloading
 
+ingame:
+  cargo run --manifest-path ./crates/_/Cargo.toml --example 08_ingame
+
 clean:
   find . -name target -type d -exec rm -r {} +
   just remove-lockfiles
