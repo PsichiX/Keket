@@ -2,6 +2,7 @@ use redb::{Database, TableDefinition};
 use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
+    let _ = std::fs::remove_file("./resources/database.redb");
     let db = Database::create("./resources/database.redb")?;
     let transaction = db.begin_write()?;
     {

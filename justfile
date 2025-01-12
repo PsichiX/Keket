@@ -32,6 +32,10 @@ redb-pack:
 fjall-pack:
   cargo run --manifest-path ./crates/fjall-pack/Cargo.toml
 
+pack:
+  just redb-pack
+  just fjall-pack
+
 clean:
   find . -name target -type d -exec rm -r {} +
   just remove-lockfiles

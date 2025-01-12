@@ -2,6 +2,7 @@ use fjall::{Config, PersistMode};
 use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
+    let _ = std::fs::remove_dir_all("./resources/database/");
     let keyspace = Config::new("./resources/database/").open()?;
     let items = keyspace.open_partition("assets", Default::default())?;
     items.insert("lorem.txt", std::fs::read("./resources/lorem.txt")?)?;
