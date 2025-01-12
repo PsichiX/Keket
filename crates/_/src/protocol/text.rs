@@ -16,6 +16,7 @@ impl AssetProtocol for TextAssetProtocol {
         bytes: Vec<u8>,
     ) -> Result<(), Box<dyn Error>> {
         let text = std::str::from_utf8(&bytes)?.to_owned();
+        println!("=== TEXT: {}", text.len());
         storage.insert(reference.entity(), (text,))?;
         Ok(())
     }

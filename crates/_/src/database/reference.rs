@@ -1,6 +1,6 @@
 use crate::{
     database::AssetDatabase,
-    fetch::{AssetAwaitsResolution, AssetBytesAreReadyToProcess},
+    fetch::{deferred::AssetAwaitsDeferredJob, AssetAwaitsResolution, AssetBytesAreReadyToProcess},
 };
 use anput::{
     archetype::Archetype,
@@ -50,11 +50,17 @@ impl AssetRef {
             .is_some()
     }
 
+    pub fn awaits_deferred_job(self, database: &AssetDatabase) -> bool {
+        self.access_checked::<(Entity, Include<AssetAwaitsDeferredJob>)>(database)
+            .is_some()
+    }
+
     pub fn is_ready_to_use(self, database: &AssetDatabase) -> bool {
         let mut lookup = database.storage.lookup_access::<true, (
             Entity,
             Exclude<AssetAwaitsResolution>,
             Exclude<AssetBytesAreReadyToProcess>,
+            Exclude<AssetAwaitsDeferredJob>,
         )>();
         database
             .storage
@@ -116,6 +122,16 @@ impl AssetRef {
             .storage
             .relations_incomming::<true, AssetDependency>(self.entity)
             .map(|(entity, _, _)| Self { entity })
+    }
+
+    pub fn traverse_dependencies(
+        self,
+        database: &AssetDatabase,
+    ) -> impl Iterator<Item = AssetRef> + '_ {
+        database
+            .storage
+            .traverse_outgoing::<true, AssetDependency>([self.entity])
+            .map(|entity| Self { entity })
     }
 }
 

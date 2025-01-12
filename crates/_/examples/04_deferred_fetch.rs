@@ -1,9 +1,6 @@
 use keket::{
     database::AssetDatabase,
-    fetch::{
-        deferred::{AssetAwaitsDeferredJob, DeferredAssetFetch},
-        file::FileAssetFetch,
-    },
+    fetch::{deferred::DeferredAssetFetch, file::FileAssetFetch},
     protocol::bytes::BytesAssetProtocol,
 };
 use std::error::Error;
@@ -20,10 +17,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let package = database.ensure("bytes://package.zip")?;
 
     // Simulate waiting for asset bytes loading to complete.
-    while package
-        .access_checked::<&AssetAwaitsDeferredJob>(&database)
-        .is_some()
-    {
+    while package.awaits_deferred_job(&database) {
         println!("Package awaits deferred job done");
         database.maintain()?;
     }

@@ -34,6 +34,7 @@ pub trait AssetProtocol: Send + Sync {
                 storage.component_mut::<true, AssetBytesAreReadyToProcess>(reference.entity())?;
             std::mem::take(&mut bytes.0)
         };
+        storage.remove::<(AssetBytesAreReadyToProcess,)>(reference.entity())?;
         self.process_bytes(reference, storage, bytes)
     }
 

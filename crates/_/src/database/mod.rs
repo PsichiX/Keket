@@ -6,7 +6,10 @@ use crate::{
         path::AssetPath,
         reference::{AssetDependency, AssetRef},
     },
-    fetch::{AssetAwaitsResolution, AssetFetch},
+    fetch::{
+        deferred::AssetAwaitsDeferredJob, AssetAwaitsResolution, AssetBytesAreReadyToProcess,
+        AssetFetch,
+    },
     protocol::AssetProtocol,
 };
 use anput::{
@@ -133,7 +136,44 @@ impl AssetDatabase {
         self.ensure(path)
     }
 
+    pub fn assets_awaiting_resolution(&self) -> impl Iterator<Item = AssetRef> + '_ {
+        self.storage
+            .query::<true, (Entity, Include<AssetAwaitsResolution>)>()
+            .map(|(entity, _)| AssetRef::new(entity))
+    }
+
+    pub fn assets_with_bytes_ready_to_process(&self) -> impl Iterator<Item = AssetRef> + '_ {
+        self.storage
+            .query::<true, (Entity, Include<AssetBytesAreReadyToProcess>)>()
+            .map(|(entity, _)| AssetRef::new(entity))
+    }
+
+    pub fn assets_awaiting_deferred_job(&self) -> impl Iterator<Item = AssetRef> + '_ {
+        self.storage
+            .query::<true, (Entity, Include<AssetAwaitsDeferredJob>)>()
+            .map(|(entity, _)| AssetRef::new(entity))
+    }
+
+    pub fn does_await_resolution(&self) -> bool {
+        self.storage.has_component::<AssetAwaitsResolution>()
+    }
+
+    pub fn has_bytes_ready_to_process(&self) -> bool {
+        self.storage.has_component::<AssetBytesAreReadyToProcess>()
+    }
+
+    pub fn does_await_deferred_job(&self) -> bool {
+        self.storage.has_component::<AssetAwaitsDeferredJob>()
+    }
+
+    pub fn is_busy(&self) -> bool {
+        self.storage.has_component::<AssetAwaitsResolution>()
+            || self.storage.has_component::<AssetBytesAreReadyToProcess>()
+            || self.storage.has_component::<AssetAwaitsDeferredJob>()
+    }
+
     pub fn maintain(&mut self) -> Result<(), Box<dyn Error>> {
+        self.storage.clear_changes();
         for fetch in &mut self.fetch_stack {
             fetch.maintain(&mut self.storage)?;
         }
