@@ -1,5 +1,5 @@
 use keket::{
-    database::{path::AssetPath, reference::AssetRef, AssetDatabase},
+    database::{handle::AssetHandle, path::AssetPath, AssetDatabase},
     fetch::{file::FileAssetFetch, hotreload::HotReloadFileAssetFetch},
     protocol::{bytes::BytesAssetProtocol, text::TextAssetProtocol},
 };
@@ -29,7 +29,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             for entity in changes.iter_of::<AssetPath>() {
                 println!(
                     "Asset changed: `{}`",
-                    AssetRef::new(entity).access::<&AssetPath>(&database)
+                    AssetHandle::new(entity).access::<&AssetPath>(&database)
                 );
             }
         }
@@ -38,13 +38,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         for entity in database.storage.added().iter_of::<String>() {
             println!(
                 "Text asset changed: `{}`",
-                AssetRef::new(entity).access::<&String>(&database)
+                AssetHandle::new(entity).access::<&String>(&database)
             );
         }
         for entity in database.storage.added().iter_of::<Vec<u8>>() {
             println!(
                 "Bytes asset changed: `{:?}`",
-                AssetRef::new(entity).access::<&Vec<u8>>(&database)
+                AssetHandle::new(entity).access::<&Vec<u8>>(&database)
             );
         }
     }

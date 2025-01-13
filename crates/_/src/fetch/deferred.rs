@@ -1,76 +1,79 @@
-use crate::{
-    database::{path::AssetPath, reference::AssetRef},
-    fetch::AssetFetch,
-};
-use anput::{bundle::Bundle, entity::Entity, world::World};
+use crate::{database::path::AssetPath, fetch::AssetFetch};
+use anput::{bundle::DynamicBundle, world::World};
 use std::{
     error::Error,
-    marker::PhantomData,
-    sync::Arc,
+    sync::{Arc, RwLock},
     thread::{spawn, JoinHandle},
 };
 
 pub struct AssetAwaitsDeferredJob;
 
-pub trait DeferredAssetJob: Send + Sync + 'static {
-    type Result: Bundle + Send + 'static;
-
-    fn execute(&self, path: AssetPath) -> Result<Self::Result, String>;
-}
-
-pub struct DeferredAssetFetch<Job: DeferredAssetJob> {
+pub struct DeferredAssetFetch<Fetch: AssetFetch> {
+    fetch: Arc<Fetch>,
     #[allow(clippy::type_complexity)]
-    tasks: Vec<(Entity, JoinHandle<Result<Job::Result, String>>)>,
-    job: Arc<Job>,
-    _phantom: PhantomData<fn() -> Job>,
+    tasks: RwLock<
+        Vec<(
+            AssetPath<'static>,
+            JoinHandle<Result<DynamicBundle, String>>,
+        )>,
+    >,
 }
 
-impl<Job: DeferredAssetJob> DeferredAssetFetch<Job> {
-    pub fn new(job: Job) -> Self {
+impl<Fetch: AssetFetch> DeferredAssetFetch<Fetch> {
+    pub fn new(fetch: Fetch) -> Self {
         Self {
+            fetch: Arc::new(fetch),
             tasks: Default::default(),
-            job: Arc::new(job),
-            _phantom: PhantomData,
         }
     }
 }
 
-impl<Job: DeferredAssetJob> AssetFetch for DeferredAssetFetch<Job> {
-    fn load_bytes(
-        &mut self,
-        reference: AssetRef,
-        path: AssetPath,
-        storage: &mut World,
-    ) -> Result<(), Box<dyn Error>> {
+impl<Fetch: AssetFetch> AssetFetch for DeferredAssetFetch<Fetch> {
+    fn load_bytes(&self, path: AssetPath) -> Result<DynamicBundle, Box<dyn Error>> {
         let path = path.into_static();
-        let job = self.job.clone();
+        let fetch = self.fetch.clone();
         self.tasks
-            .push((reference.entity(), spawn(move || job.execute(path))));
-        storage.insert(reference.entity(), (AssetAwaitsDeferredJob,))?;
-        Ok(())
+            .write()
+            .map_err(|error| format!("{}", error))?
+            .push((
+                path.clone(),
+                spawn(move || {
+                    fetch.load_bytes(path.clone()).map_err(|error| {
+                        format!(
+                            "Failed deferred job for asset: `{}`. Error: {}",
+                            path, error
+                        )
+                    })
+                }),
+            ));
+        let mut bundle = DynamicBundle::default();
+        let _ = bundle.add_component(AssetAwaitsDeferredJob);
+        Ok(bundle)
     }
 
     fn maintain(&mut self, storage: &mut World) -> Result<(), Box<dyn Error>> {
         let complete = self
             .tasks
+            .read()
+            .map_err(|error| format!("{}", error))?
             .iter()
             .enumerate()
             .filter(|(_, (_, join))| join.is_finished())
             .map(|(index, _)| index)
             .collect::<Vec<_>>();
         for index in complete.into_iter().rev() {
-            let (entity, join) = self.tasks.swap_remove(index);
-            let result = join.join().map_err(|_| {
-                format!(
-                    "Job execution of `{}` asset panicked!",
-                    storage
-                        .component::<true, AssetPath>(entity)
-                        .map(|path| path.content().to_owned())
-                        .unwrap_or_default()
-                )
-            })??;
-            storage.remove::<(AssetAwaitsDeferredJob,)>(entity)?;
-            storage.insert(entity, result)?;
+            let (path, join) = self
+                .tasks
+                .write()
+                .map_err(|error| format!("{}", error))?
+                .swap_remove(index);
+            let result = join
+                .join()
+                .map_err(|_| format!("Deferred job execution of `{}` asset panicked!", path))??;
+            if let Some(entity) = storage.find_by::<true, _>(&path) {
+                storage.remove::<(AssetAwaitsDeferredJob,)>(entity)?;
+                storage.insert(entity, result)?;
+            }
         }
         Ok(())
     }

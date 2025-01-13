@@ -1,14 +1,15 @@
+pub mod handle;
 pub mod path;
 pub mod reference;
 
 use crate::{
     database::{
+        handle::{AssetDependency, AssetHandle},
         path::AssetPath,
-        reference::{AssetDependency, AssetRef},
     },
     fetch::{
         deferred::AssetAwaitsDeferredJob, AssetAwaitsResolution, AssetBytesAreReadyToProcess,
-        AssetFetch,
+        AssetFetch, AssetFetchEngine,
     },
     protocol::AssetProtocol,
 };
@@ -21,7 +22,7 @@ use std::{borrow::Cow, collections::HashSet, error::Error};
 #[derive(Default)]
 pub struct AssetDatabase {
     pub storage: World,
-    fetch_stack: Vec<Box<dyn AssetFetch>>,
+    fetch_stack: Vec<AssetFetchEngine>,
     protocols: Vec<Box<dyn AssetProtocol>>,
 }
 
@@ -37,16 +38,16 @@ impl AssetDatabase {
     }
 
     pub fn push_fetch(&mut self, fetch: impl AssetFetch + 'static) {
-        self.fetch_stack.push(Box::new(fetch));
+        self.fetch_stack.push(AssetFetchEngine::new(fetch));
     }
 
     pub fn pop_fetch(&mut self) -> Option<Box<dyn AssetFetch>> {
-        self.fetch_stack.pop()
+        self.fetch_stack.pop().map(|fetch| fetch.into_inner())
     }
 
     pub fn swap_fetch(&mut self, fetch: impl AssetFetch + 'static) -> Option<Box<dyn AssetFetch>> {
         let result = self.pop_fetch();
-        self.fetch_stack.push(Box::new(fetch));
+        self.fetch_stack.push(AssetFetchEngine::new(fetch));
         result
     }
 
@@ -72,17 +73,17 @@ impl AssetDatabase {
             .map(|index| self.protocols.remove(index))
     }
 
-    pub fn find(&self, path: impl Into<AssetPath<'static>>) -> Option<AssetRef> {
+    pub fn find(&self, path: impl Into<AssetPath<'static>>) -> Option<AssetHandle> {
         let path = path.into();
-        self.storage.find_by::<true, _>(&path).map(AssetRef::new)
+        self.storage.find_by::<true, _>(&path).map(AssetHandle::new)
     }
 
     pub fn schedule(
         &mut self,
         path: impl Into<AssetPath<'static>>,
-    ) -> Result<AssetRef, Box<dyn Error>> {
+    ) -> Result<AssetHandle, Box<dyn Error>> {
         let path = path.into();
-        Ok(AssetRef::new(
+        Ok(AssetHandle::new(
             self.storage.spawn((path, AssetAwaitsResolution))?,
         ))
     }
@@ -90,15 +91,15 @@ impl AssetDatabase {
     pub fn ensure(
         &mut self,
         path: impl Into<AssetPath<'static>>,
-    ) -> Result<AssetRef, Box<dyn Error>> {
+    ) -> Result<AssetHandle, Box<dyn Error>> {
         let path = path.into();
         if let Some(entity) = self.storage.find_by::<true, _>(&path) {
-            return Ok(AssetRef::new(entity));
+            return Ok(AssetHandle::new(entity));
         }
         if let Some(fetch) = self.fetch_stack.last_mut() {
-            let reference = AssetRef::new(self.storage.spawn((path.clone(),))?);
-            fetch.load_bytes(reference, path.clone(), &mut self.storage)?;
-            if reference.bytes_are_ready_to_process(self) {
+            let handle = AssetHandle::new(self.storage.spawn((path.clone(),))?);
+            fetch.load_bytes(handle, path.clone(), &mut self.storage)?;
+            if handle.bytes_are_ready_to_process(self) {
                 let Some(protocol) = self
                     .protocols
                     .iter_mut()
@@ -106,9 +107,9 @@ impl AssetDatabase {
                 else {
                     return Err(format!("Missing protocol for asset: `{}`", path).into());
                 };
-                protocol.process_asset(reference, &mut self.storage)?;
+                protocol.process_asset(handle, &mut self.storage)?;
             }
-            Ok(reference)
+            Ok(handle)
         } else {
             Err("There is no asset fetch on stack!".into())
         }
@@ -130,28 +131,28 @@ impl AssetDatabase {
     pub fn reload(
         &mut self,
         path: impl Into<AssetPath<'static>>,
-    ) -> Result<AssetRef, Box<dyn Error>> {
+    ) -> Result<AssetHandle, Box<dyn Error>> {
         let path = path.into();
         self.unload(path.clone());
         self.ensure(path)
     }
 
-    pub fn assets_awaiting_resolution(&self) -> impl Iterator<Item = AssetRef> + '_ {
+    pub fn assets_awaiting_resolution(&self) -> impl Iterator<Item = AssetHandle> + '_ {
         self.storage
             .query::<true, (Entity, Include<AssetAwaitsResolution>)>()
-            .map(|(entity, _)| AssetRef::new(entity))
+            .map(|(entity, _)| AssetHandle::new(entity))
     }
 
-    pub fn assets_with_bytes_ready_to_process(&self) -> impl Iterator<Item = AssetRef> + '_ {
+    pub fn assets_with_bytes_ready_to_process(&self) -> impl Iterator<Item = AssetHandle> + '_ {
         self.storage
             .query::<true, (Entity, Include<AssetBytesAreReadyToProcess>)>()
-            .map(|(entity, _)| AssetRef::new(entity))
+            .map(|(entity, _)| AssetHandle::new(entity))
     }
 
-    pub fn assets_awaiting_deferred_job(&self) -> impl Iterator<Item = AssetRef> + '_ {
+    pub fn assets_awaiting_deferred_job(&self) -> impl Iterator<Item = AssetHandle> + '_ {
         self.storage
             .query::<true, (Entity, Include<AssetAwaitsDeferredJob>)>()
-            .map(|(entity, _)| AssetRef::new(entity))
+            .map(|(entity, _)| AssetHandle::new(entity))
     }
 
     pub fn does_await_resolution(&self) -> bool {
@@ -182,13 +183,13 @@ impl AssetDatabase {
         }
         let to_resolve = self
             .storage
-            .query::<true, (AssetRef, &AssetPath, Include<AssetAwaitsResolution>)>()
-            .map(|(reference, path, _)| (reference, path.clone()))
+            .query::<true, (AssetHandle, &AssetPath, Include<AssetAwaitsResolution>)>()
+            .map(|(handle, path, _)| (handle, path.clone()))
             .collect::<Vec<_>>();
-        for (reference, path) in to_resolve {
+        for (handle, path) in to_resolve {
             if let Some(fetch) = self.fetch_stack.last_mut() {
-                fetch.load_bytes(reference, path.clone(), &mut self.storage)?;
-                if reference.bytes_are_ready_to_process(self) {
+                fetch.load_bytes(handle, path.clone(), &mut self.storage)?;
+                if handle.bytes_are_ready_to_process(self) {
                     let Some(protocol) = self
                         .protocols
                         .iter_mut()
@@ -196,10 +197,10 @@ impl AssetDatabase {
                     else {
                         return Err(format!("Missing protocol for asset: `{}`", path).into());
                     };
-                    protocol.process_asset(reference, &mut self.storage)?;
+                    protocol.process_asset(handle, &mut self.storage)?;
                 }
                 self.storage
-                    .remove::<(AssetAwaitsResolution,)>(reference.entity())?;
+                    .remove::<(AssetAwaitsResolution,)>(handle.entity())?;
             } else {
                 return Err("There is no asset fetch on stack!".into());
             }

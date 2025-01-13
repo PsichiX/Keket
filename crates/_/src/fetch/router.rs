@@ -1,9 +1,6 @@
-use crate::{
-    database::{path::AssetPath, reference::AssetRef},
-    fetch::AssetFetch,
-};
-use anput::world::World;
-use std::{borrow::Cow, error::Error};
+use crate::{database::path::AssetPath, fetch::AssetFetch};
+use anput::{bundle::DynamicBundle, world::World};
+use std::{borrow::Cow, error::Error, sync::RwLock};
 
 #[derive(Default)]
 pub struct RouterPattern {
@@ -84,7 +81,7 @@ impl RouterEntryPattern {
 
 #[derive(Default)]
 pub struct RouterAssetFetch {
-    table: Vec<(RouterPattern, Box<dyn AssetFetch>)>,
+    table: RwLock<Vec<(RouterPattern, Box<dyn AssetFetch>)>>,
 }
 
 impl RouterAssetFetch {
@@ -94,27 +91,35 @@ impl RouterAssetFetch {
     }
 
     pub fn add(&mut self, pattern: RouterPattern, fetch: impl AssetFetch + 'static) {
-        self.table.push((pattern, Box::new(fetch)));
+        if let Ok(mut table) = self.table.write() {
+            table.push((pattern, Box::new(fetch)));
+        }
     }
 }
 
 impl AssetFetch for RouterAssetFetch {
-    fn load_bytes(
-        &mut self,
-        reference: AssetRef,
-        path: AssetPath,
-        storage: &mut World,
-    ) -> Result<(), Box<dyn Error>> {
-        for (pattern, fetch) in self.table.iter_mut().rev() {
+    fn load_bytes(&self, path: AssetPath) -> Result<DynamicBundle, Box<dyn Error>> {
+        for (pattern, fetch) in self
+            .table
+            .write()
+            .map_err(|error| format!("{}", error))?
+            .iter_mut()
+            .rev()
+        {
             if let Some(path) = pattern.validate(&path) {
-                return fetch.load_bytes(reference, path, storage);
+                return fetch.load_bytes(path);
             }
         }
         Err(format!("Could not find route for asset: `{}`", path).into())
     }
 
     fn maintain(&mut self, storage: &mut World) -> Result<(), Box<dyn Error>> {
-        for (_, fetch) in &mut self.table {
+        for (_, fetch) in self
+            .table
+            .write()
+            .map_err(|error| format!("{}", error))?
+            .iter_mut()
+        {
             fetch.maintain(storage)?;
         }
         Ok(())

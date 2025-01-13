@@ -1,7 +1,7 @@
 use crate::{
     database::{
+        handle::{AssetDependency, AssetHandle},
         path::AssetPath,
-        reference::{AssetDependency, AssetRef},
     },
     fetch::{AssetAwaitsResolution, AssetBytesAreReadyToProcess},
     protocol::AssetProtocol,
@@ -21,12 +21,12 @@ impl AssetProtocol for GroupAssetProtocol {
 
     fn process_asset(
         &mut self,
-        reference: AssetRef,
+        handle: AssetHandle,
         storage: &mut World,
     ) -> Result<(), Box<dyn Error>> {
         let bytes = {
             let mut bytes =
-                storage.component_mut::<true, AssetBytesAreReadyToProcess>(reference.entity())?;
+                storage.component_mut::<true, AssetBytesAreReadyToProcess>(handle.entity())?;
             std::mem::take(&mut bytes.0)
         };
         let paths = std::str::from_utf8(&bytes)?
@@ -36,9 +36,9 @@ impl AssetProtocol for GroupAssetProtocol {
             .collect::<Vec<_>>();
         for path in &paths {
             let entity = storage.spawn((path.clone(), AssetAwaitsResolution))?;
-            storage.relate::<true, _>(AssetDependency, reference.entity(), entity)?;
+            storage.relate::<true, _>(AssetDependency, handle.entity(), entity)?;
         }
-        storage.insert(reference.entity(), (GroupAsset(paths),))?;
+        storage.insert(handle.entity(), (GroupAsset(paths),))?;
         Ok(())
     }
 }

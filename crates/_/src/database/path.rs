@@ -1,10 +1,15 @@
+use serde::{Deserialize, Serialize};
 use std::{borrow::Cow, fmt::Write, ops::Range};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(from = "String", into = "String")]
 pub struct AssetPath<'a> {
     content: Cow<'a, str>,
+    #[serde(skip)]
     protocol: Range<usize>,
+    #[serde(skip)]
     path: Range<usize>,
+    #[serde(skip)]
     meta: Range<usize>,
 }
 
@@ -116,9 +121,15 @@ impl<'a> From<&'a str> for AssetPath<'a> {
     }
 }
 
-impl From<String> for AssetPath<'static> {
+impl From<String> for AssetPath<'_> {
     fn from(value: String) -> Self {
         Self::new(value)
+    }
+}
+
+impl From<AssetPath<'_>> for String {
+    fn from(val: AssetPath<'_>) -> Self {
+        val.content.into()
     }
 }
 

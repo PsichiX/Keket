@@ -1,4 +1,4 @@
-use crate::{database::reference::AssetRef, protocol::AssetProtocol};
+use crate::{database::handle::AssetHandle, protocol::AssetProtocol};
 use anput::world::World;
 use std::error::Error;
 
@@ -11,12 +11,12 @@ impl AssetProtocol for TextAssetProtocol {
 
     fn process_bytes(
         &mut self,
-        reference: AssetRef,
+        handle: AssetHandle,
         storage: &mut World,
         bytes: Vec<u8>,
     ) -> Result<(), Box<dyn Error>> {
         let text = std::str::from_utf8(&bytes)?.to_owned();
-        storage.insert(reference.entity(), (text,))?;
+        storage.insert(handle.entity(), (text,))?;
         Ok(())
     }
 }

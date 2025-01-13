@@ -1,8 +1,8 @@
 use crate::{
-    database::{path::AssetPath, reference::AssetRef},
+    database::path::AssetPath,
     fetch::{AssetBytesAreReadyToProcess, AssetFetch},
 };
-use anput::world::World;
+use anput::bundle::DynamicBundle;
 use std::{
     collections::{BTreeMap, HashMap},
     error::Error,
@@ -11,12 +11,7 @@ use std::{
 pub struct AssetFromCollection;
 
 impl AssetFetch for Vec<(String, Vec<u8>)> {
-    fn load_bytes(
-        &mut self,
-        reference: AssetRef,
-        path: AssetPath,
-        storage: &mut World,
-    ) -> Result<(), Box<dyn Error>> {
+    fn load_bytes(&self, path: AssetPath) -> Result<DynamicBundle, Box<dyn Error>> {
         let bytes = self
             .iter()
             .find(|(p, _)| p == path.path())
@@ -25,46 +20,39 @@ impl AssetFetch for Vec<(String, Vec<u8>)> {
             })?
             .1
             .clone();
-        let bundle = (AssetBytesAreReadyToProcess(bytes), AssetFromCollection);
-        storage.insert(reference.entity(), bundle)?;
-        Ok(())
+        let mut bundle = DynamicBundle::default();
+        let _ = bundle.add_component(AssetBytesAreReadyToProcess(bytes));
+        let _ = bundle.add_component(AssetFromCollection);
+        Ok(bundle)
     }
 }
 
 impl AssetFetch for HashMap<String, Vec<u8>> {
-    fn load_bytes(
-        &mut self,
-        reference: AssetRef,
-        path: AssetPath,
-        storage: &mut World,
-    ) -> Result<(), Box<dyn Error>> {
+    fn load_bytes(&self, path: AssetPath) -> Result<DynamicBundle, Box<dyn Error>> {
         let bytes = self
             .get(path.path())
             .ok_or_else(|| -> Box<dyn Error> {
                 format!("Missing map key: `{}`", path.path()).into()
             })
             .cloned()?;
-        let bundle = (AssetBytesAreReadyToProcess(bytes), AssetFromCollection);
-        storage.insert(reference.entity(), bundle)?;
-        Ok(())
+        let mut bundle = DynamicBundle::default();
+        let _ = bundle.add_component(AssetBytesAreReadyToProcess(bytes));
+        let _ = bundle.add_component(AssetFromCollection);
+        Ok(bundle)
     }
 }
 
 impl AssetFetch for BTreeMap<String, Vec<u8>> {
-    fn load_bytes(
-        &mut self,
-        reference: AssetRef,
-        path: AssetPath,
-        storage: &mut World,
-    ) -> Result<(), Box<dyn Error>> {
+    fn load_bytes(&self, path: AssetPath) -> Result<DynamicBundle, Box<dyn Error>> {
         let bytes = self
             .get(path.path())
             .ok_or_else(|| -> Box<dyn Error> {
                 format!("Missing map key: `{}`", path.path()).into()
             })
             .cloned()?;
-        let bundle = (AssetBytesAreReadyToProcess(bytes), AssetFromCollection);
-        storage.insert(reference.entity(), bundle)?;
-        Ok(())
+        let mut bundle = DynamicBundle::default();
+        let _ = bundle.add_component(AssetBytesAreReadyToProcess(bytes));
+        let _ = bundle.add_component(AssetFromCollection);
+        Ok(bundle)
     }
 }

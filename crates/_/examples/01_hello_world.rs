@@ -36,7 +36,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         // Asset fetch tells how to get bytes from specific source.
         .with_fetch(FileAssetFetch::default().with_root("resources"));
 
-    // Ensure method either gives existing asset ref or loads if not existent.
+    // Ensure method either gives existing asset handle or loads if not existent.
     let lorem = database.ensure("text://lorem.txt")?;
     // Accessing component(s) of asset entry.
     // Assets can store multiple data associated to them, consider them meta data.

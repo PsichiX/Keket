@@ -1,4 +1,4 @@
-use crate::{database::reference::AssetRef, protocol::AssetProtocol};
+use crate::{database::handle::AssetHandle, protocol::AssetProtocol};
 use anput::world::World;
 use std::error::Error;
 
@@ -11,11 +11,11 @@ impl AssetProtocol for BytesAssetProtocol {
 
     fn process_bytes(
         &mut self,
-        reference: AssetRef,
+        handle: AssetHandle,
         storage: &mut World,
         bytes: Vec<u8>,
     ) -> Result<(), Box<dyn Error>> {
-        storage.insert(reference.entity(), (bytes,))?;
+        storage.insert(handle.entity(), (bytes,))?;
         Ok(())
     }
 }

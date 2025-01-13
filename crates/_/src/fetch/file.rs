@@ -1,9 +1,9 @@
 use crate::{
-    database::{path::AssetPath, reference::AssetRef},
-    fetch::{deferred::DeferredAssetJob, AssetBytesAreReadyToProcess, AssetFetch},
+    database::path::AssetPath,
+    fetch::{AssetBytesAreReadyToProcess, AssetFetch},
 };
-use anput::world::World;
-use std::{error::Error, fs::Metadata, path::PathBuf};
+use anput::bundle::DynamicBundle;
+use std::{error::Error, path::PathBuf};
 
 pub struct AssetFromFile;
 
@@ -20,46 +20,15 @@ impl FileAssetFetch {
 }
 
 impl AssetFetch for FileAssetFetch {
-    fn load_bytes(
-        &mut self,
-        reference: AssetRef,
-        path: AssetPath,
-        storage: &mut World,
-    ) -> Result<(), Box<dyn Error>> {
+    fn load_bytes(&self, path: AssetPath) -> Result<DynamicBundle, Box<dyn Error>> {
         let file_path = self.root.join(path.path());
         let bytes = std::fs::read(&file_path)
             .map_err(|error| format!("Failed to load `{:?}` file bytes: {}", file_path, error))?;
-        let bundle = (
-            AssetBytesAreReadyToProcess(bytes),
-            AssetFromFile,
-            std::fs::metadata(&file_path)?,
-            file_path,
-        );
-        storage.insert(reference.entity(), bundle)?;
-        Ok(())
-    }
-}
-
-impl DeferredAssetJob for FileAssetFetch {
-    type Result = (
-        AssetBytesAreReadyToProcess,
-        AssetFromFile,
-        Metadata,
-        PathBuf,
-    );
-
-    fn execute(&self, path: AssetPath) -> Result<Self::Result, String> {
-        let file_path = self.root.join(path.path());
-        let bytes = std::fs::read(&file_path)
-            .map_err(|error| format!("Failed to load `{:?}` file bytes: {}", file_path, error))?;
-        let metadata = std::fs::metadata(&file_path).map_err(|error| {
-            format!("Failed to read `{:?}` file metadata: {}", file_path, error)
-        })?;
-        Ok((
-            AssetBytesAreReadyToProcess(bytes),
-            AssetFromFile,
-            metadata,
-            file_path,
-        ))
+        let mut bundle = DynamicBundle::default();
+        let _ = bundle.add_component(AssetBytesAreReadyToProcess(bytes));
+        let _ = bundle.add_component(AssetFromFile);
+        let _ = bundle.add_component(std::fs::metadata(&file_path)?);
+        let _ = bundle.add_component(file_path);
+        Ok(bundle)
     }
 }

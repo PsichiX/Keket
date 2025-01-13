@@ -1,8 +1,8 @@
 use crate::{
-    database::{path::AssetPath, reference::AssetRef},
+    database::path::AssetPath,
     fetch::{file::FileAssetFetch, AssetAwaitsResolution, AssetFetch},
 };
-use anput::{entity::Entity, query::Update, world::World, TypeHash};
+use anput::{bundle::DynamicBundle, entity::Entity, query::Update, world::World, TypeHash};
 use notify::{Config, Event, PollWatcher, RecursiveMode, Result as NotifyResult, Watcher};
 use std::{
     error::Error,
@@ -33,13 +33,8 @@ impl HotReloadFileAssetFetch {
 }
 
 impl AssetFetch for HotReloadFileAssetFetch {
-    fn load_bytes(
-        &mut self,
-        reference: AssetRef,
-        path: AssetPath,
-        storage: &mut World,
-    ) -> Result<(), Box<dyn Error>> {
-        self.fetch.load_bytes(reference, path, storage)
+    fn load_bytes(&self, path: AssetPath) -> Result<DynamicBundle, Box<dyn Error>> {
+        self.fetch.load_bytes(path)
     }
 
     fn maintain(&mut self, storage: &mut World) -> Result<(), Box<dyn Error>> {

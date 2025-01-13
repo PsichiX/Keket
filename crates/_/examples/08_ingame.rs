@@ -1,6 +1,6 @@
 use anput::prelude::*;
 use keket::{
-    database::{path::AssetPath, reference::AssetRef, AssetDatabase},
+    database::{handle::AssetHandle, path::AssetPath, AssetDatabase},
     fetch::file::FileAssetFetch,
     protocol::bundle::BundleAssetProtocol,
 };
@@ -72,7 +72,7 @@ fn render_images(context: SystemContext) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub struct ImageRenderable(pub AssetRef);
+pub struct ImageRenderable(pub AssetHandle);
 
 impl ImageRenderable {
     pub fn bundle(

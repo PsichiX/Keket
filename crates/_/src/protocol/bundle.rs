@@ -1,4 +1,4 @@
-use crate::{database::reference::AssetRef, protocol::AssetProtocol};
+use crate::{database::handle::AssetHandle, protocol::AssetProtocol};
 use anput::{bundle::Bundle, world::World};
 use std::error::Error;
 
@@ -27,12 +27,12 @@ impl<B: Bundle> AssetProtocol for BundleAssetProtocol<B> {
 
     fn process_bytes(
         &mut self,
-        reference: AssetRef,
+        handle: AssetHandle,
         storage: &mut World,
         bytes: Vec<u8>,
     ) -> Result<(), Box<dyn Error>> {
         let bundle = (self.processor)(bytes)?;
-        storage.insert(reference.entity(), bundle)?;
+        storage.insert(handle.entity(), bundle)?;
         Ok(())
     }
 }
