@@ -1,9 +1,12 @@
 use anput::prelude::*;
 use keket::{
-    database::{handle::AssetHandle, path::AssetPath, AssetDatabase},
+    database::{handle::AssetHandle, path::AssetPath, reference::AssetRef, AssetDatabase},
     fetch::file::FileAssetFetch,
-    protocol::bundle::BundleAssetProtocol,
+    protocol::bundle::{
+        BundleAssetProtocol, BundleWithDependencies, BundleWithDependenciesProcessor,
+    },
 };
+use serde::{Deserialize, Serialize};
 use std::{error::Error, io::stdin};
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -11,7 +14,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let game = GraphSchedulerQuickPlugin::<true, GamePlugin>::default()
         .resource(
             AssetDatabase::default()
-                .with_protocol(BundleAssetProtocol::new("image", TextImageAsset::decode))
+                .with_protocol(BundleAssetProtocol::new("image", TextImageAssetProtocol))
                 .with_fetch(FileAssetFetch::default().with_root("./resources/")),
         )
         .system(asset_database_maintain, "asset_database_maintain", ())
@@ -58,15 +61,21 @@ fn asset_database_maintain(context: SystemContext) -> Result<(), Box<dyn Error>>
 }
 
 fn render_images(context: SystemContext) -> Result<(), Box<dyn Error>> {
-    let (world, assets, query) = context.fetch::<(
+    let (world, mut assets, query) = context.fetch::<(
         &World,
-        Res<true, &AssetDatabase>,
+        Res<true, &mut AssetDatabase>,
         Query<true, &ImageRenderable>,
     )>()?;
 
     for image in query.query(world) {
-        let content = &image.0.access::<&TextImageAsset>(&assets).0;
-        println!("{}", content)
+        let path = image
+            .0
+            .access::<&TextImageAsset>(&assets)
+            .text_asset
+            .clone();
+        let asset = path.try_resolve(&mut assets)?;
+        let content = asset.access::<&String>();
+        println!("{}", content);
     }
 
     Ok(())
@@ -83,12 +92,23 @@ impl ImageRenderable {
     }
 }
 
-pub struct TextImageAsset(pub String);
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TextImageAsset {
+    pub text_asset: AssetRef,
+}
 
-impl TextImageAsset {
-    fn decode(bytes: Vec<u8>) -> Result<(Self,), Box<dyn Error>> {
+pub struct TextImageAssetProtocol;
+
+impl BundleWithDependenciesProcessor for TextImageAssetProtocol {
+    type Bundle = (TextImageAsset,);
+
+    fn process_bytes(
+        &mut self,
+        bytes: Vec<u8>,
+    ) -> Result<BundleWithDependencies<Self::Bundle>, Box<dyn Error>> {
         println!("Decoding text image");
-        let text = std::str::from_utf8(&bytes)?.to_owned();
-        Ok((Self(text),))
+        let asset = serde_json::from_slice::<TextImageAsset>(&bytes)?;
+        let path = asset.text_asset.path().clone().into_static();
+        Ok(BundleWithDependencies::new((asset,)).dependency(path))
     }
 }

@@ -21,7 +21,7 @@ impl RedbContainerPartialFetch {
 }
 
 impl ContainerPartialFetch for RedbContainerPartialFetch {
-    fn part(&mut self, path: AssetPath) -> Result<Vec<u8>, Box<dyn Error>> {
+    fn load_bytes(&mut self, path: AssetPath) -> Result<Vec<u8>, Box<dyn Error>> {
         let transaction = self.database.begin_read()?;
         let table_name = path.try_meta().unwrap_or(self.default_table_name.as_str());
         let table_definition = TableDefinition::<String, Vec<u8>>::new(table_name);

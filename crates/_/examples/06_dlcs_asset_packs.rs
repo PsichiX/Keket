@@ -49,7 +49,7 @@ impl ZipContainerPartialFetch {
 }
 
 impl ContainerPartialFetch for ZipContainerPartialFetch {
-    fn part(&mut self, path: AssetPath) -> Result<Vec<u8>, Box<dyn Error>> {
+    fn load_bytes(&mut self, path: AssetPath) -> Result<Vec<u8>, Box<dyn Error>> {
         let mut file = self
             .archive
             .by_name(path.path())

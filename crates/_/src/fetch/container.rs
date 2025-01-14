@@ -6,7 +6,16 @@ use anput::bundle::DynamicBundle;
 use std::{error::Error, sync::RwLock};
 
 pub trait ContainerPartialFetch: Send + Sync + 'static {
-    fn part(&mut self, path: AssetPath) -> Result<Vec<u8>, Box<dyn Error>>;
+    fn load_bytes(&mut self, path: AssetPath) -> Result<Vec<u8>, Box<dyn Error>>;
+}
+
+impl<F> ContainerPartialFetch for F
+where
+    F: FnMut(AssetPath) -> Result<Vec<u8>, Box<dyn Error>> + Send + Sync + 'static,
+{
+    fn load_bytes(&mut self, path: AssetPath) -> Result<Vec<u8>, Box<dyn Error>> {
+        self(path)
+    }
 }
 
 pub struct AssetFromContainer;
@@ -29,7 +38,7 @@ impl<Partial: ContainerPartialFetch> AssetFetch for ContainerAssetFetch<Partial>
             .partial
             .write()
             .map_err(|error| format!("{}", error))?
-            .part(path.clone())?;
+            .load_bytes(path.clone())?;
         let mut bundle = DynamicBundle::default();
         let _ = bundle.add_component(AssetBytesAreReadyToProcess(bytes));
         let _ = bundle.add_component(AssetFromContainer);

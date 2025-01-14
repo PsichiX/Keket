@@ -11,8 +11,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut database = AssetDatabase::default()
         .with_protocol(TextAssetProtocol)
         .with_protocol(BytesAssetProtocol)
-        .with_protocol(BundleAssetProtocol::new("json", |bytes| {
-            Ok((serde_json::from_slice::<Value>(&bytes)?,))
+        .with_protocol(BundleAssetProtocol::new("json", |bytes: Vec<u8>| {
+            Ok((serde_json::from_slice::<Value>(&bytes)?,).into())
         }))
         // HTTP asset fetch with root URL for assets.
         .with_fetch(DeferredAssetFetch::new(HttpAssetFetch::new(

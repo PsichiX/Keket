@@ -25,10 +25,16 @@ impl AssetFetch for FileAssetFetch {
         let bytes = std::fs::read(&file_path)
             .map_err(|error| format!("Failed to load `{:?}` file bytes: {}", file_path, error))?;
         let mut bundle = DynamicBundle::default();
-        let _ = bundle.add_component(AssetBytesAreReadyToProcess(bytes));
-        let _ = bundle.add_component(AssetFromFile);
-        let _ = bundle.add_component(std::fs::metadata(&file_path)?);
-        let _ = bundle.add_component(file_path);
+        bundle
+            .add_component(AssetBytesAreReadyToProcess(bytes))
+            .ok()
+            .unwrap();
+        bundle.add_component(AssetFromFile).ok().unwrap();
+        bundle
+            .add_component(std::fs::metadata(&file_path)?)
+            .ok()
+            .unwrap();
+        bundle.add_component(file_path).ok().unwrap();
         Ok(bundle)
     }
 }

@@ -15,9 +15,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut database = AssetDatabase::default()
         .with_protocol(TextAssetProtocol)
         .with_protocol(BytesAssetProtocol)
-        .with_protocol(BundleAssetProtocol::new("json", |bytes| {
-            Ok((serde_json::from_slice::<Value>(&bytes)?,))
+        .with_protocol(BundleAssetProtocol::new("json", |bytes: Vec<u8>| {
+            Ok((serde_json::from_slice::<Value>(&bytes)?,).into())
         }))
+        // Group asset protocol stores paths to other assets that gets scheduled
+        // for loading when group loads.
         .with_protocol(GroupAssetProtocol)
         .with_fetch(FileAssetFetch::default().with_root("resources"));
 

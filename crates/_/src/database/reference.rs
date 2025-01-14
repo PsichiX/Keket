@@ -3,7 +3,7 @@ use anput::{bundle::Bundle, component::Component, entity::Entity, query::TypedLo
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(from = "AssetPath", into = "AssetPath")]
 pub struct AssetRef {
     path: AssetPath<'static>,
@@ -32,32 +32,28 @@ impl AssetRef {
     }
 
     pub fn resolve<'a>(
-        &'a mut self,
+        &mut self,
         database: &'a mut AssetDatabase,
-    ) -> Result<AssetResolvedMut<'a>, Box<dyn Error>> {
+    ) -> Result<AssetResolved<'a>, Box<dyn Error>> {
         if let Some(handle) = self.handle {
-            Ok(AssetResolvedMut { handle, database })
+            Ok(AssetResolved { handle, database })
         } else {
             let handle = database.ensure(self.path.clone())?;
             self.handle = Some(handle);
-            Ok(AssetResolvedMut { handle, database })
+            Ok(AssetResolved { handle, database })
         }
     }
 
-    pub fn resolve_temp<'a>(
-        &'a self,
+    pub fn try_resolve<'a>(
+        &self,
         database: &'a mut AssetDatabase,
-    ) -> Result<AssetResolvedMut<'a>, Box<dyn Error>> {
+    ) -> Result<AssetResolved<'a>, Box<dyn Error>> {
         if let Some(handle) = self.handle {
-            Ok(AssetResolvedMut { handle, database })
+            Ok(AssetResolved { handle, database })
         } else {
             let handle = database.ensure(self.path.clone())?;
-            Ok(AssetResolvedMut { handle, database })
+            Ok(AssetResolved { handle, database })
         }
-    }
-
-    pub fn resolved<'a>(&self, database: &'a AssetDatabase) -> Option<AssetResolved<'a>> {
-        self.handle.map(|handle| AssetResolved { handle, database })
     }
 }
 
@@ -75,7 +71,7 @@ impl From<AssetRef> for AssetPath<'static> {
 
 pub struct AssetResolved<'a> {
     handle: AssetHandle,
-    database: &'a AssetDatabase,
+    database: &'a mut AssetDatabase,
 }
 
 impl AssetResolved<'_> {
@@ -109,20 +105,6 @@ impl AssetResolved<'_> {
 
     pub fn access<'b, Fetch: TypedLookupFetch<'b, true>>(&'b self) -> Fetch::Value {
         self.handle.access::<Fetch>(self.database)
-    }
-}
-
-pub struct AssetResolvedMut<'a> {
-    handle: AssetHandle,
-    database: &'a mut AssetDatabase,
-}
-
-impl AssetResolvedMut<'_> {
-    pub fn immutable(&self) -> AssetResolved {
-        AssetResolved {
-            handle: self.handle,
-            database: self.database,
-        }
     }
 
     pub fn delete(&mut self) {

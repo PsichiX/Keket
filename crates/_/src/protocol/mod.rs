@@ -1,6 +1,5 @@
 pub mod bundle;
 pub mod bytes;
-pub mod closure;
 pub mod group;
 pub mod text;
 

@@ -97,7 +97,8 @@ impl AssetDatabase {
             return Ok(AssetHandle::new(entity));
         }
         if let Some(fetch) = self.fetch_stack.last_mut() {
-            let handle = AssetHandle::new(self.storage.spawn((path.clone(),))?);
+            let entity = self.storage.spawn((path.clone(),))?;
+            let handle = AssetHandle::new(entity);
             fetch.load_bytes(handle, path.clone(), &mut self.storage)?;
             if handle.bytes_are_ready_to_process(self) {
                 let Some(protocol) = self
@@ -105,6 +106,7 @@ impl AssetDatabase {
                     .iter_mut()
                     .find(|protocol| protocol.name() == path.protocol())
                 else {
+                    handle.delete(self);
                     return Err(format!("Missing protocol for asset: `{}`", path).into());
                 };
                 protocol.process_asset(handle, &mut self.storage)?;

@@ -9,6 +9,8 @@ use zip::ZipArchive;
 fn main() -> Result<(), Box<dyn Error>> {
     let mut database = AssetDatabase::default()
         .with_protocol(TextAssetProtocol)
+        // Container asset fetch allows to use partial asset fetch object
+        // that can take asset path and returns bytes from some container.
         .with_fetch(ContainerAssetFetch::new(ZipContainerPartialFetch::new(
             ZipArchive::new(File::open("./resources/package.zip")?)?,
         )));
@@ -19,6 +21,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+// Here we show how to make ZIP archive file reader.
 struct ZipContainerPartialFetch {
     archive: ZipArchive<File>,
 }
@@ -30,7 +33,8 @@ impl ZipContainerPartialFetch {
 }
 
 impl ContainerPartialFetch for ZipContainerPartialFetch {
-    fn part(&mut self, path: AssetPath) -> Result<Vec<u8>, Box<dyn Error>> {
+    // We use input path and try to unpack file under that path from ZIP archive.
+    fn load_bytes(&mut self, path: AssetPath) -> Result<Vec<u8>, Box<dyn Error>> {
         let mut file = self
             .archive
             .by_name(path.path())
