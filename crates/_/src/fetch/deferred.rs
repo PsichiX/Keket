@@ -1,4 +1,7 @@
-use crate::{database::path::AssetPath, fetch::AssetFetch};
+use crate::{
+    database::path::{AssetPath, AssetPathStatic},
+    fetch::AssetFetch,
+};
 use anput::{bundle::DynamicBundle, world::World};
 use std::{
     error::Error,
@@ -11,12 +14,7 @@ pub struct AssetAwaitsDeferredJob;
 pub struct DeferredAssetFetch<Fetch: AssetFetch> {
     fetch: Arc<Fetch>,
     #[allow(clippy::type_complexity)]
-    tasks: RwLock<
-        Vec<(
-            AssetPath<'static>,
-            JoinHandle<Result<DynamicBundle, String>>,
-        )>,
-    >,
+    tasks: RwLock<Vec<(AssetPathStatic, JoinHandle<Result<DynamicBundle, String>>)>>,
 }
 
 impl<Fetch: AssetFetch> DeferredAssetFetch<Fetch> {

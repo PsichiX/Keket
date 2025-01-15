@@ -1,7 +1,7 @@
 use crate::{
     database::{
         handle::{AssetDependency, AssetHandle},
-        path::AssetPath,
+        path::AssetPathStatic,
     },
     fetch::AssetAwaitsResolution,
     protocol::AssetProtocol,
@@ -11,7 +11,7 @@ use std::error::Error;
 
 pub struct BundleWithDependencies<B: Bundle> {
     pub bundle: B,
-    pub dependencies: Vec<AssetPath<'static>>,
+    pub dependencies: Vec<AssetPathStatic>,
 }
 
 impl<B: Bundle> BundleWithDependencies<B> {
@@ -22,12 +22,19 @@ impl<B: Bundle> BundleWithDependencies<B> {
         }
     }
 
-    pub fn dependency(mut self, path: impl Into<AssetPath<'static>>) -> Self {
+    pub fn dependency(mut self, path: impl Into<AssetPathStatic>) -> Self {
         self.dependencies.push(path.into());
         self
     }
 
-    pub fn dependencies(mut self, paths: impl IntoIterator<Item = AssetPath<'static>>) -> Self {
+    pub fn maybe_dependency(mut self, path: Option<impl Into<AssetPathStatic>>) -> Self {
+        if let Some(path) = path {
+            self.dependencies.push(path.into());
+        }
+        self
+    }
+
+    pub fn dependencies(mut self, paths: impl IntoIterator<Item = AssetPathStatic>) -> Self {
         self.dependencies.extend(paths);
         self
     }
@@ -42,8 +49,8 @@ impl<B: Bundle> From<B> for BundleWithDependencies<B> {
     }
 }
 
-impl<B: Bundle> From<(B, Vec<AssetPath<'static>>)> for BundleWithDependencies<B> {
-    fn from((bundle, dependencies): (B, Vec<AssetPath<'static>>)) -> Self {
+impl<B: Bundle> From<(B, Vec<AssetPathStatic>)> for BundleWithDependencies<B> {
+    fn from((bundle, dependencies): (B, Vec<AssetPathStatic>)) -> Self {
         Self {
             bundle,
             dependencies,

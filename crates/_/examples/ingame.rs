@@ -1,6 +1,6 @@
 use anput::prelude::*;
 use keket::{
-    database::{handle::AssetHandle, path::AssetPath, AssetDatabase},
+    database::{handle::AssetHandle, path::AssetPathStatic, AssetDatabase},
     fetch::file::FileAssetFetch,
     protocol::text::TextAssetProtocol,
 };
@@ -76,10 +76,10 @@ pub struct ImageRenderable(pub AssetHandle);
 
 impl ImageRenderable {
     pub fn bundle(
-        path: impl Into<AssetPath<'static>>,
+        path: impl Into<AssetPathStatic>,
         database: &mut AssetDatabase,
     ) -> Result<(Self,), Box<dyn Error>> {
-        let handle = path.into().resolve(database)?;
+        let handle = path.into().ensure(database)?;
         Ok((Self(handle),))
     }
 }

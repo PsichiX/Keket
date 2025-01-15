@@ -2,6 +2,8 @@ use crate::database::{handle::AssetHandle, AssetDatabase};
 use serde::{Deserialize, Serialize};
 use std::{borrow::Cow, error::Error, fmt::Write, ops::Range};
 
+pub type AssetPathStatic = AssetPath<'static>;
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(from = "String", into = "String")]
 pub struct AssetPath<'a> {
@@ -47,7 +49,7 @@ impl<'a> AssetPath<'a> {
         Self::new(result)
     }
 
-    pub fn into_static(self) -> AssetPath<'static> {
+    pub fn into_static(self) -> AssetPathStatic {
         AssetPath {
             content: Cow::Owned(self.content.into_owned()),
             protocol: self.protocol,
@@ -102,8 +104,12 @@ impl<'a> AssetPath<'a> {
         &self.content[self.path.start..self.meta.end]
     }
 
-    pub fn resolve(&self, database: &mut AssetDatabase) -> Result<AssetHandle, Box<dyn Error>> {
+    pub fn ensure(&self, database: &mut AssetDatabase) -> Result<AssetHandle, Box<dyn Error>> {
         database.ensure(self.clone().into_static())
+    }
+
+    pub fn find(&self, database: &AssetDatabase) -> Option<AssetHandle> {
+        database.find(self.clone().into_static())
     }
 }
 

@@ -4,7 +4,7 @@ pub mod path;
 use crate::{
     database::{
         handle::{AssetDependency, AssetHandle},
-        path::AssetPath,
+        path::{AssetPath, AssetPathStatic},
     },
     fetch::{
         deferred::AssetAwaitsDeferredJob, AssetAwaitsResolution, AssetBytesAreReadyToProcess,
@@ -72,14 +72,14 @@ impl AssetDatabase {
             .map(|index| self.protocols.remove(index))
     }
 
-    pub fn find(&self, path: impl Into<AssetPath<'static>>) -> Option<AssetHandle> {
+    pub fn find(&self, path: impl Into<AssetPathStatic>) -> Option<AssetHandle> {
         let path = path.into();
         self.storage.find_by::<true, _>(&path).map(AssetHandle::new)
     }
 
     pub fn schedule(
         &mut self,
-        path: impl Into<AssetPath<'static>>,
+        path: impl Into<AssetPathStatic>,
     ) -> Result<AssetHandle, Box<dyn Error>> {
         let path = path.into();
         Ok(AssetHandle::new(
@@ -89,7 +89,7 @@ impl AssetDatabase {
 
     pub fn ensure(
         &mut self,
-        path: impl Into<AssetPath<'static>>,
+        path: impl Into<AssetPathStatic>,
     ) -> Result<AssetHandle, Box<dyn Error>> {
         let path = path.into();
         if let Some(entity) = self.storage.find_by::<true, _>(&path) {
@@ -131,7 +131,7 @@ impl AssetDatabase {
 
     pub fn reload(
         &mut self,
-        path: impl Into<AssetPath<'static>>,
+        path: impl Into<AssetPathStatic>,
     ) -> Result<AssetHandle, Box<dyn Error>> {
         let path = path.into();
         self.unload(path.clone());
