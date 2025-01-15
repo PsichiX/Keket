@@ -1,5 +1,6 @@
+use crate::database::{handle::AssetHandle, AssetDatabase};
 use serde::{Deserialize, Serialize};
-use std::{borrow::Cow, fmt::Write, ops::Range};
+use std::{borrow::Cow, error::Error, fmt::Write, ops::Range};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(from = "String", into = "String")]
@@ -99,6 +100,10 @@ impl<'a> AssetPath<'a> {
 
     pub fn path_with_meta(&self) -> &str {
         &self.content[self.path.start..self.meta.end]
+    }
+
+    pub fn resolve(&self, database: &mut AssetDatabase) -> Result<AssetHandle, Box<dyn Error>> {
+        database.ensure(self.clone().into_static())
     }
 }
 

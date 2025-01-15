@@ -2,7 +2,10 @@ use crate::{
     database::path::AssetPath,
     fetch::{file::FileAssetFetch, AssetAwaitsResolution, AssetFetch},
 };
-use anput::{bundle::DynamicBundle, entity::Entity, query::Update, world::World, TypeHash};
+use anput::{
+    bundle::DynamicBundle, entity::Entity, query::Update,
+    third_party::intuicio_data::prelude::TypeHash, world::World,
+};
 use notify::{Config, Event, PollWatcher, RecursiveMode, Result as NotifyResult, Watcher};
 use std::{
     error::Error,
