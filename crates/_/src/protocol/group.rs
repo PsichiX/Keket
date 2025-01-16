@@ -29,6 +29,7 @@ impl AssetProtocol for GroupAssetProtocol {
                 storage.component_mut::<true, AssetBytesAreReadyToProcess>(handle.entity())?;
             std::mem::take(&mut bytes.0)
         };
+        storage.remove::<(AssetBytesAreReadyToProcess,)>(handle.entity())?;
         for line in std::str::from_utf8(&bytes)?
             .lines()
             .filter(|line| !line.trim().is_empty())

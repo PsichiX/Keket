@@ -6,7 +6,11 @@ pub mod file;
 pub mod hotreload;
 pub mod router;
 
-use crate::database::{handle::AssetHandle, path::AssetPath};
+use crate::database::{
+    events::{AssetEvent, AssetEventBindings, AssetEventKind},
+    handle::AssetHandle,
+    path::AssetPath,
+};
 use anput::{bundle::DynamicBundle, world::World};
 use std::error::Error;
 
@@ -45,7 +49,18 @@ impl AssetFetchEngine {
         path: AssetPath,
         storage: &mut World,
     ) -> Result<(), Box<dyn Error>> {
-        storage.insert(handle.entity(), self.fetch.load_bytes(path)?)?;
+        let result = self.fetch.load_bytes(path);
+        if result.is_err() {
+            if let Ok(mut bindings) =
+                storage.component_mut::<true, AssetEventBindings>(handle.entity())
+            {
+                bindings.dispatch(AssetEvent {
+                    handle,
+                    kind: AssetEventKind::BytesFetchingFailed,
+                })?;
+            }
+        }
+        storage.insert(handle.entity(), result?)?;
         Ok(())
     }
 

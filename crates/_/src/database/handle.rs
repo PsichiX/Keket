@@ -7,14 +7,14 @@ use anput::{
     bundle::Bundle,
     component::Component,
     entity::Entity,
-    prelude::{Command, WorldDestroyIteratorExt},
+    prelude::{Command, ComponentRefMut, WorldDestroyIteratorExt},
     query::{Exclude, Include, QueryError, TypedLookupFetch, TypedQueryFetch},
 };
 use std::error::Error;
 
 pub struct AssetDependency;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AssetHandle {
     entity: Entity,
 }
@@ -92,6 +92,16 @@ impl AssetHandle {
         drop(component);
         database.storage.remove::<(T,)>(self.entity)?;
         Ok(result)
+    }
+
+    pub fn ensure<T: Component + Default>(
+        self,
+        database: &mut AssetDatabase,
+    ) -> Result<ComponentRefMut<true, T>, Box<dyn Error>> {
+        if !database.storage.has_entity_component::<T>(self.entity) {
+            database.storage.insert(self.entity, (T::default(),))?;
+        }
+        Ok(database.storage.component_mut::<true, T>(self.entity)?)
     }
 
     pub fn access_checked<'a, Fetch: TypedLookupFetch<'a, true>>(

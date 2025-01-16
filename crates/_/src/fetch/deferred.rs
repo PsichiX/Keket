@@ -11,6 +11,7 @@ use std::{
 
 pub struct AssetAwaitsDeferredJob;
 
+// TODO: refactor to use worker threads with tasks queued to execution on worker threads.
 pub struct DeferredAssetFetch<Fetch: AssetFetch> {
     fetch: Arc<Fetch>,
     #[allow(clippy::type_complexity)]

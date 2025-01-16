@@ -3,11 +3,8 @@ pub mod bytes;
 pub mod group;
 pub mod text;
 
-use crate::{
-    database::{handle::AssetHandle, path::AssetPath},
-    fetch::AssetBytesAreReadyToProcess,
-};
-use anput::{entity::Entity, query::Include, world::World};
+use crate::{database::handle::AssetHandle, fetch::AssetBytesAreReadyToProcess};
+use anput::world::World;
 use std::error::Error;
 
 pub trait AssetProtocol: Send + Sync {
@@ -35,17 +32,5 @@ pub trait AssetProtocol: Send + Sync {
         };
         storage.remove::<(AssetBytesAreReadyToProcess,)>(handle.entity())?;
         self.process_bytes(handle, storage, bytes)
-    }
-
-    fn process_assets(&mut self, storage: &mut World) -> Result<(), Box<dyn Error>> {
-        let to_process = storage
-            .query::<true, (Entity, &AssetPath, Include<AssetBytesAreReadyToProcess>)>()
-            .filter(|(_, path, _)| path.protocol() == self.name())
-            .map(|(entity, _, _)| AssetHandle::new(entity))
-            .collect::<Vec<_>>();
-        for handle in to_process {
-            self.process_asset(handle, storage)?;
-        }
-        Ok(())
     }
 }

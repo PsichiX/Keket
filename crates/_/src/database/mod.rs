@@ -1,8 +1,12 @@
+pub mod events;
 pub mod handle;
 pub mod path;
+pub mod reference;
+pub mod tags;
 
 use crate::{
     database::{
+        events::{AssetEvent, AssetEventBindings, AssetEventKind},
         handle::{AssetDependency, AssetHandle},
         path::{AssetPath, AssetPathStatic},
     },
@@ -16,11 +20,13 @@ use anput::{
     commands::Command, database::WorldDestroyIteratorExt, entity::Entity, query::Include,
     world::World,
 };
-use std::{borrow::Cow, collections::HashSet, error::Error};
+use std::error::Error;
 
 #[derive(Default)]
 pub struct AssetDatabase {
     pub storage: World,
+    pub events: AssetEventBindings,
+    pub allow_asset_progression_failures: bool,
     fetch_stack: Vec<AssetFetchEngine>,
     protocols: Vec<Box<dyn AssetProtocol>>,
 }
@@ -33,6 +39,11 @@ impl AssetDatabase {
 
     pub fn with_protocol(mut self, protocol: impl AssetProtocol + 'static) -> Self {
         self.add_protocol(protocol);
+        self
+    }
+
+    pub fn with_asset_progression_failures(mut self) -> Self {
+        self.allow_asset_progression_failures = true;
         self
     }
 
@@ -98,7 +109,10 @@ impl AssetDatabase {
         if let Some(fetch) = self.fetch_stack.last_mut() {
             let entity = self.storage.spawn((path.clone(),))?;
             let handle = AssetHandle::new(entity);
-            fetch.load_bytes(handle, path.clone(), &mut self.storage)?;
+            let status = fetch.load_bytes(handle, path.clone(), &mut self.storage);
+            if !self.allow_asset_progression_failures {
+                status?;
+            }
             if handle.bytes_are_ready_to_process(self) {
                 let Some(protocol) = self
                     .protocols
@@ -108,7 +122,21 @@ impl AssetDatabase {
                     handle.delete(self);
                     return Err(format!("Missing protocol for asset: `{}`", path).into());
                 };
-                protocol.process_asset(handle, &mut self.storage)?;
+                let status = protocol.process_asset(handle, &mut self.storage);
+                if status.is_err() {
+                    if let Ok(mut bindings) = self
+                        .storage
+                        .component_mut::<true, AssetEventBindings>(handle.entity())
+                    {
+                        bindings.dispatch(AssetEvent {
+                            handle,
+                            kind: AssetEventKind::BytesProcessingFailed,
+                        })?;
+                    }
+                }
+                if !self.allow_asset_progression_failures {
+                    status?;
+                }
             }
             Ok(handle)
         } else {
@@ -175,12 +203,101 @@ impl AssetDatabase {
     }
 
     pub fn maintain(&mut self) -> Result<(), Box<dyn Error>> {
+        {
+            let mut lookup = self
+                .storage
+                .lookup_access::<true, &mut AssetEventBindings>();
+            for entity in self.storage.added().iter_of::<AssetAwaitsResolution>() {
+                let event = AssetEvent {
+                    handle: AssetHandle::new(entity),
+                    kind: AssetEventKind::AwaitsResolution,
+                };
+                self.events.dispatch(event)?;
+                if let Some(bindings) = lookup.access(entity) {
+                    bindings.dispatch(event)?;
+                }
+            }
+            for entity in self.storage.added().iter_of::<AssetAwaitsDeferredJob>() {
+                let event = AssetEvent {
+                    handle: AssetHandle::new(entity),
+                    kind: AssetEventKind::AwaitsDeferredJob,
+                };
+                self.events.dispatch(event)?;
+                if let Some(bindings) = lookup.access(entity) {
+                    bindings.dispatch(event)?;
+                }
+            }
+            for entity in self
+                .storage
+                .added()
+                .iter_of::<AssetBytesAreReadyToProcess>()
+            {
+                let event = AssetEvent {
+                    handle: AssetHandle::new(entity),
+                    kind: AssetEventKind::BytesReadyToProcess,
+                };
+                self.events.dispatch(event)?;
+                if let Some(bindings) = lookup.access(entity) {
+                    bindings.dispatch(event)?;
+                }
+            }
+            for entity in self
+                .storage
+                .removed()
+                .iter_of::<AssetBytesAreReadyToProcess>()
+            {
+                let handle = AssetHandle::new(entity);
+                if handle.is_ready_to_use(self) {
+                    continue;
+                }
+                let event = AssetEvent {
+                    handle,
+                    kind: AssetEventKind::BytesProcessed,
+                };
+                self.events.dispatch(event)?;
+                if let Some(bindings) = lookup.access(entity) {
+                    bindings.dispatch(event)?;
+                }
+            }
+            for entity in self.storage.removed().iter_of::<AssetPathStatic>() {
+                let event = AssetEvent {
+                    handle: AssetHandle::new(entity),
+                    kind: AssetEventKind::Unloaded,
+                };
+                self.events.dispatch(event)?;
+                if let Some(bindings) = lookup.access(entity) {
+                    bindings.dispatch(event)?;
+                }
+            }
+        }
         self.storage.clear_changes();
         for fetch in &mut self.fetch_stack {
             fetch.maintain(&mut self.storage)?;
         }
         for protocol in &mut self.protocols {
-            protocol.process_assets(&mut self.storage)?;
+            let to_process = self
+                .storage
+                .query::<true, (Entity, &AssetPath, Include<AssetBytesAreReadyToProcess>)>()
+                .filter(|(_, path, _)| path.protocol() == protocol.name())
+                .map(|(entity, _, _)| AssetHandle::new(entity))
+                .collect::<Vec<_>>();
+            for handle in to_process {
+                let status = protocol.process_asset(handle, &mut self.storage);
+                if status.is_err() {
+                    if let Ok(mut bindings) = self
+                        .storage
+                        .component_mut::<true, AssetEventBindings>(handle.entity())
+                    {
+                        bindings.dispatch(AssetEvent {
+                            handle,
+                            kind: AssetEventKind::BytesProcessingFailed,
+                        })?;
+                    }
+                }
+                if !self.allow_asset_progression_failures {
+                    status?;
+                }
+            }
         }
         let to_resolve = self
             .storage
@@ -189,7 +306,10 @@ impl AssetDatabase {
             .collect::<Vec<_>>();
         for (handle, path) in to_resolve {
             if let Some(fetch) = self.fetch_stack.last_mut() {
-                fetch.load_bytes(handle, path.clone(), &mut self.storage)?;
+                let status = fetch.load_bytes(handle, path.clone(), &mut self.storage);
+                if !self.allow_asset_progression_failures {
+                    status?;
+                }
                 if handle.bytes_are_ready_to_process(self) {
                     let Some(protocol) = self
                         .protocols
@@ -198,7 +318,21 @@ impl AssetDatabase {
                     else {
                         return Err(format!("Missing protocol for asset: `{}`", path).into());
                     };
-                    protocol.process_asset(handle, &mut self.storage)?;
+                    let status = protocol.process_asset(handle, &mut self.storage);
+                    if status.is_err() {
+                        if let Ok(mut bindings) = self
+                            .storage
+                            .component_mut::<true, AssetEventBindings>(handle.entity())
+                        {
+                            bindings.dispatch(AssetEvent {
+                                handle,
+                                kind: AssetEventKind::BytesProcessingFailed,
+                            })?;
+                        }
+                    }
+                    if !self.allow_asset_progression_failures {
+                        status?;
+                    }
                 }
                 self.storage
                     .remove::<(AssetAwaitsResolution,)>(handle.entity())?;
@@ -207,71 +341,5 @@ impl AssetDatabase {
             }
         }
         Ok(())
-    }
-}
-
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct AssetTags {
-    tags: HashSet<Cow<'static, str>>,
-}
-
-impl AssetTags {
-    pub fn new(tag: impl Into<Cow<'static, str>>) -> Self {
-        let mut tags = HashSet::with_capacity(1);
-        tags.insert(tag.into());
-        Self { tags }
-    }
-
-    pub fn with(mut self, tag: impl Into<Cow<'static, str>>) -> Self {
-        self.add(tag);
-        self
-    }
-
-    pub fn len(&self) -> usize {
-        self.tags.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.tags.is_empty()
-    }
-
-    pub fn has(&mut self, tag: &str) {
-        self.tags.contains(tag);
-    }
-
-    pub fn add(&mut self, tag: impl Into<Cow<'static, str>>) {
-        self.tags.insert(tag.into());
-    }
-
-    pub fn remove(&mut self, tag: &str) {
-        self.tags.remove(tag);
-    }
-
-    pub fn iter(&self) -> impl Iterator<Item = &str> + '_ {
-        self.tags.iter().map(|tag| tag.as_ref())
-    }
-
-    pub fn is_subset_of(&self, other: &Self) -> bool {
-        self.tags.is_subset(&other.tags)
-    }
-
-    pub fn is_superset_of(&self, other: &Self) -> bool {
-        self.tags.is_superset(&other.tags)
-    }
-
-    pub fn intersection(&self, other: &Self) -> Self {
-        self.tags.intersection(&other.tags).cloned().collect()
-    }
-
-    pub fn union(&self, other: &Self) -> Self {
-        self.tags.union(&other.tags).cloned().collect()
-    }
-}
-
-impl FromIterator<Cow<'static, str>> for AssetTags {
-    fn from_iter<T: IntoIterator<Item = Cow<'static, str>>>(iter: T) -> Self {
-        Self {
-            tags: iter.into_iter().collect(),
-        }
     }
 }

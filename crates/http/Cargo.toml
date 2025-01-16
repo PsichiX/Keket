@@ -1,6 +1,6 @@
 [package]
 name = "keket-http"
-version = "0.9.0"
+version = "0.10.0"
 edition = "2021"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 description = "HTTP asset fetch for Keket toolkit"
@@ -11,7 +11,7 @@ documentation = "https://docs.rs/keket-http"
 readme = "../../README.md"
 
 [dependencies]
-keket = { version = "0.9", path = "../_" }
+keket = { version = "0.10", path = "../_" }
 reqwest = { version = "0.12", features = ["blocking"] }
 
 [dev-dependencies]

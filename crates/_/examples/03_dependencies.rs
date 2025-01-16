@@ -26,7 +26,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let group = database.ensure("group://group.txt")?;
     println!("Group: {:#?}", group.access::<&GroupAsset>(&database));
 
-    database.maintain()?;
+    while database.is_busy() {
+        database.maintain()?;
+    }
 
     let lorem = database.ensure("text://lorem.txt")?;
     println!("Lorem Ipsum: {}", lorem.access::<&String>(&database));

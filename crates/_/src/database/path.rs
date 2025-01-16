@@ -1,6 +1,12 @@
 use crate::database::{handle::AssetHandle, AssetDatabase};
 use serde::{Deserialize, Serialize};
-use std::{borrow::Cow, error::Error, fmt::Write, ops::Range};
+use std::{
+    borrow::Cow,
+    error::Error,
+    fmt::Write,
+    hash::{Hash, Hasher},
+    ops::Range,
+};
 
 pub type AssetPathStatic = AssetPath<'static>;
 
@@ -104,12 +110,22 @@ impl<'a> AssetPath<'a> {
         &self.content[self.path.start..self.meta.end]
     }
 
+    pub fn schedule(&self, database: &mut AssetDatabase) -> Result<AssetHandle, Box<dyn Error>> {
+        database.schedule(self.clone().into_static())
+    }
+
     pub fn ensure(&self, database: &mut AssetDatabase) -> Result<AssetHandle, Box<dyn Error>> {
         database.ensure(self.clone().into_static())
     }
 
     pub fn find(&self, database: &AssetDatabase) -> Option<AssetHandle> {
         database.find(self.clone().into_static())
+    }
+}
+
+impl Hash for AssetPath<'_> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.content.hash(state);
     }
 }
 
