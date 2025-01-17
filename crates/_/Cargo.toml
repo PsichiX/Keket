@@ -1,6 +1,6 @@
 [package]
 name = "keket"
-version = "0.11.0"
+version = "0.11.1"
 edition = "2021"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 description = "Database-like Asset management on top of ECS storage"
