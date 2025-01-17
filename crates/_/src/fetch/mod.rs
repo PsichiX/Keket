@@ -1,6 +1,7 @@
 pub mod collections;
 pub mod container;
 pub mod deferred;
+pub mod fallback;
 pub mod file;
 #[cfg(feature = "hotreload")]
 pub mod hotreload;
