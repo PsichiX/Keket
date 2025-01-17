@@ -8,6 +8,9 @@ use std::{
     error::Error,
 };
 
+/// A marker component added to bundles that represent assets loaded from a collection.
+/// The `AssetFromCollection` component serves as an indicator, though it doesn't hold data
+/// about the asset itself.
 pub struct AssetFromCollection;
 
 impl AssetFetch for Vec<(String, Vec<u8>)> {

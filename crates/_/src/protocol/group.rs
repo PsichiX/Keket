@@ -9,9 +9,15 @@ use crate::{
 use anput::world::World;
 use std::error::Error;
 
+/// Marker component for assets of the "group" type.
+///
+/// Group assets represent collections of other assets defined by a list of asset paths.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct GroupAsset;
 
+/// Protocol implementation for handling "group" assets.
+///
+/// A "group" asset is a collection of paths to other assets, usually defined in text form.
 pub struct GroupAssetProtocol;
 
 impl AssetProtocol for GroupAssetProtocol {

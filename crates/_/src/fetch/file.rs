@@ -5,14 +5,23 @@ use crate::{
 use anput::bundle::DynamicBundle;
 use std::{error::Error, path::PathBuf};
 
+/// Marker component for assets that originate from files.
 pub struct AssetFromFile;
 
+/// An implementation of the `AssetFetch` trait that loads assets from the file system.
 #[derive(Debug, Default, Clone)]
 pub struct FileAssetFetch {
     pub root: PathBuf,
 }
 
 impl FileAssetFetch {
+    /// Sets the root directory for file-based asset fetching.
+    ///
+    /// # Arguments
+    /// - `root`: The root path to set for fetching assets.
+    ///
+    /// # Returns
+    /// - A modified `FileAssetFetch` instance with the new root directory.
     pub fn with_root(mut self, root: impl Into<PathBuf>) -> Self {
         self.root = root.into();
         self

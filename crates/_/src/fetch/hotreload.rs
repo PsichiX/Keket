@@ -14,23 +14,35 @@ use std::{
         mpsc::{channel, Receiver},
         Mutex,
     },
+    time::Duration,
 };
 
+/// A file asset fetcher with hot reload capabilities.
+/// This fetcher watches a specified directory for file changes and reloads affected assets on modification.
 pub struct HotReloadFileAssetFetch {
     fetch: FileAssetFetch,
-    watcher: PollWatcher,
     rx: Mutex<Receiver<NotifyResult<Event>>>,
+    _watcher: PollWatcher,
 }
 
 impl HotReloadFileAssetFetch {
-    pub fn new(fetch: FileAssetFetch) -> Result<Self, Box<dyn Error>> {
+    /// Creates a new `HotReloadFileAssetFetch` with the specified file fetcher.
+    ///
+    /// # Arguments
+    /// - `fetch`: A `FileAssetFetch` that defines the root directory to watch and the logic for loading asset bytes.
+    ///
+    /// # Returns
+    /// - A new `HotReloadFileAssetFetch` instance if initialization succeeds.
+    /// - An error if the watcher fails to initialize.
+    pub fn new(fetch: FileAssetFetch, poll_interval: Duration) -> Result<Self, Box<dyn Error>> {
         let (tx, rx) = channel::<NotifyResult<Event>>();
-        let mut watcher = PollWatcher::new(tx, Config::default().with_manual_polling())?;
+        let mut watcher =
+            PollWatcher::new(tx, Config::default().with_poll_interval(poll_interval))?;
         watcher.watch(&fetch.root, RecursiveMode::Recursive)?;
         Ok(Self {
             fetch,
-            watcher,
             rx: Mutex::new(rx),
+            _watcher: watcher,
         })
     }
 }
@@ -41,7 +53,6 @@ impl AssetFetch for HotReloadFileAssetFetch {
     }
 
     fn maintain(&mut self, storage: &mut World) -> Result<(), Box<dyn Error>> {
-        self.watcher.poll()?;
         let rx = self.rx.lock().map_err(|error| format!("{}", error))?;
         while let Ok(Ok(event)) = rx.try_recv() {
             if event.kind.is_modify() {

@@ -5,12 +5,22 @@ use crate::{
 use anput::{bundle::DynamicBundle, world::World};
 use std::error::Error;
 
+/// A wrapper for `AssetFetch` implementations that provides fallback assets
+/// to use when fetching primary assets fails.
 pub struct FallbackAssetFetch<Fetch: AssetFetch> {
     fetch: Fetch,
+    /// A list of fallback asset paths to try if the primary fetch fails.
     pub assets: Vec<AssetPathStatic>,
 }
 
 impl<Fetch: AssetFetch> FallbackAssetFetch<Fetch> {
+    /// Creates a new `FallbackAssetFetch` with the given fetch implementation.
+    ///
+    /// # Arguments
+    /// - `fetch`: The primary `AssetFetch` implementation to use.
+    ///
+    /// # Returns
+    /// - A new `FallbackAssetFetch` instance.
     pub fn new(fetch: Fetch) -> Self {
         Self {
             fetch,
@@ -18,6 +28,13 @@ impl<Fetch: AssetFetch> FallbackAssetFetch<Fetch> {
         }
     }
 
+    /// Adds a fallback asset path to the list of paths to try.
+    ///
+    /// # Arguments
+    /// - `path`: The asset path to add as a fallback.
+    ///
+    /// # Returns
+    /// - The updated `FallbackAssetFetch` instance.
     pub fn path(mut self, path: impl Into<AssetPathStatic>) -> Self {
         self.assets.push(path.into());
         self

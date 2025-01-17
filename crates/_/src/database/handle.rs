@@ -12,18 +12,31 @@ use anput::{
 };
 use std::error::Error;
 
+/// A marker struct to represent an asset dependency relationship.
 pub struct AssetDependency;
 
+/// Represents a handle to a specific asset in the asset database.
+///
+/// This handle can perform operations like deleting, refreshing, resolving dependencies,
+/// and accessing asset data.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AssetHandle {
     entity: Entity,
 }
 
 impl AssetHandle {
+    /// Creates a new asset handle from an entity.
+    ///
+    /// # Arguments
+    /// - `entity`: The entity representing the asset.
     pub fn new(entity: Entity) -> Self {
         Self { entity }
     }
 
+    /// Deletes the asset and its dependencies from the database.
+    ///
+    /// # Arguments
+    /// - `database`: A mutable reference to the asset database.
     pub fn delete(self, database: &mut AssetDatabase) {
         database
             .storage
@@ -32,6 +45,13 @@ impl AssetHandle {
             .execute(&mut database.storage);
     }
 
+    /// Refreshes the asset, marking it for resolution.
+    ///
+    /// # Arguments
+    /// - `database`: A mutable reference to the asset database.
+    ///
+    /// # Returns
+    /// A `Result` indicating success or failure.
     pub fn refresh(self, database: &mut AssetDatabase) -> Result<(), Box<dyn Error>> {
         database
             .storage
@@ -39,29 +59,35 @@ impl AssetHandle {
         Ok(())
     }
 
+    /// Returns the entity associated with this handle.
     pub fn entity(self) -> Entity {
         self.entity
     }
 
+    /// Checks if the asset exists in the database.
     pub fn does_exists(self, database: &AssetDatabase) -> bool {
         database.storage.has_entity(self.entity)
     }
 
+    /// Checks if the asset is awaiting resolution.
     pub fn awaits_resolution(self, database: &AssetDatabase) -> bool {
         self.access_checked::<(Entity, Include<AssetAwaitsResolution>)>(database)
             .is_some()
     }
 
+    /// Checks if the asset bytes are ready for processing.
     pub fn bytes_are_ready_to_process(self, database: &AssetDatabase) -> bool {
         self.access_checked::<(Entity, Include<AssetBytesAreReadyToProcess>)>(database)
             .is_some()
     }
 
+    /// Checks if the asset is awaiting a deferred job.
     pub fn awaits_deferred_job(self, database: &AssetDatabase) -> bool {
         self.access_checked::<(Entity, Include<AssetAwaitsDeferredJob>)>(database)
             .is_some()
     }
 
+    /// Checks if the asset is ready for use (all dependencies are resolved).
     pub fn is_ready_to_use(self, database: &AssetDatabase) -> bool {
         let mut lookup = database.storage.lookup_access::<true, (
             Entity,
@@ -75,6 +101,13 @@ impl AssetHandle {
             .all(|entity| lookup.access(entity).is_some())
     }
 
+    /// Adds a bundle of components to the asset.
+    ///
+    /// # Arguments
+    /// - `bundle`: The components to be added to the asset.
+    ///
+    /// # Returns
+    /// A `Result` indicating success or failure.
     pub fn give(
         self,
         database: &mut AssetDatabase,
@@ -83,6 +116,13 @@ impl AssetHandle {
         Ok(database.storage.insert(self.entity, bundle)?)
     }
 
+    /// Takes and removes a specific component from the asset.
+    ///
+    /// # Arguments
+    /// - `database`: A mutable reference to the asset database.
+    ///
+    /// # Returns
+    /// The removed component or an error.
     pub fn take<T: Component + Default>(
         self,
         database: &mut AssetDatabase,
@@ -94,6 +134,13 @@ impl AssetHandle {
         Ok(result)
     }
 
+    /// Ensures that a component exists on the asset, adding a default instance if missing.
+    ///
+    /// # Arguments
+    /// - `database`: A mutable reference to the asset database.
+    ///
+    /// # Returns
+    /// A mutable reference to the component.
     pub fn ensure<T: Component + Default>(
         self,
         database: &mut AssetDatabase,
@@ -104,6 +151,7 @@ impl AssetHandle {
         Ok(database.storage.component_mut::<true, T>(self.entity)?)
     }
 
+    /// Tries to access typed data for this asset.
     pub fn access_checked<'a, Fetch: TypedLookupFetch<'a, true>>(
         self,
         database: &'a AssetDatabase,
@@ -114,6 +162,7 @@ impl AssetHandle {
             .access(self.entity)
     }
 
+    /// Accesses typed data for this asset or panics if it cannot.
     pub fn access<'a, Fetch: TypedLookupFetch<'a, true>>(
         self,
         database: &'a AssetDatabase,
@@ -127,6 +176,7 @@ impl AssetHandle {
             })
     }
 
+    /// Returns an iterator over asset dependencies.
     pub fn dependencies(self, database: &AssetDatabase) -> impl Iterator<Item = AssetHandle> + '_ {
         database
             .storage
@@ -134,6 +184,7 @@ impl AssetHandle {
             .map(|(_, _, entity)| Self { entity })
     }
 
+    /// Returns an iterator over assets dependent on this one.
     pub fn dependent(self, database: &AssetDatabase) -> impl Iterator<Item = AssetHandle> + '_ {
         database
             .storage
@@ -141,6 +192,7 @@ impl AssetHandle {
             .map(|(entity, _, _)| Self { entity })
     }
 
+    /// Recursively iterates through all dependencies.
     pub fn traverse_dependencies(
         self,
         database: &AssetDatabase,

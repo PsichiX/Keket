@@ -2,6 +2,10 @@ use crate::{database::handle::AssetHandle, protocol::AssetProtocol};
 use anput::world::World;
 use std::error::Error;
 
+/// Protocol implementation for handling text-based assets.
+///
+/// This struct defines how raw bytes representing text assets are processed
+/// and converted into meaningful string data for use in the application.
 pub struct TextAssetProtocol;
 
 impl AssetProtocol for TextAssetProtocol {

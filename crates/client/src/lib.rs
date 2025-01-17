@@ -4,39 +4,37 @@ use keket::{
     third_party::anput::bundle::DynamicBundle,
 };
 use reqwest::Url;
-use std::error::Error;
+use std::{error::Error, net::SocketAddr};
 
 pub mod third_party {
     pub use reqwest;
 }
 
-/// A marker component indicating that an asset was loaded from an HTTP request.
-/// It does not contain asset data but is used to mark assets fetched from an HTTP URL.
-pub struct AssetFromHttp;
+/// A marker struct indicating an asset originates from asset server client.
+pub struct AssetFromClient;
 
-/// `HttpAssetFetch` is a struct that enables fetching assets from an HTTP endpoint.
-/// The root URL represents the base URL to join with paths to form full asset URLs.
-pub struct HttpAssetFetch {
+/// Client asset fetch from asset server.
+pub struct ClientAssetFetch {
     root: Url,
 }
 
-impl HttpAssetFetch {
-    /// Creates a new `HttpAssetFetch` with a provided root URL.
+impl ClientAssetFetch {
+    /// Creates a new instance of `ClientAssetFetch` with the given address.
     ///
     /// # Arguments
-    /// - `root`: A string representing the root URL for the HTTP request (e.g., "https://example.com").
+    /// - `address`: A string slice representing the server IP address.
     ///
     /// # Returns
-    /// - `Ok(HttpAssetFetch)`: If the root URL is valid and successfully parsed.
-    /// - `Err(Box<dyn Error>)`: If the URL is invalid or any error occurs while parsing.
-    pub fn new(root: &str) -> Result<Self, Box<dyn Error>> {
-        Ok(Self {
-            root: root.parse()?,
-        })
+    /// - `Ok(ClientAssetFetch)` if the initialization is successful.
+    /// - `Err(Box<dyn Error>)` if any parsing errors occur.
+    pub fn new(address: &str) -> Result<Self, Box<dyn Error>> {
+        address.parse::<SocketAddr>()?;
+        let root = format!("http://{}/assets/", address).parse::<Url>()?;
+        Ok(Self { root })
     }
 }
 
-impl AssetFetch for HttpAssetFetch {
+impl AssetFetch for ClientAssetFetch {
     fn load_bytes(&self, path: AssetPath) -> Result<DynamicBundle, Box<dyn Error>> {
         let url = self.root.join(path.path()).map_err(|error| {
             format!(
@@ -61,7 +59,7 @@ impl AssetFetch for HttpAssetFetch {
         })?;
         let mut bundle = DynamicBundle::default();
         let _ = bundle.add_component(AssetBytesAreReadyToProcess(bytes));
-        let _ = bundle.add_component(AssetFromHttp);
+        let _ = bundle.add_component(AssetFromClient);
         let _ = bundle.add_component(url);
         Ok(bundle)
     }

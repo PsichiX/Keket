@@ -30,6 +30,9 @@ hot_reloading:
 ingame:
   cargo run --manifest-path ./crates/_/Cargo.toml --example 08_ingame
 
+server:
+  cd ./resources/ && cargo run --manifest-path ../crates/server/Cargo.toml
+
 clean:
   find . -name target -type d -exec rm -r {} +
   just remove-lockfiles
@@ -43,10 +46,12 @@ list-outdated:
 update:
   cargo update --manifest-path ./crates/_/Cargo.toml --aggressive
   cargo update --manifest-path ./crates/http/Cargo.toml --aggressive
+  cargo update --manifest-path ./crates/client/Cargo.toml --aggressive
   cargo update --manifest-path ./crates/redb/Cargo.toml --aggressive
   cargo update --manifest-path ./crates/redb-pack/Cargo.toml --aggressive
 
 publish:
   cargo publish --no-verify --manifest-path ./crates/_/Cargo.toml
   cargo publish --no-verify --manifest-path ./crates/http/Cargo.toml
+  cargo publish --no-verify --manifest-path ./crates/client/Cargo.toml
   cargo publish --no-verify --manifest-path ./crates/redb/Cargo.toml

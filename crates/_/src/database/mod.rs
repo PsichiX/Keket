@@ -22,6 +22,7 @@ use anput::{
 };
 use std::error::Error;
 
+/// Asset database for managing assets and their states.
 #[derive(Default)]
 pub struct AssetDatabase {
     pub storage: World,
@@ -32,35 +33,70 @@ pub struct AssetDatabase {
 }
 
 impl AssetDatabase {
+    /// Creates a new `AssetDatabase` and adds a fetcher to its fetch stack.
+    ///
+    /// # Arguments
+    /// - `fetch`: A concrete implementation of the `AssetFetch` trait.
+    ///
+    /// # Returns
+    /// The updated `AssetDatabase` with the fetcher added.
     pub fn with_fetch(mut self, fetch: impl AssetFetch + 'static) -> Self {
         self.push_fetch(fetch);
         self
     }
 
+    /// Registers a new asset protocol with the database.
+    ///
+    /// # Arguments
+    /// - `protocol`: An implementation of the `AssetProtocol` trait.
+    ///
+    /// # Returns
+    /// The updated `AssetDatabase` with the protocol added.
     pub fn with_protocol(mut self, protocol: impl AssetProtocol + 'static) -> Self {
         self.add_protocol(protocol);
         self
     }
 
+    /// Enables allowing asset progression failures.
+    ///
+    /// # Returns
+    /// The updated `AssetDatabase` with the option enabled.
     pub fn with_asset_progression_failures(mut self) -> Self {
         self.allow_asset_progression_failures = true;
         self
     }
 
+    /// Adds a fetch engine to the stack.
     pub fn push_fetch(&mut self, fetch: impl AssetFetch + 'static) {
         self.fetch_stack.push(AssetFetchEngine::new(fetch));
     }
 
+    /// Removes and returns the top fetch engine from the stack.
     pub fn pop_fetch(&mut self) -> Option<Box<dyn AssetFetch>> {
         self.fetch_stack.pop().map(|fetch| fetch.into_inner())
     }
 
+    /// Replaces the top fetch engine and returns the old one.
+    ///
+    /// # Arguments
+    /// - `fetch`: A new fetch implementation to replace the top one.
+    ///
+    /// # Returns
+    /// The old fetch engine if present.
     pub fn swap_fetch(&mut self, fetch: impl AssetFetch + 'static) -> Option<Box<dyn AssetFetch>> {
         let result = self.pop_fetch();
         self.fetch_stack.push(AssetFetchEngine::new(fetch));
         result
     }
 
+    /// Temporarily uses a fetch engine to perform a closure and removes it afterward.
+    ///
+    /// # Arguments
+    /// - `fetch`: The fetch engine to add temporarily.
+    /// - `f`: The closure to execute using the fetch engine.
+    ///
+    /// # Returns
+    /// The result of the closure if successful, or an error otherwise.
     pub fn using_fetch<R>(
         &mut self,
         fetch: impl AssetFetch + 'static,
@@ -72,10 +108,12 @@ impl AssetDatabase {
         Ok(result)
     }
 
+    /// Registers a new protocol for processing assets.
     pub fn add_protocol(&mut self, protocol: impl AssetProtocol + 'static) {
         self.protocols.push(Box::new(protocol));
     }
 
+    /// Removes a protocol by its name.
     pub fn remove_protocol(&mut self, name: &str) -> Option<Box<dyn AssetProtocol>> {
         self.protocols
             .iter()
@@ -83,11 +121,25 @@ impl AssetDatabase {
             .map(|index| self.protocols.remove(index))
     }
 
+    /// Finds an asset by its path and returns a handle.
+    ///
+    /// # Arguments
+    /// - `path`: The path of the asset to find.
+    ///
+    /// # Returns
+    /// An `AssetHandle` if the asset is found, otherwise `None`.
     pub fn find(&self, path: impl Into<AssetPathStatic>) -> Option<AssetHandle> {
         let path = path.into();
         self.storage.find_by::<true, _>(&path).map(AssetHandle::new)
     }
 
+    /// Schedules an asset to be resolved later.
+    ///
+    /// # Arguments
+    /// - `path`: The path of the asset to schedule.
+    ///
+    /// # Returns
+    /// An `AssetHandle` for the scheduled asset.
     pub fn schedule(
         &mut self,
         path: impl Into<AssetPathStatic>,
@@ -98,6 +150,13 @@ impl AssetDatabase {
         ))
     }
 
+    /// Ensures an asset exists or is scheduled for resolution.
+    ///
+    /// # Arguments
+    /// - `path`: The path of the asset to ensure.
+    ///
+    /// # Returns
+    /// An `AssetHandle` for the asset.
     pub fn ensure(
         &mut self,
         path: impl Into<AssetPathStatic>,
@@ -144,6 +203,10 @@ impl AssetDatabase {
         }
     }
 
+    /// Unloads an asset by its path, removing it from the storage.
+    ///
+    /// # Arguments
+    /// - `path`: The path of the asset to unload.
     pub fn unload<'a>(&mut self, path: impl Into<AssetPath<'a>>) {
         let path = path.into();
         let to_remove = self
@@ -157,6 +220,13 @@ impl AssetDatabase {
             .execute(&mut self.storage)
     }
 
+    /// Reloads an asset by unloading and ensuring it is reloaded.
+    ///
+    /// # Arguments
+    /// - `path`: The path of the asset to reload.
+    ///
+    /// # Returns
+    /// An `AssetHandle` for the reloaded asset.
     pub fn reload(
         &mut self,
         path: impl Into<AssetPathStatic>,
@@ -166,42 +236,78 @@ impl AssetDatabase {
         self.ensure(path)
     }
 
+    /// Returns an iterator over all assets waiting for resolution.
+    ///
+    /// # Returns
+    /// An iterator that yields `AssetHandle` instances.
     pub fn assets_awaiting_resolution(&self) -> impl Iterator<Item = AssetHandle> + '_ {
         self.storage
             .query::<true, (Entity, Include<AssetAwaitsResolution>)>()
             .map(|(entity, _)| AssetHandle::new(entity))
     }
 
+    /// Returns an iterator over all assets whose bytes are ready to process.
+    ///
+    /// # Returns
+    /// An iterator that yields `AssetHandle` instances.
     pub fn assets_with_bytes_ready_to_process(&self) -> impl Iterator<Item = AssetHandle> + '_ {
         self.storage
             .query::<true, (Entity, Include<AssetBytesAreReadyToProcess>)>()
             .map(|(entity, _)| AssetHandle::new(entity))
     }
 
+    /// Returns an iterator over all assets awaiting deferred jobs.
+    ///
+    /// # Returns
+    /// An iterator that yields `AssetHandle` instances.
     pub fn assets_awaiting_deferred_job(&self) -> impl Iterator<Item = AssetHandle> + '_ {
         self.storage
             .query::<true, (Entity, Include<AssetAwaitsDeferredJob>)>()
             .map(|(entity, _)| AssetHandle::new(entity))
     }
 
+    /// Checks if there are any assets awaiting resolution.
+    ///
+    /// # Returns
+    /// `true` if assets are awaiting resolution, otherwise `false`.
     pub fn does_await_resolution(&self) -> bool {
         self.storage.has_component::<AssetAwaitsResolution>()
     }
 
+    /// Checks if there are assets with bytes ready to process.
+    ///
+    /// # Returns
+    /// `true` if assets are ready to process, otherwise `false`.
     pub fn has_bytes_ready_to_process(&self) -> bool {
         self.storage.has_component::<AssetBytesAreReadyToProcess>()
     }
 
+    /// Checks if there are assets awaiting deferred jobs.
+    ///
+    /// # Returns
+    /// `true` if deferred jobs are awaiting, otherwise `false`.
     pub fn does_await_deferred_job(&self) -> bool {
         self.storage.has_component::<AssetAwaitsDeferredJob>()
     }
 
+    /// Determines if the asset database is currently busy with tasks.
+    ///
+    /// # Returns
+    /// `true` if busy, otherwise `false`.
     pub fn is_busy(&self) -> bool {
         self.storage.has_component::<AssetAwaitsResolution>()
             || self.storage.has_component::<AssetBytesAreReadyToProcess>()
             || self.storage.has_component::<AssetAwaitsDeferredJob>()
     }
 
+    /// Performs maintenance on the asset database, processing events and managing states.
+    ///
+    /// - Processes newly added assets and dispatches relevant events.
+    /// - Maintains fetch engines and protocols.
+    /// - Resolves assets and processes their data using protocols.
+    ///
+    /// # Returns
+    /// `Ok(())` if successful, or an error if any step fails.
     pub fn maintain(&mut self) -> Result<(), Box<dyn Error>> {
         {
             let mut lookup = self

@@ -1,24 +1,24 @@
 [package]
-name = "keket"
+name = "keket-server"
 version = "0.11.0"
 edition = "2021"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
-description = "Database-like Asset management on top of ECS storage"
+description = "Asset server for Keket toolkit"
 license = "MIT OR Apache-2.0"
 homepage = "https://github.com/PsichiX/keket"
 repository = "https://github.com/PsichiX/keket"
-documentation = "https://docs.rs/keket"
+documentation = "https://docs.rs/keket-server"
 readme = "../../README.md"
 
-[features]
-default = ["hotreload"]
-hotreload = ["notify"]
-
 [dependencies]
-anput = "0.6"
+warp = "0.3"
+tokio = { version = "1", features = ["full"] }
+tokio-util = "0.6"
+bytes = "1"
+futures-util = { version = "0.3", default-features = false, features = [
+    "sink",
+] }
+notify = "8.0"
+crossbeam-channel = "0.5"
 serde = { version = "1", features = ["derive"] }
-notify = { version = "8.0", optional = true }
-
-[dev-dependencies]
 serde_json = "1"
-zip = "2"

@@ -9,12 +9,19 @@ use crate::{
 use anput::{bundle::Bundle, world::World};
 use std::error::Error;
 
+/// Represents a bundle of assets combined with their dependencies.
+///
+/// This struct encapsulates a bundle (`B`) along with a list of asset paths (`dependencies`)
+/// representing its external dependencies.
 pub struct BundleWithDependencies<B: Bundle> {
+    /// The actual bundle data.
     pub bundle: B,
+    /// A list of asset paths representing dependencies.
     pub dependencies: Vec<AssetPathStatic>,
 }
 
 impl<B: Bundle> BundleWithDependencies<B> {
+    /// Creates a new `BundleWithDependencies` with the specified bundle and no dependencies.
     pub fn new(bundle: B) -> Self {
         Self {
             bundle,
@@ -22,11 +29,13 @@ impl<B: Bundle> BundleWithDependencies<B> {
         }
     }
 
+    /// Adds a single dependency to the list and returns the modified instance.
     pub fn dependency(mut self, path: impl Into<AssetPathStatic>) -> Self {
         self.dependencies.push(path.into());
         self
     }
 
+    /// Optionally adds a dependency if the provided path is `Some`.
     pub fn maybe_dependency(mut self, path: Option<impl Into<AssetPathStatic>>) -> Self {
         if let Some(path) = path {
             self.dependencies.push(path.into());
@@ -34,6 +43,7 @@ impl<B: Bundle> BundleWithDependencies<B> {
         self
     }
 
+    /// Adds multiple dependencies from an iterable and returns the modified instance.
     pub fn dependencies(mut self, paths: impl IntoIterator<Item = AssetPathStatic>) -> Self {
         self.dependencies.extend(paths);
         self
@@ -58,9 +68,12 @@ impl<B: Bundle> From<(B, Vec<AssetPathStatic>)> for BundleWithDependencies<B> {
     }
 }
 
+/// Defines a trait for processing raw bytes into a `BundleWithDependencies`.
 pub trait BundleWithDependenciesProcessor: Send + Sync {
+    /// Returned bundle of asset components.
     type Bundle: Bundle;
 
+    /// Processes a vector of bytes and returns a `BundleWithDependencies`.
     fn process_bytes(
         &mut self,
         bytes: Vec<u8>,
@@ -82,12 +95,14 @@ where
     }
 }
 
+/// Protocol for handling bundles using a user-defined processor.
 pub struct BundleAssetProtocol<Processor: BundleWithDependenciesProcessor> {
     name: String,
     processor: Processor,
 }
 
 impl<Processor: BundleWithDependenciesProcessor> BundleAssetProtocol<Processor> {
+    /// Creates a new instance with the specified name and processor.
     pub fn new(name: impl ToString, processor: Processor) -> Self {
         Self {
             name: name.to_string(),

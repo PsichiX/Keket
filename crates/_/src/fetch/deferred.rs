@@ -9,8 +9,16 @@ use std::{
     thread::{spawn, JoinHandle},
 };
 
+/// Marker component used to signify that the asset fetch job for an asset
+/// is deferred and is pending execution.
 pub struct AssetAwaitsDeferredJob;
 
+/// A deferred asset fetcher that queues tasks for loading asset bytes asynchronously
+/// on separate threads and defers processing until the tasks are completed.
+///
+/// The `DeferredAssetFetch` struct allows asset fetching to occur in the background
+/// on worker threads, with tasks being executed asynchronously and loaded asset bytes
+/// being processed only when the task has finished.
 pub struct DeferredAssetFetch<Fetch: AssetFetch> {
     fetch: Arc<Fetch>,
     // TODO: refactor to use worker threads with tasks queued to execution on worker threads.
@@ -19,6 +27,13 @@ pub struct DeferredAssetFetch<Fetch: AssetFetch> {
 }
 
 impl<Fetch: AssetFetch> DeferredAssetFetch<Fetch> {
+    /// Creates a new `DeferredAssetFetch` with a specified asset fetcher.
+    ///
+    /// # Arguments
+    /// - `fetch`: The asset fetcher to handle fetching the bytes of an asset in the background.
+    ///
+    /// # Returns
+    /// - A new `DeferredAssetFetch` instance.
     pub fn new(fetch: Fetch) -> Self {
         Self {
             fetch: Arc::new(fetch),

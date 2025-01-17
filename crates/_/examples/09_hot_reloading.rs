@@ -3,7 +3,7 @@ use keket::{
     fetch::{file::FileAssetFetch, hotreload::HotReloadFileAssetFetch},
     protocol::{bytes::BytesAssetProtocol, text::TextAssetProtocol},
 };
-use std::error::Error;
+use std::{error::Error, time::Duration};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut database = AssetDatabase::default()
@@ -12,6 +12,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         // Hot reload wrapper watches for changes in file fetch root path.
         .with_fetch(HotReloadFileAssetFetch::new(
             FileAssetFetch::default().with_root("resources"),
+            // File system watcher polling interval.
+            Duration::from_secs(5),
         )?);
 
     // First we fill database with some assets, hot reload only

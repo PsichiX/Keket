@@ -6,12 +6,24 @@ pub mod third_party {
     pub use redb;
 }
 
+/// `RedbContainerPartialFetch` represents an asset fetcher that retrieves asset data
+/// stored in a Redb database.
+/// The fetcher uses the asset's `AssetPath` to find the corresponding asset in the database,
+/// reading the data from a specified table in the Redb database.
 pub struct RedbContainerPartialFetch {
     database: Database,
     default_table_name: String,
 }
 
 impl RedbContainerPartialFetch {
+    /// Creates a new `RedbContainerPartialFetch` instance using the provided database and default table name.
+    ///
+    /// # Arguments
+    /// - `database`: An instance of the Redb `Database` to use for querying.
+    /// - `default_table_name`: A string representing the default table name to use for querying.
+    ///
+    /// # Returns
+    /// - `Self`: A new `RedbContainerPartialFetch` initialized with the given database and table name.
     pub fn new(database: Database, default_table_name: impl ToString) -> Self {
         Self {
             database,
