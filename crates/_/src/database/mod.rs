@@ -17,7 +17,11 @@ use crate::{
     protocol::AssetProtocol,
 };
 use anput::{
-    commands::Command, database::WorldDestroyIteratorExt, entity::Entity, query::Include,
+    bundle::{Bundle, BundleChain},
+    commands::Command,
+    database::WorldDestroyIteratorExt,
+    entity::Entity,
+    query::Include,
     world::World,
 };
 use std::error::Error;
@@ -147,6 +151,26 @@ impl AssetDatabase {
         let path = path.into();
         Ok(AssetHandle::new(
             self.storage.spawn((path, AssetAwaitsResolution))?,
+        ))
+    }
+
+    /// Adds an asset to database, already resolved.
+    /// Great for runtime generated assets.
+    ///
+    /// # Arguments
+    /// - `path`: The path of the asset to schedule.
+    /// - `bundle`: Components bundle to put into spawned asset.
+    ///
+    /// # Returns
+    /// An `AssetHandle` for the scheduled asset.
+    pub fn spawn(
+        &mut self,
+        path: impl Into<AssetPathStatic>,
+        bundle: impl Bundle,
+    ) -> Result<AssetHandle, Box<dyn Error>> {
+        let path = path.into();
+        Ok(AssetHandle::new(
+            self.storage.spawn(BundleChain((path,), bundle))?,
         ))
     }
 

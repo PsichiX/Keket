@@ -1,12 +1,16 @@
 //! # Keket - Asset Management for Rust
-//! **A powerful and flexible modular library for asset fetching, caching, and hot reloading**
+//!
+//! **Database-like Asset management on top of ECS storage.**
+//!
+//! ---
 //!
 //! This crate provides a robust framework for managing assets in Rust, from loading and fetching assets
 //! from various sources (HTTP, local file system, databases, etc.) to advanced features like asset
 //! hot-reloading, deferred loading, and integration with game engines or other large projects.
 //! It leverages dynamic component-based bundles to easily manage and interact with assets on demand.
 //!
-//! ### Key Features:
+//! ### Key Features
+//!
 //! - **Flexible Asset Fetching**: Fetch assets from a variety of sources such as the local filesystem, HTTP URLs, or databases.
 //! - **Dynamic Bundling**: Combine different pieces of asset data in a flexible way using the `DynamicBundle` container.
 //! - **Hot Reloading**: Supports automatic hot reloading of assets, allowing you to dynamically update content without restarting the application.
@@ -14,7 +18,8 @@
 //! - **Multi-Source Support**: Load assets from a range of containers (e.g., file system, in-memory collections, or databases), and even support custom ones with the flexible `ContainerPartialFetch` trait.
 //! - **Error Handling**: Rich error handling mechanism that makes debugging asset loading problems quick and easy.
 //!
-//! ### Example Usage:
+//! ### Example Usage
+//!
 //! ```rust
 //! use keket::{
 //!     database::{path::AssetPath, AssetDatabase},
@@ -50,7 +55,8 @@
 //! }
 //! ```
 //!
-//! ### Use Cases:
+//! ### Use Cases
+//!
 //! - **Game Development**: Load and manage game assets (e.g., textures, sound files) from different sources and automatically reload them during runtime.
 //! - **Web Applications**: Dynamically fetch and cache static files from HTTP endpoints and the file system.
 //! - **Data-Driven Applications**: Fetch and manage resources such as user-generated content, configuration files, or assets in a multi-environment scenario.
