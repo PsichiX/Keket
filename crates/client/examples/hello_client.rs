@@ -1,5 +1,5 @@
 use keket::{
-    database::{path::AssetPath, AssetDatabase},
+    database::{handle::AssetHandle, path::AssetPath, AssetDatabase},
     fetch::deferred::DeferredAssetFetch,
     protocol::{bytes::BytesAssetProtocol, text::TextAssetProtocol},
 };
@@ -42,5 +42,33 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("Asset: `{}` at url: `{}`", asset_path, url);
     }
 
-    Ok(())
+    println!("Listening for file changes...");
+    loop {
+        database.maintain()?;
+
+        // With storage change detection we can ask for asset entities
+        // that their paths were updated (hot reloading updates them).
+        if let Some(changes) = database.storage.updated() {
+            for entity in changes.iter_of::<AssetPath>() {
+                println!(
+                    "Asset changed: `{}`",
+                    AssetHandle::new(entity).access::<&AssetPath>(&database)
+                );
+            }
+        }
+
+        // Simulate systems that detect particular asset type reload.
+        for entity in database.storage.added().iter_of::<String>() {
+            println!(
+                "Text asset changed: `{}`",
+                AssetHandle::new(entity).access::<&String>(&database)
+            );
+        }
+        for entity in database.storage.added().iter_of::<Vec<u8>>() {
+            println!(
+                "Bytes asset changed: `{:?}`",
+                AssetHandle::new(entity).access::<&Vec<u8>>(&database)
+            );
+        }
+    }
 }

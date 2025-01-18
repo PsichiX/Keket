@@ -20,7 +20,7 @@ pub struct AssetAwaitsDeferredJob;
 /// on worker threads, with tasks being executed asynchronously and loaded asset bytes
 /// being processed only when the task has finished.
 pub struct DeferredAssetFetch<Fetch: AssetFetch> {
-    fetch: Arc<Fetch>,
+    fetch: Arc<RwLock<Fetch>>,
     // TODO: refactor to use worker threads with tasks queued to execution on worker threads.
     #[allow(clippy::type_complexity)]
     tasks: RwLock<Vec<(AssetPathStatic, JoinHandle<Result<DynamicBundle, String>>)>>,
@@ -36,7 +36,7 @@ impl<Fetch: AssetFetch> DeferredAssetFetch<Fetch> {
     /// - A new `DeferredAssetFetch` instance.
     pub fn new(fetch: Fetch) -> Self {
         Self {
-            fetch: Arc::new(fetch),
+            fetch: Arc::new(RwLock::new(fetch)),
             tasks: Default::default(),
         }
     }
@@ -52,7 +52,12 @@ impl<Fetch: AssetFetch> AssetFetch for DeferredAssetFetch<Fetch> {
             .push((
                 path.clone(),
                 spawn(move || {
-                    fetch.load_bytes(path.clone()).map_err(|error| {
+                    fetch.read().map_err(|error|{
+                        format!(
+                            "Failed to get read access to inner fetch engine in deferred job for asset: `{}`. Error: {}",
+                            path, error
+                        )
+                    })?.load_bytes(path.clone()).map_err(|error| {
                         format!(
                             "Failed deferred job for asset: `{}`. Error: {}",
                             path, error
@@ -66,6 +71,15 @@ impl<Fetch: AssetFetch> AssetFetch for DeferredAssetFetch<Fetch> {
     }
 
     fn maintain(&mut self, storage: &mut World) -> Result<(), Box<dyn Error>> {
+        self.fetch
+            .write()
+            .map_err(|error| {
+                format!(
+                    "Failed deferred fetch engine maintainance. Error: {}",
+                    error
+                )
+            })?
+            .maintain(storage)?;
         let complete = self
             .tasks
             .read()

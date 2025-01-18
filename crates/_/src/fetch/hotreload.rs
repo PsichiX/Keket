@@ -55,7 +55,7 @@ impl AssetFetch for HotReloadFileAssetFetch {
     fn maintain(&mut self, storage: &mut World) -> Result<(), Box<dyn Error>> {
         let rx = self.rx.lock().map_err(|error| format!("{}", error))?;
         while let Ok(Ok(event)) = rx.try_recv() {
-            if event.kind.is_modify() {
+            if event.kind.is_modify() && !event.paths.is_empty() {
                 let to_refresh = storage
                     .query::<true, (Entity, &PathBuf, Update<AssetPath>)>()
                     .filter(|(_, path, _)| event.paths.contains(path))

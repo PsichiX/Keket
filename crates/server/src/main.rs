@@ -1,5 +1,4 @@
 use bytes::Bytes;
-use crossbeam_channel::bounded;
 use futures_util::{SinkExt, StreamExt};
 use notify::{Config, Event, PollWatcher, RecursiveMode, Result as NotifyResult, Watcher};
 use serde::{Deserialize, Serialize};
@@ -8,7 +7,11 @@ use std::{
     io::{stderr, stdout},
     net::SocketAddr,
     process::{exit, Command},
-    sync::mpsc::channel,
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        mpsc::{channel, Receiver, Sender},
+        Arc, Mutex,
+    },
     thread::spawn,
     time::Duration,
 };
@@ -54,6 +57,24 @@ impl PipelineCommand {
 struct MessageError(#[allow(dead_code)] pub String);
 
 impl Reject for MessageError {}
+
+#[derive(Default, Clone)]
+struct ChangeBindings {
+    senders: Arc<Mutex<Vec<Sender<String>>>>,
+}
+
+impl ChangeBindings {
+    fn receiver(&self) -> Receiver<String> {
+        let (sender, receiver) = channel();
+        self.senders.lock().unwrap().push(sender);
+        receiver
+    }
+
+    fn send(&self, path: &str) {
+        let mut senders = self.senders.lock().unwrap();
+        senders.retain(|sender| sender.send(path.to_owned()).is_ok());
+    }
+}
 
 async fn get_file_handler(path: String) -> Result<impl Reply, Rejection> {
     let file_path = std::env::current_dir().unwrap().join(path);
@@ -112,7 +133,7 @@ async fn delete_file_handler(path: String) -> Result<impl Reply, Rejection> {
     ))
 }
 
-async fn post_file_handler(path: String, body: PipelineCommand) -> Result<impl Reply, Rejection> {
+async fn run_command_handler(path: String, body: PipelineCommand) -> Result<impl Reply, Rejection> {
     body.run(path);
     println!("* Executed command: {:?}", body);
     Ok(warp::reply::with_status(
@@ -121,11 +142,30 @@ async fn post_file_handler(path: String, body: PipelineCommand) -> Result<impl R
     ))
 }
 
-async fn client_connected(ws: WebSocket, rx: crossbeam_channel::Receiver<String>) {
+async fn client_connected(ws: WebSocket, id: usize, receiver: Receiver<String>) {
+    println!("* WebSocket client connected:{}", id);
     let (mut client_tx, _) = ws.split();
-
-    while let Ok(path) = rx.recv() {
-        let _ = client_tx.send(Message::text(path)).await;
+    loop {
+        let mut disconnected = false;
+        while let Ok(path) = receiver.try_recv() {
+            println!("* WebSocket sent changed path: {:?} to: {}", path, id);
+            if client_tx.send(Message::text(path)).await.is_err() {
+                disconnected = true;
+            }
+        }
+        tokio::time::sleep(Duration::from_secs(1)).await;
+        if client_tx
+            .send(Message::ping(id.to_be_bytes()))
+            .await
+            .is_err()
+        {
+            disconnected = true;
+        }
+        if disconnected {
+            let _ = client_tx.close().await;
+            println!("* WebSocket client disconnected: {}", id);
+            return;
+        }
     }
 }
 
@@ -149,20 +189,28 @@ async fn main() {
         .watch(&std::env::current_dir().unwrap(), RecursiveMode::Recursive)
         .unwrap();
 
-    let (changes_tx, changes_rx) = bounded(100);
-    let changes_rx = warp::any().map(move || changes_rx.clone());
+    let bindings = ChangeBindings::default();
+    let bindings2 = bindings.clone();
     spawn(move || {
+        let current_dir = format!(
+            "{}{}",
+            std::env::current_dir().unwrap().to_string_lossy(),
+            std::path::MAIN_SEPARATOR
+        );
         for event in watcher_rx.into_iter().flatten() {
             if event.kind.is_modify() {
                 for path in event.paths {
                     println!("* File changed: {:?}", path);
-                    let _ = changes_tx.send(path.to_string_lossy().as_ref().to_owned());
+                    let path = path.to_string_lossy();
+                    let path = path.as_ref();
+                    bindings2.send(path.strip_prefix(&current_dir).unwrap_or(path));
                 }
             }
         }
     });
 
     println!("* Start asset server at address: {:?}", address);
+    let id_generator = Arc::new(AtomicUsize::default());
     warp::serve(
         warp::path!("assets" / String)
             .and(warp::get())
@@ -174,15 +222,20 @@ async fn main() {
             .or(warp::path!("assets" / String)
                 .and(warp::delete())
                 .and_then(delete_file_handler))
-            .or(warp::path!("assets" / String)
+            .or(warp::path!("run" / String)
                 .and(warp::post())
                 .and(warp::body::json())
-                .and_then(post_file_handler))
-            .or(warp::path("changes").and(warp::ws()).and(changes_rx).map(
-                move |ws: warp::ws::Ws, rx: crossbeam_channel::Receiver<String>| {
-                    ws.on_upgrade(|ws| client_connected(ws, rx))
-                },
-            )),
+                .and_then(run_command_handler))
+            .or(warp::path("changes")
+                .and(warp::ws())
+                .and(warp::any().map(move || id_generator.fetch_add(1, Ordering::Relaxed)))
+                .and(warp::any().map(move || bindings.clone()))
+                .map(
+                    move |ws: warp::ws::Ws, id: usize, bindings: ChangeBindings| {
+                        println!("* WebSocket new client connection: {}", id);
+                        ws.on_upgrade(move |ws| client_connected(ws, id, bindings.receiver()))
+                    },
+                )),
     )
     .run(
         address
