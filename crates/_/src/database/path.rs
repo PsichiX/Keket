@@ -94,6 +94,24 @@ impl<'a> AssetPath<'a> {
         &self.content[self.path.clone()]
     }
 
+    /// Returns the path part extension of the `AssetPath`.
+    pub fn path_extension(&self) -> Option<&str> {
+        let path = self.path();
+        path.rfind('.').map(|index| &path[(index + b".".len())..])
+    }
+
+    /// Returns the path part extension with preceding dot of the `AssetPath`.
+    pub fn path_dot_extension(&self) -> Option<&str> {
+        let path = self.path();
+        path.rfind('.').map(|index| &path[index..])
+    }
+
+    /// Returns the path part without extension of the `AssetPath`.
+    pub fn path_without_extension(&self) -> &str {
+        let path = self.path();
+        path.rfind('.').map(|index| &path[..index]).unwrap_or(path)
+    }
+
     /// Splits the path into its component parts.
     pub fn path_parts(&self) -> impl Iterator<Item = &str> {
         self.path().split(&['/', '\\'])

@@ -10,6 +10,7 @@ use std::{borrow::Cow, error::Error, sync::RwLock};
 pub struct RouterPattern {
     path_prefix: Cow<'static, str>,
     meta_entry_patterns: Vec<RouterEntryPattern>,
+    priority: usize,
 }
 
 impl RouterPattern {
@@ -24,6 +25,7 @@ impl RouterPattern {
         Self {
             path_prefix: path_prefix.into(),
             meta_entry_patterns: vec![],
+            priority: 0,
         }
     }
 
@@ -36,6 +38,18 @@ impl RouterPattern {
     /// - The updated `RouterPattern`.
     pub fn entry(mut self, pattern: RouterEntryPattern) -> Self {
         self.meta_entry_patterns.push(pattern);
+        self
+    }
+
+    /// Sets priority of this pattern.
+    ///
+    /// # Arguments
+    /// - `priotity`: Higher priority means this rule will be tested first.
+    ///
+    /// # Returns
+    /// - The updated `RouterPattern`.
+    pub fn priority(mut self, value: usize) -> Self {
+        self.priority = value;
         self
     }
 
@@ -163,6 +177,7 @@ impl RouterAssetFetch {
     pub fn add(&mut self, pattern: RouterPattern, fetch: impl AssetFetch + 'static) {
         if let Ok(mut table) = self.table.write() {
             table.push((pattern, Box::new(fetch)));
+            table.sort_by(|(a, _), (b, _)| a.priority.cmp(&b.priority).reverse());
         }
     }
 }
@@ -174,7 +189,6 @@ impl AssetFetch for RouterAssetFetch {
             .write()
             .map_err(|error| format!("{}", error))?
             .iter_mut()
-            .rev()
         {
             if let Some(path) = pattern.validate(&path) {
                 return fetch.load_bytes(path);

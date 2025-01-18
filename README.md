@@ -1,6 +1,7 @@
-# Keket
+# Keket - Asset Management for Rust
 
-![crates-io version](https://raster.shields.io/crates/v/keket.png)
+![crates-io version](https://img.shields.io/crates/v/keket)
+![docs.rs](https://img.shields.io/docsrs/keket)
 
 **Database-like Asset management on top of ECS storage.**
 
@@ -26,22 +27,30 @@ It leverages dynamic component-based bundles to easily manage and interact with 
 use keket::{
     database::{path::AssetPath, AssetDatabase},
     fetch::file::FileAssetFetch,
-    protocol::{bytes::BytesAssetProtocol, text::TextAssetProtocol},
+    protocol::{bundle::BundleAssetProtocol, bytes::BytesAssetProtocol, text::TextAssetProtocol},
 };
+use serde_json::Value;
 use std::{error::Error, fs::Metadata, path::PathBuf};
 
 fn main() -> Result<(), Box<dyn Error>> {
+    // std::env::set_current_dir("../../"); // change path for tests run.
     let mut database = AssetDatabase::default()
         .with_protocol(TextAssetProtocol)
         .with_protocol(BytesAssetProtocol)
+        .with_protocol(BundleAssetProtocol::new("json", |bytes: Vec<u8>| {
+            Ok((serde_json::from_slice::<Value>(&bytes)?,).into())
+        }))
         .with_fetch(FileAssetFetch::default().with_root("resources"));
 
     let lorem = database.ensure("text://lorem.txt")?;
     println!("Lorem Ipsum: {}", lorem.access::<&String>(&database));
-    
+
+    let person = database.ensure("json://person.json")?;
+    println!("Person: {:#?}", person.access::<&Value>(&database));
+
     let trash = database.ensure("bytes://trash.bin")?;
     println!("Bytes: {:?}", trash.access::<&Vec<u8>>(&database));
-    
+
     for (asset_path, file_path, metadata) in database
         .storage
         .query::<true, (&AssetPath, &PathBuf, &Metadata)>()
@@ -51,12 +60,48 @@ fn main() -> Result<(), Box<dyn Error>> {
             asset_path, file_path, metadata
         );
     }
-    
+
     Ok(())
 }
 ```
 
-More examples: [Keket Examples](https://github.com/PsichiX/Keket/tree/master/crates/_/examples)
+More examples:
+
+- [Hello World!](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/01_hello_world.rs)
+- [ZIP archive](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/02_zip.rs)
+- [Dependencies](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/03_dependencies.rs)
+- [Events](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/04_events.rs)
+- [Async loading](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/05_deferred_fetch.rs)
+- [Routing](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/06_router_fetch.rs)
+- [Fallback assets](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/07_fallback.rs)
+- [DLC asset packs](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/08_dlcs_asset_packs.rs)
+- [Hot reloading](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/09_hot_reloading.rs)
+- [Asset references](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/10_references.rs)
+- [Custom simple protocol](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/11_custom_protocol_simple.rs)
+- [Custom advanced protocol](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/12_custom_protocol_advanced.rs)
+- [Custom fetch engine](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/13_custom_fetch.rs)
+- [Assets versioning](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/14_assets_versioning.rs)
+- [Localized assets](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/15_localized_assets.rs)
+- [HTTP fetch engine](https://github.com/PsichiX/Keket/tree/master/crates/http/examples/hello_http.rs)
+- [REDB fetch engine](https://github.com/PsichiX/Keket/tree/master/crates/redb/examples/hello_redb.rs)
+- [Asset server fetch engine](https://github.com/PsichiX/Keket/tree/master/crates/client/examples/hello_client.rs)
+- [In-game scenario](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/ingame.rs)
+
+## Architecture
+
+Keket asset management design is built around modularity to allow users to change parts to build their asset pipeline tailored to their needs.
+
+Key concepts:
+
+- `AssetDatabase` - central place where assets live. ECS storage allows for ergonomics of access and processing of huge amount of data at once in database-like manner.
+- `AssetHandle` - wrapper around asset entity that allows easy direct operations and access to resolved asset. Asset database
+- `AssetPath` - specialized path that describes an asset identifier (`<protocol>://<path/to/asset.extension>?<meta-information>`).
+  Examples:
+  - `image://grass.png`
+  - `mesh://teapot.gltf?lod=2`
+- `AssetRef` - wrapper around asset path and cached asset handle. Useful for serialization. Allows to resolve asset once and reuse cached handle later.
+- `AssetFetch` - an engine telling where from asset bytes are loaded. Basic one is `FileAssetFetch`.
+- `AssetProtocol` - an engine telling how fetched asset bytes are decoded into asset components, selected based on asset path protocol part. For example `TextAssetProtocol` or `BytesAssetProtocol`.
 
 ## Use Cases
 
@@ -64,5 +109,12 @@ More examples: [Keket Examples](https://github.com/PsichiX/Keket/tree/master/cra
 - **Web Applications**: Dynamically fetch and cache static files from HTTP endpoints and the file system.
 - **Data-Driven Applications**: Fetch and manage resources such as user-generated content, configuration files, or assets in a multi-environment scenario.
 - **Asset-Centric Systems**: Any system that requires efficient asset management with flexible, reactive fetching behaviors.
+
 Whether you're building games, web apps, or anything else that requires managing and fetching assets, this crate has you covered with ease and flexibility.
 Enjoy on-the-fly reloading, asynchronous fetching, and a simple, intuitive API designed with efficiency in mind.
+
+## Roadmap
+
+- Assets versioning
+- Localized assets
+- Performance tools and usage stats

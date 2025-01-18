@@ -10,10 +10,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut database = AssetDatabase::default()
         .with_protocol(TextAssetProtocol)
         // Register custom asset fetch.
-        .with_fetch(CustomAssetFetch([]));
+        .with_fetch(CustomAssetFetch([(
+            "lorem.txt",
+            include_bytes!("../../../resources/lorem.txt"),
+        )]));
 
     let handle = database.ensure("text://lorem.txt")?;
-    println!("Lorem Ipsum: {:?}", handle.access::<&String>(&database));
+    println!("Lorem Ipsum: {}", handle.access::<&String>(&database));
 
     Ok(())
 }

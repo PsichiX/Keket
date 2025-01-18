@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 )
                 // Every asset that has `memory/` path prefix, will load from in-memory collection.
                 .route(
-                    RouterPattern::new("memory/"),
+                    RouterPattern::new("memory/").priority(1),
                     vec![(
                         "trash.bin".to_owned(),
                         std::fs::read("./resources/trash.bin")?,

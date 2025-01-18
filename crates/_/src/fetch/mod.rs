@@ -5,6 +5,7 @@ pub mod fallback;
 pub mod file;
 #[cfg(feature = "hotreload")]
 pub mod hotreload;
+pub mod rewrite;
 pub mod router;
 
 use crate::database::{
