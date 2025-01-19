@@ -1,9 +1,0 @@
-.vscode/
-target/
-**/*.rs.bk
-Cargo.lock
-*.sh
-*.bat
-*.log
-*.bimp
-resources/database.redb

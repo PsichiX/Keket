@@ -1,3 +1,0 @@
-text://lorem.txt
-json://person.json
-bytes://trash.bin
