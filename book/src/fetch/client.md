@@ -1,5 +1,7 @@
 # Asset Server
 
+> **Required crate: `keket-client`.**
+
 `ClientAssetFetch` allows to get bytes from `Keket` Asset Server (`keket-server`
 binary crate) - a humble beginnings to DDC infrastructure for live development.
 
