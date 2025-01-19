@@ -2,6 +2,7 @@
 
 ![crates-io version](https://img.shields.io/crates/v/keket)
 ![docs.rs](https://img.shields.io/docsrs/keket)
+![book](https://img.shields.io/badge/book-Keket-orange?style=flat&link=https%3A%2F%2Fpsichix.github.io%2FKeket%2F)
 
 **Database-like Asset management on top of ECS storage.**
 
@@ -33,7 +34,6 @@ use serde_json::Value;
 use std::{error::Error, fs::Metadata, path::PathBuf};
 
 fn main() -> Result<(), Box<dyn Error>> {
-    // std::env::set_current_dir("../../"); // change path for tests run.
     let mut database = AssetDatabase::default()
         .with_protocol(TextAssetProtocol)
         .with_protocol(BytesAssetProtocol)

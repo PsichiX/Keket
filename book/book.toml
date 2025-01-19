@@ -7,6 +7,7 @@ title = "Keket - Asset Database on top of ECS"
 
 [output.html]
 default-theme = "Ayu"
+preffered-dark-theme = "Ayu"
 
 [output.html.fold]
 enable = true
