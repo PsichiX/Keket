@@ -1,0 +1,1274 @@
+<!DOCTYPE HTML>
+<html lang="en" class="ayu sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Keket - Asset Database on top of ECS</title>
+        <meta name="robots" content="noindex">
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "ayu";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('ayu')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Keket - Asset Database on top of ECS</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="introduction"><a class="header" href="#introduction">Introduction</a></h1>
+<p>Welcome to <code>Keket</code>!</p>
+<p>Modern, flexible, modular Asset Management library built on top of ECS as its
+storage.</p>
+<pre><code class="language-rust ignore">let mut database = AssetDatabase::default()
+    // Asset protocols tell how to deserialize bytes into assets.
+    .with_protocol(TextAssetProtocol)
+    .with_protocol(BytesAssetProtocol)
+    // Bundle protocol allows for easly making a protocol that takes
+    // bytes and returns bundle with optional dependencies.
+    .with_protocol(BundleAssetProtocol::new("json", |bytes: Vec&lt;u8&gt;| {
+        let asset = serde_json::from_slice::&lt;Value&gt;(&amp;bytes)?;
+        Ok((asset,).into())
+    }))
+    // Asset fetch tells how to get bytes from specific source.
+    .with_fetch(FileAssetFetch::default().with_root("assets"));
+
+// Ensure method either gives existing asset handle or creates new
+// and loads asset if not existing yet in storage.
+let lorem = database.ensure("text://lorem.txt")?;
+// Accessing component(s) of asset entry.
+// Assets can store multiple data associated to them, consider them meta data.
+println!("Lorem Ipsum: {}", lorem.access::&lt;&amp;String&gt;(&amp;database));
+
+let json = database.ensure("json://person.json")?;
+println!("JSON: {:#}", json.access::&lt;&amp;Value&gt;(&amp;database));
+
+let trash = database.ensure("bytes://trash.bin")?;
+println!("Bytes: {:?}", trash.access::&lt;&amp;Vec&lt;u8&gt;&gt;(&amp;database));
+
+// We can query storage for asset components to process assets, just like with ECS.
+for (asset_path, file_path, metadata) in database
+    .storage
+    .query::&lt;true, (&amp;AssetPath, &amp;PathBuf, &amp;Metadata)&gt;()
+{
+    println!(
+        "Asset: `{}` at location: {:?} has metadata: {:#?}",
+        asset_path, file_path, metadata
+    );
+}</code></pre>
+<h2 id="goal"><a class="header" href="#goal">Goal</a></h2>
+<p><code>Keket</code> started as an experiment to tell how asset management would look like
+with ECS as its storage, how we could make it play with modularity, what benefits
+does ECS storage gives us.</p>
+<p>Soon after first version got done, i've realized that it is quite powerful and
+easily extendable, when we treat assets as entities with components as their data
+(and meta data) and asset loaders (and systems outside of asset management) can
+process and change assets in bulk the way they need, while not forcing any
+particular closed specs structure on the assets themselves.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="asset-database"><a class="header" href="#asset-database">Asset Database</a></h1>
+<p>Let's dive into central point of the library - asset database.</p>
+<p><code>AssetDatabase</code> is a thin, higher level abstraction for underlying (public) ECS
+storage where assets data live.</p>
+<p>ECS as storage allowed to treat assets as rows in database tables, where single
+asset can have multiple data columns associated with given asset. This opened up
+a possibility for fast queries and lookups on multiple entities that pass given
+requirements (set of components).</p>
+<p>This is very important for systems which process and modify assets in specific
+for them ways (in <code>Keket</code> those systems are asset fetch engines and asset
+protocols - more about them later in the book).</p>
+<p>We can use queries and lookups to process only assets that have given set of
+requirements based on the data they store. For example when we load assets with
+<code>FileAssetFetch</code>, we get not only asset data, but also meta data as <code>PathBuf</code> and
+<code>Metadata</code> components, so if we want to for example scan database for all assets
+that come from file system, we can just query them with <code>PathBuf</code> component and
+use that fast query for asset statistics report.</p>
+<pre><code class="language-rust ignore">for (asset_path, file_path, metadata) in database
+    .storage
+    .query::&lt;true, (&amp;AssetPath, &amp;PathBuf, &amp;Metadata)&gt;()
+{
+    println!(
+        "Asset: `{}` at location: {:?} has metadata: {:#?}",
+        asset_path, file_path, metadata
+    );
+}</code></pre>
+<p>Since storage is just an ECS, every asset entity always must store at least
+<code>AssetPath</code> component to be considered valid asset - every component other than
+asset path is considered asset data that is either usable for outside systems,
+or for asset fetch engines and asset protocols as meta data for them in asset
+resolution process.</p>
+<blockquote>
+<p>When an asset entity stores some components without asset path, then it is
+never considered an actual asset, and rather an entity not important to asset
+management - some systems might find it useful for them, but it is highly not
+advised to put there anything other than assets.</p>
+</blockquote>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="asset-life-cycle"><a class="header" href="#asset-life-cycle">Asset life cycle</a></h1>
+<p>There is standarized progression in asset life cycle:</p>
+<ul>
+<li><strong>Awaits for resolution</strong> - database triggers fetching bytes for these.</li>
+<li><strong>Bytes are ready to be processed</strong> - database takes those loaded bytes from asset
+and runs asset protocol (by asset path protocol part) on these bytes.</li>
+<li><strong>Asset is ready to use</strong> - bytes are decoded into asset components and put in
+given asset for use by outside systems.</li>
+<li><strong>Asset is unloaded</strong> - asset entity gets despawned and when ensured again it will
+be marked as awaiting resolution.</li>
+</ul>
+<blockquote>
+<p>It might be the case where sometimes one or more of these steps are missed, for
+example when asset is added manually (user has all asset components made and
+spawns asset directly into storage, without fetching bytes, etc) - in that case
+given asset never goes through asset fetch engines and asset protocols (yet is
+still discoverable by change detection).</p>
+</blockquote>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="asset-handle"><a class="header" href="#asset-handle">Asset Handle</a></h1>
+<p><code>AssetHandle</code> is a thin wrapper around ECS entity type (generational index).
+Its used as key to asset in database, to allow said database to perform operations
+on the asset using that handle - handles are returned when asset gets spawned in
+storage, so every spawned handle always point to existing asset (unless asset gets
+unloaded/deleted).</p>
+<pre><code class="language-rust ignore">// `lorem` points to existing asset that was either already existing or was just
+// spawned in storage.
+let lorem = database.ensure("text://lorem.txt")?;
+// Once we have valid handle, we can perform various operations on `lorem` asset
+// (here we access its asset data immutably).
+println!("Lorem Ipsum: {}", lorem.access::&lt;&amp;String&gt;(&amp;database));
+
+let json = database.ensure("json://person.json")?;
+println!("JSON: {:#}", json.access::&lt;&amp;Value&gt;(&amp;database));
+
+let trash = database.ensure("bytes://trash.bin")?;
+println!("Bytes: {:?}", trash.access::&lt;&amp;Vec&lt;u8&gt;&gt;(&amp;database));</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="asset-path"><a class="header" href="#asset-path">Asset Path</a></h1>
+<p><code>AssetPath</code> serves as thin wrapper around copy-on-write string with cached ranges
+of standarized path (<code>&lt;protocol&gt;://&lt;path&gt;?&lt;key1&gt;=&lt;value1&gt;&amp;&lt;flag&gt;</code>) components:</p>
+<ul>
+<li>protocol</li>
+<li>path</li>
+<li>optional meta data</li>
+</ul>
+<p>Example asset paths:</p>
+<ul>
+<li><code>ui/texts/lorem.txt</code> - asset path without protocol, only path part.</li>
+<li><code>text://ui/texts/lorem.txt</code> - asset path with protocol.</li>
+<li><code>text://ui/texts/lorem.txt?v=3&amp;uppercase</code> - asset path with path and meta key-values.</li>
+</ul>
+<p>Most common asset paths are ones with protocol and meta key-values. Paths without
+protocols are possible, but not useful, unless you register an asset protocol
+that handles them (which is almost never the case, but one could have it as
+protocol resolved by any other means - since library is modular, user can setup
+database however they like).</p>
+<p>Asset paths are useful mostly in getting asset handles by their asset paths, or
+storage queries/lookups by specific asset path.</p>
+<pre><code class="language-rust ignore">let path = AssetPath::new("text://lorem.txt?v=3&amp;uppercase");
+
+println!("- protocol: {:?}", path.protocol());
+for segment in path.path_parts() {
+    println!("  - path segment: {:?}", segment);
+}
+for (key, value) in path.meta_items() {
+    println!("  - path meta key: {:?} value: {:?}", key, value);
+}
+
+let lorem = database.ensure(path)?;</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="asset-reference"><a class="header" href="#asset-reference">Asset Reference</a></h1>
+<p><code>AssetRef</code> is a thin wrapper around asset path and optional cached asset handle.</p>
+<p>The goal here was to allow to reduce resolving asset handles to one resolution
+for given asset reference - searching for asset handle by asset path is unnecessary
+work to do everytime we point to an asset by path and need to perform operations
+on its handle, so with asset reference we can resolve asset handle once and reuse
+its cached handle for future database operations.</p>
+<p>Additional justification for asset references is serialization - this is preferred
+way to reference assets in serializable data, so once container gets deserializaed
+into typed data, asset handle resolution will happen only at first time.</p>
+<pre><code class="language-rust ignore">#[derive(Debug, Default, Deserialize)]
+struct CustomAsset {
+    content: String,
+    next: AssetRef,
+}
+
+// Here we grab first asset by path.
+let part1 = database.ensure("custom://part1.json")?;
+let part1 = part1.access::&lt;&amp;CustomAsset&gt;(&amp;database);
+println!("Part 1 content: {:?}", part1.content);
+
+// Then we grab next asset by reference stored in loaded first asset.
+// It's important to note that dependency assets should be scheduled to load by
+// asset protocols that load parent asset in their processing method, otherwise
+// dependent assets won't be resolved - here we assume custom asset protocol did
+// loaded dependent assets so they can be resolved.
+let part2 = part1.next.resolve(&amp;database)?;
+let part2 = part2.access::&lt;&amp;CustomAsset&gt;();
+println!("Part 2 content: {:?}", part2.content);</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="asset-events"><a class="header" href="#asset-events">Asset Events</a></h1>
+<p><code>AssetEventBindings</code> is a container for event listeners that will be notified
+about particular asset (or all assets) progression.</p>
+<p>User can put asset event bindings into particular asset, then some code can bind
+its listener (anything that implements <code>AssetEventListener</code> trait, for example
+closure or <code>Sender</code>), and once asset progression changes, that will be dispatched
+to registered listeners. User can also listen for all asset events by registering
+to event bindings in asset database.</p>
+<pre><code class="language-rust ignore">// We can bind closures to asset event bindings for any asset progression tracking.
+database.events.bind(|event| {
+    println!("Asset closure event: {:?}", event);
+    Ok(())
+});
+
+// Create channel for asset events communication.
+let (tx, rx) = channel();
+
+// Start loading asset and its dependencies.
+let group = database.ensure("group://group.txt")?;
+// We can also bind sender to asset event bindings.
+group.ensure::&lt;AssetEventBindings&gt;(&amp;mut database)?.bind(tx);
+
+while database.is_busy() {
+    database.maintain()?;
+}
+
+// Read sent events from receiver.
+while let Ok(event) = rx.try_recv() {
+    println!("Group channel event: {:?}", event);
+}</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="asset-fetch"><a class="header" href="#asset-fetch">Asset Fetch</a></h1>
+<p>Asset fetch engines are units that implement <code>AssetFetch</code> trait that tells asset
+manager how and where from to get requested asset bytes. This covers first step
+of asset progression, where next step uses asset protocol to decode loaded bytes.</p>
+<p>Usually what we can see in asset management libraries is asset loaders, which are
+combination of loading bytes (from some specific to them source) and decoding
+bytes into asset object. I've found this approach unnecessarily fixed and forcing
+requirement for either implementing same asset loader for every asset source, or
+to make all possible asset sources implemented in asset loader.</p>
+<p>In <code>Keket</code> i went with decoupling bytes loading from bytes decoding, so that user
+can for example use different bytes source for different build mode or different
+platform, without having to bytes decoding to care about where bytes come from.</p>
+<pre><code class="language-rust ignore">let mut database = AssetDatabase::default()
+    .with_protocol(TextAssetProtocol)
+    // Whichever asset source we use, we will make them async load.
+    .with_fetch(DeferredAssetFetch::new(
+        // Hot-reloading assets from file system for development.
+        #[cfg(not(feature = "shipping"))]
+        HotReloadFileAssetFetch::new(
+            FileAssetFetch::default().with_root("assets"),
+            Duration::from_secs(5),
+        )?
+        // Loading assets from asset pack REDB database.
+        #[cfg(feature = "shipping")]
+        ContainerAssetFetch::new(RedbContainerPartialFetch::new(
+            Database::create("./assets.redb")?,
+            "assets",
+        ))
+    ));
+
+let handle = database.ensure("text://lorem.txt")?;
+println!("Lorem Ipsum: {}", handle.access::&lt;&amp;String&gt;(&amp;database));</code></pre>
+<p>And this is how easy it is to implement new asset fetch engine:</p>
+<pre><code class="language-rust ignore">impl AssetFetch for FileAssetFetch {
+    fn load_bytes(&amp;self, path: AssetPath) -&gt; Result&lt;DynamicBundle, Box&lt;dyn Error&gt;&gt; {
+        let file_path = self.root.join(path.path());
+        let bytes = std::fs::read(&amp;file_path)
+            .map_err(|error| format!("Failed to load `{:?}` file bytes: {}", file_path, error))?;
+        let mut bundle = DynamicBundle::default();
+        bundle
+            .add_component(AssetBytesAreReadyToProcess(bytes))
+            .ok()
+            .unwrap();
+        bundle.add_component(AssetFromFile).ok().unwrap();
+        bundle
+            .add_component(std::fs::metadata(&amp;file_path)?)
+            .ok()
+            .unwrap();
+        bundle.add_component(file_path).ok().unwrap();
+        Ok(bundle)
+    }
+}</code></pre>
+<blockquote>
+<p><code>AssetBytesAreReadyToProcess</code> component is crucial in asset progression, because
+it marks asset for database (and outside systems) as loaded but not yet decoded,
+so database can detect these assets and trigger asset decoding with their protocol.</p>
+</blockquote>
+<p>File asset fetch also adds other components such as:</p>
+<ul>
+<li><code>AssetFromFile</code> - tag component that allows to query all assets from file system.</li>
+<li><code>std::fs::Metadata</code> - file metadata that can be used for example for size stats.</li>
+<li><code>PathBuf</code> - file system path that can be used for stuff like hot reloading.</li>
+</ul>
+<p>Asset fetch engines other than <code>FileassetFetch</code> also do add their own custom
+metadata to asset.</p>
+<p>It's worth also to know that asset database uses stack of asset fetch engines,
+to allow changing source of assets for particular code paths - we can push, pop,
+swap or use-in-place fetch engines. Typical scenario of that would be to
+procedurally create an asset container that we can then use as container source
+for future assets.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="file-system"><a class="header" href="#file-system">File system</a></h1>
+<p><code>FileAssetFetch</code> is a simple fetch engine that reads entire bytes of an asset
+file synchronously.</p>
+<pre><code class="language-rust ignore">let mut database = AssetDatabase::default()
+    .with_protocol(TextAssetProtocol)
+    .with_protocol(BytesAssetProtocol)
+    .with_fetch(FileAssetFetch::default().with_root("assets"));
+
+let lorem = database.ensure("text://lorem.txt")?;
+println!("Lorem Ipsum: {}", lorem.access::&lt;&amp;String&gt;(&amp;database));</code></pre>
+<blockquote>
+<p>Since this is blocking fetch, you might want to wrap it with <code>DeferredAssetFetch</code>
+to run file system fetching jobs in background.</p>
+</blockquote>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="in-memory-collections"><a class="header" href="#in-memory-collections">In-memory collections</a></h1>
+<p>In rare cases we need to have assets in-memory - embeded platforms, or just assets
+baked into binary (typically simple web wasm games) - we can use collections to
+store paths and their bytes and allow assets to be fetched from there.</p>
+<pre><code class="language-rust ignore">const ASSETS: &amp;[(&amp;str, &amp;[u8])] = &amp;[
+    ("lorem.txt", include_bytes!("./assets/lorem.txt")),
+    ("trash.bin", include_bytes!("./assets/trash.bin")),
+];
+
+let mut database = AssetDatabase::default()
+    .with_protocol(TextAssetProtocol)
+    .with_protocol(BytesAssetProtocol)
+    .with_fetch(ASSETS);
+
+let lorem = database.ensure("text://lorem.txt")?;
+println!("Lorem Ipsum: {}", lorem.access::&lt;&amp;String&gt;(&amp;database));
+
+let trash = database.ensure("bytes://trash.bin")?;
+println!("Trash: {:?}", bytes.access::&lt;&amp;Vec&lt;u8&gt;&gt;(&amp;database));</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="hot-reloading-wrapper-for-file-system"><a class="header" href="#hot-reloading-wrapper-for-file-system">Hot-reloading wrapper for file system</a></h1>
+<p><code>HotReloadAssetFetch</code> wrapper alows assets loaded from <code>FileAssetFetch</code> to be
+watched and reloaded when source file changes.</p>
+<pre><code class="language-rust ignore">let mut database = AssetDatabase::default()
+    .with_protocol(TextAssetProtocol)
+    .with_protocol(BytesAssetProtocol)
+    .with_fetch(HotReloadFileAssetFetch::new(
+        FileAssetFetch::default().with_root("assets"),
+        // File system watcher polling interval.
+        Duration::from_secs(5),
+    )?);
+
+// First we fill database with some assets, hot reload only
+// cares about changes in files present in database.
+database.ensure("text://lorem.txt")?;
+database.ensure("bytes://trash.bin")?;
+
+loop {
+    database.maintain()?;
+
+    // With storage change detection we can ask for asset entities
+    // that their paths were updated (hot reloading updates them).
+    if let Some(changes) = database.storage.updated() {
+        for entity in changes.iter_of::&lt;AssetPath&gt;() {
+            println!(
+                "Asset changed: `{}`",
+                AssetHandle::new(entity).access::&lt;&amp;AssetPath&gt;(&amp;database)
+            );
+        }
+    }
+
+    // Simulate systems that detect particular asset type reload.
+    for entity in database.storage.added().iter_of::&lt;String&gt;() {
+        println!(
+            "Text asset changed: `{}`",
+            AssetHandle::new(entity).access::&lt;&amp;String&gt;(&amp;database)
+        );
+    }
+    for entity in database.storage.added().iter_of::&lt;Vec&lt;u8&gt;&gt;() {
+        println!(
+            "Bytes asset changed: `{:?}`",
+            AssetHandle::new(entity).access::&lt;&amp;Vec&lt;u8&gt;&gt;(&amp;database)
+        );
+    }
+}</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="deferred-loading-wrapper"><a class="header" href="#deferred-loading-wrapper">Deferred loading wrapper</a></h1>
+<p><code>DeferredAssetFetch</code> allows to asynchronously load requested bytes in background
+thread(s). It is encouraged to use it for heavy latency fetch engines like file
+system or network fetch engines.</p>
+<pre><code class="language-rust ignore">let mut database = AssetDatabase::default()
+    .with_protocol(BytesAssetProtocol)
+    .with_fetch(DeferredAssetFetch::new(
+        FileAssetFetch::default().with_root("assets"),
+    ));
+
+let package = database.ensure("bytes://package.zip")?;
+
+// Simulate waiting for asset bytes loading to complete.
+while package.awaits_deferred_job(&amp;database) {
+    println!("Package awaits deferred job done");
+    database.maintain()?;
+}
+
+// Run another maintain pass to process loaded bytes.
+database.maintain()?;
+
+println!(
+    "Package byte size: {}",
+    package.access::&lt;&amp;Vec&lt;u8&gt;&gt;(&amp;database).len()
+);</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="assets-container-wrapper"><a class="header" href="#assets-container-wrapper">Assets container wrapper</a></h1>
+<p><code>ContainerAssetFetch</code> allows for partial loading from sources that are considered
+containers that store other assets. Typical container example would be ZIP archives,
+databases, etc.</p>
+<pre><code class="language-rust ignore">struct ZipContainerPartialFetch {
+    archive: ZipArchive&lt;File&gt;,
+}
+
+impl ZipContainerPartialFetch {
+    pub fn new(archive: ZipArchive&lt;File&gt;) -&gt; Self {
+        Self { archive }
+    }
+}
+
+impl ContainerPartialFetch for ZipContainerPartialFetch {
+    fn load_bytes(&amp;mut self, path: AssetPath) -&gt; Result&lt;Vec&lt;u8&gt;, Box&lt;dyn Error&gt;&gt; {
+        let mut file = self
+            .archive
+            .by_name(path.path())
+            .map_err(|error| format!("Could not read zip file: `{}` - {}", path.path(), error))?;
+        let mut bytes = vec![];
+        file.read_to_end(&amp;mut bytes)?;
+        Ok(bytes)
+    }
+}
+
+let mut database = AssetDatabase::default()
+    .with_protocol(TextAssetProtocol)
+    .with_fetch(ContainerAssetFetch::new(ZipContainerPartialFetch::new(
+        ZipArchive::new(File::open("./assets/package.zip")?)?,
+    )));
+
+let lorem = database.ensure("text://lorem.txt")?;
+println!("Lorem Ipsum: {}", lorem.access::&lt;&amp;String&gt;(&amp;database));</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="fallback-assets-wrapper"><a class="header" href="#fallback-assets-wrapper">Fallback assets wrapper</a></h1>
+<p><code>FallbackAssetFetch</code> allows to provide list of assets that should be considered
+to load instead of requested assets (with matching protocol) when requested asset
+fails to load - for example if requested texture does not exists, we can fallback
+to popular magenta solid color texture that indicates missing textures.</p>
+<pre><code class="language-rust ignore">let mut database = AssetDatabase::default()
+    .with_protocol(TextAssetProtocol)
+    .with_fetch(
+        FallbackAssetFetch::new(FileAssetFetch::default().with_root("assets"))
+            // This fallback asset does not exists so it will be ignored.
+            .path("text://this-fails-to-load.txt")
+            // This asset exists so it will be loaded as fallback.
+            .path("text://lorem.txt"),
+    );
+
+// This asset exists so it loads normally.
+let lorem = database.ensure("text://lorem.txt")?;
+
+// This asset does not exists so it loads fallback asset.
+let non_existent = database.ensure("text://non-existent.txt")?;
+
+if lorem.access::&lt;&amp;String&gt;(&amp;database) == non_existent.access::&lt;&amp;String&gt;(&amp;database) {
+    println!("Non existent asset loaded from fallback!");
+}</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="router-fetch-wrapper"><a class="header" href="#router-fetch-wrapper">Router fetch wrapper</a></h1>
+<p><code>RouterAssetFetch</code> allows to combine multiple fetch engines into routes, so that
+specific fetch engine to use for given asset is decided by the pattern in asset
+path - this is useful when we might want to have main game assets and additional
+DLC/mod asset sources.</p>
+<pre><code class="language-rust ignore">let mut database = AssetDatabase::default()
+    .with_protocol(TextAssetProtocol)
+    .with_protocol(BytesAssetProtocol)
+    .with_fetch(
+        RouterAssetFetch::default()
+            .route(
+                // Main assets source.
+                RouterPattern::default(),
+                ContainerAssetFetch::new(
+                    ZipContainerPartialFetch::new(ZipArchive::new(
+                        File::open("./resources/main.zip")?,
+                    )?)
+                ),
+            )
+            .route(
+                // DLC assets source, with higher priority pattern to try match
+                // before main assets route matches.
+                RouterPattern::new("dlc/").priority(1),
+                ContainerAssetFetch::new(
+                    ZipContainerPartialFetch::new(ZipArchive::new(
+                        File::open("./resources/dlc.zip")?,
+                    )?)
+                ),
+            ),
+    );
+
+let lorem = database.ensure("text://lorem.txt")?;
+println!("Lorem Ipsum: {}", lorem.access::&lt;&amp;String&gt;(&amp;database));
+
+let trash = database.ensure("bytes://dlc/trash.bin")?;
+println!("Bytes: {:?}", trash.access::&lt;&amp;Vec&lt;u8&gt;&gt;(&amp;database));</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="rewrite-asset-path-wrapper"><a class="header" href="#rewrite-asset-path-wrapper">Rewrite asset path wrapper</a></h1>
+<p><code>RewriteAssetFetch</code> allows to rewrite requested asset path to some other.
+This is useful for scenarios like localized assets or assets versioning, where
+there might be different versions of assets based on some runtime state.</p>
+<pre><code class="language-rust ignore">let language = Arc::new(RwLock::new("en"));
+let language2 = language.clone();
+
+let mut database = AssetDatabase::default()
+    .with_protocol(TextAssetProtocol)
+    .with_fetch(RewriteAssetFetch::new(
+        FileAssetFetch::default().with_root("resources"),
+        move |path| {
+            // Make localized asset path based on current language settings.
+            Ok(AssetPath::from_parts(
+                path.protocol(),
+                &amp;format!(
+                    "{}.{}{}",
+                    path.path_without_extension(),
+                    *language2.read().unwrap(),
+                    path.path_dot_extension().unwrap_or_default()
+                ),
+                path.meta(),
+            ))
+        },
+    ));
+
+// Gets `text://localized.en.txt`.
+let asset = database.ensure("text://localized.txt")?;
+println!("English: {}", asset.access::&lt;&amp;String&gt;(&amp;database));
+
+// Change language.
+*language.write().unwrap() = "de";
+database.storage.clear();
+
+// Gets `text://localized.de.txt`.
+let asset = database.ensure("text://localized.txt")?;
+println!("German: {}", asset.access::&lt;&amp;String&gt;(&amp;database));</code></pre>
+<blockquote>
+<p>Rewritten asset paths do not change path in asset entity - this is deliberate
+design decision to make outside systems not care about possible asset path
+change when trying to resolve asset handle by its path.</p>
+</blockquote>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="http-requests"><a class="header" href="#http-requests">HTTP requests</a></h1>
+<blockquote>
+<p><strong>Required crate: <code>keket-http</code>.</strong></p>
+</blockquote>
+<p><code>HttpAssetFetch</code> allows to fetch bytes with HTTP sources.</p>
+<pre><code class="language-rust ignore">let mut database = AssetDatabase::default()
+    .with_protocol(TextAssetProtocol)
+    // HTTP asset fetch with root URL for assets.
+    .with_fetch(DeferredAssetFetch::new(HttpAssetFetch::new(
+        "https://raw.githubusercontent.com/PsichiX/Keket/refs/heads/master/resources/",
+    )?));
+
+// Ensure assets exists or start getting fetched.
+let lorem = database.ensure("text://lorem.txt")?;
+
+// Wait for pending fetches.
+while database.does_await_deferred_job() {
+    database.maintain()?;
+}
+
+// After all assets bytes are fetched, process them into assets.
+database.maintain()?;
+
+println!("Lorem Ipsum: {}", lorem.access::&lt;&amp;String&gt;(&amp;database));</code></pre>
+<blockquote>
+<p>Since this is blocking fetch, you might want to wrap it with <code>DeferredAssetFetch</code>
+to run HTTP fetching jobs in background.</p>
+</blockquote>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="redb-database"><a class="header" href="#redb-database">REDB database</a></h1>
+<blockquote>
+<p><strong>Required crate: <code>keket-redb</code>.</strong></p>
+</blockquote>
+<p><code>RedbContainerPartialFetch</code> partial fetch engine allows to unpack asset bytes
+from REDB database - useful for asset packs.</p>
+<pre><code class="language-rust ignore">let mut database = AssetDatabase::default()
+    .with_protocol(TextAssetProtocol)
+    .with_fetch(ContainerAssetFetch::new(RedbContainerPartialFetch::new(
+        Database::create("./assets/database.redb")?,
+        "assets",
+    )));
+
+let lorem = database.ensure("text://lorem.txt")?;
+println!("Lorem Ipsum: {}", lorem.access::&lt;&amp;String&gt;(&amp;database));</code></pre>
+<blockquote>
+<p>Since this is blocking fetch, you might want to wrap it with <code>DeferredAssetFetch</code>
+to run REDB fetching jobs in background.</p>
+</blockquote>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="asset-server"><a class="header" href="#asset-server">Asset Server</a></h1>
+<p><code>ClientAssetFetch</code> allows to get bytes from <code>Keket</code> Asset Server (<code>keket-server</code>
+binary crate) - a humble beginnings to DDC infrastructure for live development.</p>
+<pre><code class="language-rust ignore">let mut database = AssetDatabase::default()
+    .with_protocol(TextAssetProtocol)
+    .with_protocol(BytesAssetProtocol)
+    // Client asset fetch to request files from asset server.
+    .with_fetch(DeferredAssetFetch::new(ClientAssetFetch::new(
+        // IP address of asset server we connect to.
+        "127.0.0.1:8080",
+    )?));
+
+// Ensure assets exists or start getting fetched.
+let lorem = database.ensure("text://lorem.txt")?;
+let trash = database.ensure("bytes://trash.bin")?;
+
+// Wait for pending fetches.
+while database.does_await_deferred_job() {
+    database.maintain()?;
+}
+
+// After all assets bytes are fetched, process them into assets.
+database.maintain()?;
+
+println!("Lorem Ipsum: {}", lorem.access::&lt;&amp;String&gt;(&amp;database));
+println!("Bytes: {:?}", trash.access::&lt;&amp;Vec&lt;u8&gt;&gt;(&amp;database));
+
+println!("Listening for file changes...");
+loop {
+    database.maintain()?;
+
+    // With storage change detection we can ask for asset entities
+    // that their paths were updated (hot reloading updates them).
+    if let Some(changes) = database.storage.updated() {
+        for entity in changes.iter_of::&lt;AssetPath&gt;() {
+            println!(
+                "Asset changed: `{}`",
+                AssetHandle::new(entity).access::&lt;&amp;AssetPath&gt;(&amp;database)
+            );
+        }
+    }
+}</code></pre>
+<blockquote>
+<p>Since this is blocking fetch, you might want to wrap it with <code>DeferredAssetFetch</code>
+to run Asset Server fetching jobs in background.</p>
+</blockquote>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="asset-protocol"><a class="header" href="#asset-protocol">Asset Protocol</a></h1>
+<p>Asset protocols are units that decode bytes and then does some things with decoded
+data, usually put components into asset, schedule dependencies to load and relate
+them with source asset, if there are any dependencies.</p>
+<p>Asset protocols are second step in asset progression - they are decoupled from
+asset fetch engines to make them not care about source of the asset and by that
+be used no matter where assets come from, which solves the need for asset loaders
+to implement with all possible asset sources, which is cumbersome to deal with.</p>
+<pre><code class="language-rust ignore">let mut database = AssetDatabase::default()
+    .with_protocol(TextAssetProtocol)
+    .with_fetch(FileAssetFetch::default().with_root("resources"));
+
+let lorem = database.ensure("text://lorem.txt")?;
+println!("Lorem Ipsum: {}", lorem.access::&lt;&amp;String&gt;(&amp;database));</code></pre>
+<p>For type to be considered asset protocol, it must implement <code>AssetProtocol</code> trait
+that has methods for processing asset bytes:</p>
+<pre><code class="language-rust ignore">struct CustomAssetProtocol;
+
+impl AssetProtocol for CustomAssetProtocol {
+    fn name(&amp;self) -&gt; &amp;str {
+        "custom"
+    }
+
+    fn process_bytes(
+        &amp;mut self,
+        handle: AssetHandle,
+        storage: &amp;mut World,
+        bytes: Vec&lt;u8&gt;,
+    ) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+        // Once we have asset bytes, we decode them into asset data.
+        let asset = serde_json::from_slice::&lt;CustomAsset&gt;(&amp;bytes)?;
+
+        // We also have to extract dependencies if it has some.
+        if let Some(path) = asset.next.clone() {
+            // For every dependency we get, we need to spawn an asset entity
+            // with AssetAwaitsResolution component to tell asset database
+            // to start loading it.
+            let entity = storage.spawn((path, AssetAwaitsResolution))?;
+
+            // We should also relate processed asset with its dependency asset.
+            // Dependency relations are useful for traversing asset graphs.
+            storage.relate::&lt;true, _&gt;(AssetDependency, handle.entity(), entity)?;
+        }
+
+        Ok(())
+    }
+}</code></pre>
+<p>Optionally type can implement more specific asset processing that doesn't assume
+you only care about bytes or even only processed asset:</p>
+<pre><code class="language-rust ignore">impl AssetProtocol for CustomAssetProtocol {
+    fn name(&amp;self) -&gt; &amp;str {
+        "custom"
+    }
+
+    fn process_asset(
+        &amp;mut self,
+        handle: AssetHandle,
+        storage: &amp;mut World,
+    ) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+        // Always remember that in order for asset to be considered done with
+        // processing bytes, it has to remove AssetBytesAreReadyToProcess
+        // component from that asset. We are doing that by taking its bytes
+        // content first and removing it after.
+        let bytes = {
+            let mut bytes = storage
+                .component_mut::&lt;true, AssetBytesAreReadyToProcess&gt;(
+                    handle.entity()
+                )?;
+            std::mem::take(&amp;mut bytes.0)
+        };
+        storage.remove::&lt;(AssetBytesAreReadyToProcess,)&gt;(handle.entity())?;
+
+        let asset = serde_json::from_slice::&lt;CustomAsset&gt;(&amp;bytes)?;
+
+        if let Some(path) = asset.next.clone() {
+            let entity = storage.spawn((path, AssetAwaitsResolution))?;
+            storage.relate::&lt;true, _&gt;(AssetDependency, handle.entity(), entity)?;
+        }
+
+        Ok(())
+    }
+}</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="bytes"><a class="header" href="#bytes">Bytes</a></h1>
+<p><code>BytesAssetProtocol</code> allows to just unwrap fetched bytes into <code>Vec&lt;u8&gt;</code> component.</p>
+<pre><code class="language-rust ignore">let mut database = AssetDatabase::default()
+    .with_protocol(BytesAssetProtocol)
+    .with_fetch(FileAssetFetch::default().with_root("assets"));
+
+let trash = database.ensure("bytes://trash.bin")?;
+println!("Bytes: {:?}", trash.access::&lt;&amp;Vec&lt;u8&gt;&gt;(&amp;database));</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="text"><a class="header" href="#text">Text</a></h1>
+<p><code>TextAssetProtocol</code> allows to decode fetched bytes into <code>String</code> component.</p>
+<pre><code class="language-rust ignore">let mut database = AssetDatabase::default()
+    .with_protocol(TextAssetProtocol)
+    .with_fetch(FileAssetFetch::default().with_root("assets"));
+
+let lorem = database.ensure("text://lorem.txt")?;
+println!("Text: {:?}", lorem.access::&lt;&amp;String&gt;(&amp;database));</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="bundle"><a class="header" href="#bundle">Bundle</a></h1>
+<p><code>BundleAssetProtocol</code> allows to create easy custom bytes decoders.</p>
+<pre><code class="language-rust ignore">let mut database = AssetDatabase::default()
+    .with_protocol(BundleAssetProtocol::new("json", |bytes: Vec&lt;u8&gt;| {
+        let asset = serde_json::from_slice::&lt;Value&gt;(&amp;bytes)?;
+        Ok((asset,).into())
+    }))
+    .with_fetch(FileAssetFetch::default().with_root("assets"));
+
+let json = database.ensure("json://person.json")?;
+println!("JSON: {:#}", json.access::&lt;&amp;Value&gt;(&amp;database));</code></pre>
+<p>We can use closures or any type that implements <code>BundleWithDependenciesProcessor</code>
+trait, which turns input bytes into <code>BundleWithDependencies</code> container with output
+components bundle and optional list of dependencies to schedule after decoding.</p>
+<pre><code class="language-rust ignore">// Custom asset type.
+#[derive(Debug, Default, Deserialize)]
+struct CustomAsset {
+    // Main content.
+    content: String,
+    // Optional sibling asset (content continuation).
+    #[serde(default)]
+    next: Option&lt;AssetPathStatic&gt;,
+}
+
+struct CustomAssetProcessor;
+
+impl BundleWithDependenciesProcessor for CustomAssetProcessor {
+    // Bundle of asset components this asset processor produces
+    // from processed asset.
+    type Bundle = (CustomAsset,);
+
+    fn process_bytes(
+        &amp;mut self,
+        bytes: Vec&lt;u8&gt;,
+    ) -&gt; Result&lt;BundleWithDependencies&lt;Self::Bundle&gt;, Box&lt;dyn Error&gt;&gt; {
+        let asset = serde_json::from_slice::&lt;CustomAsset&gt;(&amp;bytes)?;
+        let dependency = asset.next.clone();
+        // Return bundled components and optional dependency
+        // which will be additionally loaded.
+        Ok(BundleWithDependencies::new((asset,)).maybe_dependency(dependency))
+    }
+}</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="group"><a class="header" href="#group">Group</a></h1>
+<p><code>GroupAssetProtocol</code> allows to load group of assets at once as its dependencies.</p>
+<pre><code class="language-rust ignore">let mut database = AssetDatabase::default()
+    .with_protocol(TextAssetProtocol)
+    .with_protocol(BytesAssetProtocol)
+    .with_protocol(GroupAssetProtocol)
+    .with_fetch(FileAssetFetch::default().with_root("assets"));
+
+let group = database.ensure("group://group.txt")?;
+
+while database.is_busy() {
+    database.maintain()?;
+}
+
+let lorem = database.ensure("text://lorem.txt")?;
+println!("Lorem Ipsum: {}", lorem.access::&lt;&amp;String&gt;(&amp;database));
+
+let trash = database.ensure("bytes://trash.bin")?;
+println!("Bytes: {:?}", trash.access::&lt;&amp;Vec&lt;u8&gt;&gt;(&amp;database));
+
+for dependency in group.dependencies(&amp;database) {
+    println!(
+        "Group dependency: {}",
+        dependency.access::&lt;&amp;AssetPath&gt;(&amp;database)
+    );
+}</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="real-life-scenarios"><a class="header" href="#real-life-scenarios">Real life scenarios</a></h1>
+<p>Next sub-chapters gonna be a set of real life scenarios of problems to solve.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="basic-in-game-setup"><a class="header" href="#basic-in-game-setup">Basic in-game setup</a></h1>
+<p>Here we will showcase a basic usage of <code>Keket</code> integrated with some application.
+In this example we will use <a href="https://github.com/PsichiX/spitfire">Spitfire</a> crate.</p>
+<details>
+<summary>See `use` section</summary>
+<pre><code class="language-rust ignore">use keket::{
+    database::{handle::AssetDependency, reference::AssetRef, AssetDatabase},
+    fetch::{deferred::DeferredAssetFetch, file::FileAssetFetch},
+    protocol::{
+        bundle::{BundleAssetProtocol, BundleWithDependencies, BundleWithDependenciesProcessor},
+        group::GroupAssetProtocol,
+        text::TextAssetProtocol,
+    },
+    third_party::anput::{
+        commands::{CommandBuffer, InsertCommand, RemoveCommand},
+        entity::Entity,
+        world::{Relation, World},
+    },
+};
+use serde::{Deserialize, Serialize};
+use spitfire::prelude::*;
+use std::{
+    error::Error,
+    sync::{Arc, RwLock},
+    time::Instant,
+};</code></pre>
+</details>
+<h2 id="main-function"><a class="header" href="#main-function">Main function</a></h2>
+<p>Main function looks boring - all we do is we run <code>App</code> with <code>State</code> object.</p>
+<pre><code class="language-rust ignore">fn main() -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+    App::&lt;Vertex&gt;::default().run(State::default());
+
+    Ok(())
+}</code></pre>
+<h2 id="state-struct"><a class="header" href="#state-struct">State struct</a></h2>
+<p><code>State</code> type holds <code>AssetDatabase</code> along with some other data useful for drawing,
+fixed time step mechanism and referencing assets.</p>
+<pre><code class="language-rust ignore">struct State {
+    // We store drawing context for later use in app state.
+    // Drawing context holds resources and stack-based states.
+    context: DrawContext,
+    // Timer used for fixed step frame particle system simulation.
+    timer: Instant,
+    assets: AssetDatabase,
+    image_shader: AssetRef,
+    ferris_texture: AssetRef,
+}</code></pre>
+<h2 id="state-default-impl"><a class="header" href="#state-default-impl">State <code>Default</code> impl</a></h2>
+<p>In <code>Default</code> implementatio we setup app state.</p>
+<p>Take a look at how we setup <code>AssetDatabase</code> protocols:</p>
+<pre><code class="language-rust ignore">impl Default for State {
+    fn default() -&gt; Self {
+        Self {
+            context: Default::default(),
+            timer: Instant::now(),
+            assets: AssetDatabase::default()
+                // Text protocol for shader sources.
+                .with_protocol(TextAssetProtocol)
+                // Group protocol for loading many assets at once.
+                .with_protocol(GroupAssetProtocol)
+                // Custom shader protocol.
+                .with_protocol(BundleAssetProtocol::new("shader", ShaderAssetProcessor))
+                // Custom texture protocol.
+                .with_protocol(BundleAssetProtocol::new("texture", TextureAssetProcessor))
+                // Load all data from file system asynchronously.
+                .with_fetch(DeferredAssetFetch::new(
+                    FileAssetFetch::default().with_root("resources"),
+                )),
+            // Stored asset references for cached asset handles.
+            image_shader: AssetRef::new("shader://image.shader"),
+            ferris_texture: AssetRef::new("texture://ferris.png"),
+        }
+    }
+}</code></pre>
+<p>In there you can see bundle asset protocols wrapping custom shader and texture
+asset processors.</p>
+<h2 id="state-appstate-impl"><a class="header" href="#state-appstate-impl">State <code>AppState</code> impl</a></h2>
+<p>Then we implement <code>AppState</code> for our <code>State</code> type, where in <code>on_init</code> we setup
+graphics and load scene group asset, and in <code>on_redraw</code> we run asset database
+maintanance periodically and then try to render Ferris sprite only if shader and
+texture assets are ready.</p>
+<pre><code class="language-rust ignore">impl AppState&lt;Vertex&gt; for State {
+    fn on_init(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+        // Setup scene camera.
+        graphics.color = [0.25, 0.25, 0.25, 1.0];
+        graphics.main_camera.screen_alignment = 0.5.into();
+        graphics.main_camera.scaling = CameraScaling::FitToView {
+            size: 1000.0.into(),
+            inside: false,
+        };
+
+        // Load this scene group.
+        self.assets.ensure("group://ingame.txt").unwrap();
+    }
+
+    fn on_redraw(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+        // Process assets periotically.
+        if self.timer.elapsed().as_secs_f32() &gt; DELTA_TIME {
+            self.timer = Instant::now();
+            self.process_assets(graphics);
+        }
+
+        // Do not render unless we have shader loaded.
+        let Ok(image_shader) = self.image_shader.resolve(&amp;self.assets) else {
+            return;
+        };
+        let Some(image_shader) = image_shader
+            .access_checked::&lt;&amp;AsyncHandle&lt;Shader&gt;&gt;()
+            .map(|handle| handle.to_ref())
+        else {
+            return;
+        };
+
+        // Begin drawing objects.
+        self.context.begin_frame(graphics);
+        self.context.push_shader(&amp;image_shader);
+        self.context.push_blending(GlowBlending::Alpha);
+
+        // Draw sprite only if texture asset is loaded.
+        if let Ok(texture) = self.ferris_texture.resolve(&amp;self.assets) {
+            if let Some(texture) = texture
+                .access_checked::&lt;&amp;AsyncHandle&lt;Texture&gt;&gt;()
+                .map(|handle| handle.to_ref())
+            {
+                Sprite::single(SpriteTexture::new("u_image".into(), texture))
+                    .pivot(0.5.into())
+                    .draw(&amp;mut self.context, graphics);
+            }
+        }
+
+        // Commit drawn objects.
+        self.context.end_frame();
+    }
+}</code></pre>
+<h2 id="state-impl"><a class="header" href="#state-impl">State impl</a></h2>
+<p>In <code>State</code> implementation we finally do our first interesting bit - since asset
+protocols does not have access to our state, we can process prepared shader and
+texture assets and then build GPU objects for these assets and put them into
+their assets.</p>
+<pre><code class="language-rust ignore">impl State {
+    fn process_assets(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+        let mut commands = CommandBuffer::default();
+
+        // Process loaded shader assets into shader objects on GPU.
+        for entity in self.assets.storage.added().iter_of::&lt;ShaderAsset&gt;() {
+            let asset = self
+                .assets
+                .storage
+                .component::&lt;true, ShaderAsset&gt;(entity)
+                .unwrap();
+            let shader = graphics.shader(&amp;asset.vertex, &amp;asset.fragment).unwrap();
+            println!("* Shader asset turned into shader: {}", entity);
+            commands.command(InsertCommand::new(entity, (AsyncHandle::new(shader),)));
+        }
+
+        // Process loaded texture assets into texture objects on GPU.
+        for entity in self.assets.storage.added().iter_of::&lt;TextureAsset&gt;() {
+            let asset = self
+                .assets
+                .storage
+                .component::&lt;true, TextureAsset&gt;(entity)
+                .unwrap();
+            let texture = graphics
+                .texture(
+                    asset.width,
+                    asset.height,
+                    1,
+                    GlowTextureFormat::Rgba,
+                    Some(&amp;asset.bytes),
+                )
+                .unwrap();
+            println!("* Texture asset turned into texture: {}", entity);
+            commands.command(InsertCommand::new(entity, (AsyncHandle::new(texture),)));
+        }
+
+        commands.execute(&amp;mut self.assets.storage);
+        self.assets.maintain().unwrap();
+    }
+}</code></pre>
+<h2 id="texture-asset-processor"><a class="header" href="#texture-asset-processor">Texture asset processor</a></h2>
+<p>Now let's see how we have made our texture asset processor:</p>
+<pre><code class="language-rust ignore">// Decoded texture asset with its size and decoded bitmap bytes.
+struct TextureAsset {
+    width: u32,
+    height: u32,
+    bytes: Vec&lt;u8&gt;,
+}
+
+struct TextureAssetProcessor;
+
+impl BundleWithDependenciesProcessor for TextureAssetProcessor {
+    type Bundle = (TextureAsset,);
+
+    fn process_bytes(
+        &amp;mut self,
+        bytes: Vec&lt;u8&gt;,
+    ) -&gt; Result&lt;BundleWithDependencies&lt;Self::Bundle&gt;, Box&lt;dyn Error&gt;&gt; {
+        // Decode PNG image into texture size and bitmap bytes.
+        let decoder = png::Decoder::new(bytes.as_slice());
+        let mut reader = decoder.read_info()?;
+        let mut buf = vec![0; reader.output_buffer_size()];
+        let info = reader.next_frame(&amp;mut buf)?;
+        let bytes = buf[..info.buffer_size()].to_vec();
+
+        println!("* Texture asset processed: {:#?}", info);
+        Ok(BundleWithDependencies::new((TextureAsset {
+            width: info.width,
+            height: info.height,
+            bytes,
+        },)))
+    }
+}</code></pre>
+<p>All we do here is we decode PNG image into texture decoded bytes along with
+texture dimensions.</p>
+<h2 id="shader-asset-processor"><a class="header" href="#shader-asset-processor">Shader asset processor</a></h2>
+<p>Shader asset processor is a lot more interesting:</p>
+<pre><code class="language-rust ignore">// Decoded shader asset information with dependencies.
+#[derive(Debug, Serialize, Deserialize)]
+struct ShaderAssetInfo {
+    vertex: AssetRef,
+    fragment: AssetRef,
+}
+
+// Shader asset with vertex and fragment programs code.
+struct ShaderAsset {
+    vertex: String,
+    fragment: String,
+}
+
+// Shader asset processor that turns bytes -&gt; shader info -&gt; shader asset.
+struct ShaderAssetProcessor;
+
+impl BundleWithDependenciesProcessor for ShaderAssetProcessor {
+    type Bundle = (ShaderAssetInfo,);
+
+    fn process_bytes(
+        &amp;mut self,
+        bytes: Vec&lt;u8&gt;,
+    ) -&gt; Result&lt;BundleWithDependencies&lt;Self::Bundle&gt;, Box&lt;dyn Error&gt;&gt; {
+        let asset = serde_json::from_slice::&lt;ShaderAssetInfo&gt;(&amp;bytes)?;
+        let vertex = asset.vertex.path().clone();
+        let fragment = asset.fragment.path().clone();
+
+        println!("* Shader asset processed: {:#?}", asset);
+        Ok(BundleWithDependencies::new((asset,))
+            .dependency(vertex)
+            .dependency(fragment))
+    }
+
+    fn maintain(&amp;mut self, storage: &amp;mut World) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+        let mut commands = CommandBuffer::default();
+        let mut lookup = storage.lookup_access::&lt;true, &amp;String&gt;();
+
+        // We scan for decoded shader info and if dependencies are loaded,
+        // then turn them into shader asset.
+        for (entity, info, dependencies) in
+            storage.query::&lt;true, (Entity, &amp;ShaderAssetInfo, &amp;Relation&lt;AssetDependency&gt;)&gt;()
+        {
+            if dependencies
+                .entities()
+                .all(|entity| storage.has_entity_component::&lt;String&gt;(entity))
+            {
+                let vertex = lookup
+                    .access(storage.find_by::&lt;true, _&gt;(info.vertex.path()).unwrap())
+                    .unwrap()
+                    .to_owned();
+                let fragment = lookup
+                    .access(storage.find_by::&lt;true, _&gt;(info.fragment.path()).unwrap())
+                    .unwrap()
+                    .to_owned();
+
+                let asset = ShaderAsset { vertex, fragment };
+                commands.command(InsertCommand::new(entity, (asset,)));
+                commands.command(RemoveCommand::&lt;(ShaderAssetInfo,)&gt;::new(entity));
+            }
+        }
+        drop(lookup);
+
+        commands.execute(storage);
+
+        Ok(())
+    }
+}</code></pre>
+<p>Since this asset is just a descriptor that holds references to dependencies such
+as vertex anf fragment shader code, in asset processing we only schedule
+dependency loading and then in <code>maintain</code> method we scan database storage for
+<code>ShaderAssetInfo</code> component, along with dependency relations, and we test if all
+dependencies are resolved (they are text assets so all should have <code>String</code>
+component when complete). When all dependencies are complete, we can read them
+and construct <code>ShaderAsset</code> with shader programs code for game to build GPU
+shader objects.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+        <script>
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+
+    </div>
+    </body>
+</html>
