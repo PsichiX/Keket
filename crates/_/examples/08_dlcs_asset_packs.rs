@@ -22,7 +22,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     )?)),
                 )
                 .route(
-                    RouterPattern::new("dlc/"),
+                    RouterPattern::new("dlc/").priority(1),
                     ContainerAssetFetch::new(ZipContainerPartialFetch::new(ZipArchive::new(
                         File::open("./resources/dlc.zip")?,
                     )?)),

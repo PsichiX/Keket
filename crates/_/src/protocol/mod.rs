@@ -74,4 +74,18 @@ pub trait AssetProtocol: Send + Sync {
         storage.remove::<(AssetBytesAreReadyToProcess,)>(handle.entity())?;
         self.process_bytes(handle, storage, bytes)
     }
+
+    /// Maintains protocol state.
+    ///
+    /// Can be used for handling periodic or deferred operations.
+    ///
+    /// # Arguments
+    /// - `storage`: The world storage where asset state is maintained.
+    ///
+    /// # Returns
+    /// - `Ok(())` if maintenance succeeds, otherwise an error.
+    #[allow(unused_variables)]
+    fn maintain(&mut self, storage: &mut World) -> Result<(), Box<dyn Error>> {
+        Ok(())
+    }
 }

@@ -1,4 +1,4 @@
-use crate::database::handle::AssetHandle;
+use crate::database::{handle::AssetHandle, path::AssetPathStatic};
 use std::{error::Error, sync::mpsc::Sender};
 
 /// Represents different kinds of events that can occur for an asset.
@@ -39,12 +39,14 @@ impl AssetEventKind {
 }
 
 /// Represents an event related to an asset, combining a handle and an event kind.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AssetEvent {
     /// The handle of the asset associated with this event.
     pub handle: AssetHandle,
     /// The kind of event that occurred.
     pub kind: AssetEventKind,
+    /// The path of the asset associated with this event.
+    pub path: AssetPathStatic,
 }
 
 /// A trait for listeners that handle asset events.
@@ -148,7 +150,7 @@ impl AssetEventBindings {
     /// A `Result` indicating success or an error.
     pub fn dispatch(&mut self, event: AssetEvent) -> Result<(), Box<dyn Error>> {
         for (_, listener) in &mut self.bindings {
-            listener.on_dispatch(event)?;
+            listener.on_dispatch(event.clone())?;
         }
         Ok(())
     }

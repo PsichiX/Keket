@@ -78,6 +78,12 @@ pub trait BundleWithDependenciesProcessor: Send + Sync {
         &mut self,
         bytes: Vec<u8>,
     ) -> Result<BundleWithDependencies<Self::Bundle>, Box<dyn Error>>;
+
+    /// Maintains internal state of processor.
+    #[allow(unused_variables)]
+    fn maintain(&mut self, storage: &mut World) -> Result<(), Box<dyn Error>> {
+        Ok(())
+    }
 }
 
 impl<B, F> BundleWithDependenciesProcessor for F
@@ -132,5 +138,9 @@ impl<Processor: BundleWithDependenciesProcessor> AssetProtocol for BundleAssetPr
             storage.relate::<true, _>(AssetDependency, handle.entity(), entity)?;
         }
         Ok(())
+    }
+
+    fn maintain(&mut self, storage: &mut World) -> Result<(), Box<dyn Error>> {
+        self.processor.maintain(storage)
     }
 }

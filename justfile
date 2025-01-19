@@ -50,6 +50,12 @@ update:
   cargo update --manifest-path ./crates/redb/Cargo.toml --aggressive
   cargo update --manifest-path ./crates/redb-pack/Cargo.toml --aggressive
 
+book:
+  mdbook build book
+
+book-dev:
+  mdbook watch book --open
+
 publish:
   cargo publish --no-verify --manifest-path ./crates/_/Cargo.toml
   cargo publish --no-verify --manifest-path ./crates/http/Cargo.toml

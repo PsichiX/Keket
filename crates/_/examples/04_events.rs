@@ -22,7 +22,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // We can bind closures to asset event bindings for any asset progression tracking.
     database.events.bind(|event| {
-        println!("Asset closure event: {:?}", event);
+        println!("Asset closure event: {:#?}", event);
         Ok(())
     });
 
@@ -40,8 +40,16 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Read sent events from receiver.
     while let Ok(event) = rx.try_recv() {
-        println!("Group channel event: {:?}", event);
+        println!("Group channel event: {:#?}", event);
     }
+
+    println!(
+        "Lorem Ipsum: {}",
+        database
+            .find("text://lorem.txt")
+            .unwrap()
+            .access::<&String>(&database)
+    );
 
     Ok(())
 }

@@ -1,6 +1,6 @@
 [package]
 name = "keket-client"
-version = "0.11.3"
+version = "0.12.0"
 edition = "2021"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 description = "Asset server client fetch engine for Keket toolkit"
@@ -11,6 +11,6 @@ documentation = "https://docs.rs/keket-client"
 readme = "../../README.md"
 
 [dependencies]
-keket = { version = "0.11", path = "../_" }
+keket = { version = "0.12", path = "../_" }
 reqwest = { version = "0.12", features = ["blocking"] }
 tungstenite = "0.26"

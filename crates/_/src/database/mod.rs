@@ -6,7 +6,7 @@ pub mod tags;
 
 use crate::{
     database::{
-        events::{AssetEvent, AssetEventBindings, AssetEventKind},
+        events::{AssetEvent, AssetEventBindings, AssetEventKind, AssetEventListener},
         handle::{AssetDependency, AssetHandle},
         path::{AssetPath, AssetPathStatic},
     },
@@ -67,6 +67,15 @@ impl AssetDatabase {
     /// The updated `AssetDatabase` with the option enabled.
     pub fn with_asset_progression_failures(mut self) -> Self {
         self.allow_asset_progression_failures = true;
+        self
+    }
+
+    /// Binds event listener.
+    ///
+    /// # Returns
+    /// The updated `AssetDatabase` with the option enabled.
+    pub fn with_event(mut self, listener: impl AssetEventListener + 'static) -> Self {
+        self.events.bind(listener);
         self
     }
 
@@ -214,6 +223,7 @@ impl AssetDatabase {
                         bindings.dispatch(AssetEvent {
                             handle,
                             kind: AssetEventKind::BytesProcessingFailed,
+                            path: path.clone(),
                         })?;
                     }
                 }
@@ -336,24 +346,26 @@ impl AssetDatabase {
         {
             let mut lookup = self
                 .storage
-                .lookup_access::<true, &mut AssetEventBindings>();
+                .lookup_access::<true, (&AssetPathStatic, &mut AssetEventBindings)>();
             for entity in self.storage.added().iter_of::<AssetAwaitsResolution>() {
-                let event = AssetEvent {
-                    handle: AssetHandle::new(entity),
-                    kind: AssetEventKind::AwaitsResolution,
-                };
-                self.events.dispatch(event)?;
-                if let Some(bindings) = lookup.access(entity) {
+                if let Some((path, bindings)) = lookup.access(entity) {
+                    let event = AssetEvent {
+                        handle: AssetHandle::new(entity),
+                        kind: AssetEventKind::AwaitsResolution,
+                        path: path.clone(),
+                    };
+                    self.events.dispatch(event.clone())?;
                     bindings.dispatch(event)?;
                 }
             }
             for entity in self.storage.added().iter_of::<AssetAwaitsDeferredJob>() {
-                let event = AssetEvent {
-                    handle: AssetHandle::new(entity),
-                    kind: AssetEventKind::AwaitsDeferredJob,
-                };
-                self.events.dispatch(event)?;
-                if let Some(bindings) = lookup.access(entity) {
+                if let Some((path, bindings)) = lookup.access(entity) {
+                    let event = AssetEvent {
+                        handle: AssetHandle::new(entity),
+                        kind: AssetEventKind::AwaitsDeferredJob,
+                        path: path.clone(),
+                    };
+                    self.events.dispatch(event.clone())?;
                     bindings.dispatch(event)?;
                 }
             }
@@ -362,12 +374,13 @@ impl AssetDatabase {
                 .added()
                 .iter_of::<AssetBytesAreReadyToProcess>()
             {
-                let event = AssetEvent {
-                    handle: AssetHandle::new(entity),
-                    kind: AssetEventKind::BytesReadyToProcess,
-                };
-                self.events.dispatch(event)?;
-                if let Some(bindings) = lookup.access(entity) {
+                if let Some((path, bindings)) = lookup.access(entity) {
+                    let event = AssetEvent {
+                        handle: AssetHandle::new(entity),
+                        kind: AssetEventKind::BytesReadyToProcess,
+                        path: path.clone(),
+                    };
+                    self.events.dispatch(event.clone())?;
                     bindings.dispatch(event)?;
                 }
             }
@@ -376,26 +389,28 @@ impl AssetDatabase {
                 .removed()
                 .iter_of::<AssetBytesAreReadyToProcess>()
             {
-                let handle = AssetHandle::new(entity);
-                if handle.is_ready_to_use(self) {
-                    continue;
-                }
-                let event = AssetEvent {
-                    handle,
-                    kind: AssetEventKind::BytesProcessed,
-                };
-                self.events.dispatch(event)?;
-                if let Some(bindings) = lookup.access(entity) {
+                if let Some((path, bindings)) = lookup.access(entity) {
+                    let handle = AssetHandle::new(entity);
+                    if handle.is_ready_to_use(self) {
+                        continue;
+                    }
+                    let event = AssetEvent {
+                        handle,
+                        kind: AssetEventKind::BytesProcessed,
+                        path: path.clone(),
+                    };
+                    self.events.dispatch(event.clone())?;
                     bindings.dispatch(event)?;
                 }
             }
             for entity in self.storage.removed().iter_of::<AssetPathStatic>() {
-                let event = AssetEvent {
-                    handle: AssetHandle::new(entity),
-                    kind: AssetEventKind::Unloaded,
-                };
-                self.events.dispatch(event)?;
-                if let Some(bindings) = lookup.access(entity) {
+                if let Some((path, bindings)) = lookup.access(entity) {
+                    let event = AssetEvent {
+                        handle: AssetHandle::new(entity),
+                        kind: AssetEventKind::Unloaded,
+                        path: path.clone(),
+                    };
+                    self.events.dispatch(event.clone())?;
                     bindings.dispatch(event)?;
                 }
             }
@@ -405,6 +420,7 @@ impl AssetDatabase {
             fetch.maintain(&mut self.storage)?;
         }
         for protocol in &mut self.protocols {
+            protocol.maintain(&mut self.storage)?;
             let to_process = self
                 .storage
                 .query::<true, (Entity, &AssetPath, Include<AssetBytesAreReadyToProcess>)>()
@@ -421,6 +437,10 @@ impl AssetDatabase {
                         bindings.dispatch(AssetEvent {
                             handle,
                             kind: AssetEventKind::BytesProcessingFailed,
+                            path: self
+                                .storage
+                                .component::<true, AssetPathStatic>(handle.entity())?
+                                .clone(),
                         })?;
                     }
                 }
@@ -457,6 +477,10 @@ impl AssetDatabase {
                             bindings.dispatch(AssetEvent {
                                 handle,
                                 kind: AssetEventKind::BytesProcessingFailed,
+                                path: self
+                                    .storage
+                                    .component::<true, AssetPathStatic>(handle.entity())?
+                                    .clone(),
                             })?;
                         }
                     }

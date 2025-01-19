@@ -91,7 +91,7 @@ impl AssetFetchEngine {
         path: AssetPath,
         storage: &mut World,
     ) -> Result<(), Box<dyn Error>> {
-        let result = self.fetch.load_bytes(path);
+        let result = self.fetch.load_bytes(path.clone());
         if result.is_err() {
             if let Ok(mut bindings) =
                 storage.component_mut::<true, AssetEventBindings>(handle.entity())
@@ -99,6 +99,7 @@ impl AssetFetchEngine {
                 bindings.dispatch(AssetEvent {
                     handle,
                     kind: AssetEventKind::BytesFetchingFailed,
+                    path: path.into_static(),
                 })?;
             }
         }
