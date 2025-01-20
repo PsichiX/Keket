@@ -154,12 +154,77 @@
                     <main>
                         <h1 id="text"><a class="header" href="#text">Text</a></h1>
 <p><code>TextAssetProtocol</code> allows to decode fetched bytes into <code>String</code> component.</p>
-<pre><code class="language-rust ignore">let mut database = AssetDatabase::default()
-    .with_protocol(TextAssetProtocol)
-    .with_fetch(FileAssetFetch::default().with_root("assets"));
+<pre><code class="language-rust ignore"><span class="boring">use keket::{
+</span><span class="boring">    database::{path::AssetPath, AssetDatabase},
+</span><span class="boring">    fetch::file::FileAssetFetch,
+</span><span class="boring">    protocol::{bundle::BundleAssetProtocol, bytes::BytesAssetProtocol, text::TextAssetProtocol},
+</span><span class="boring">};
+</span><span class="boring">use serde::Deserialize;
+</span><span class="boring">use serde_json::Value;
+</span><span class="boring">use std::{error::Error, fs::Metadata, path::PathBuf};
+</span><span class="boring">
+</span><span class="boring">#[derive(Debug, Deserialize)]
+</span><span class="boring">#[allow(dead_code)]
+</span><span class="boring">struct Person {
+</span><span class="boring">    age: u8,
+</span><span class="boring">    home: PersonHome,
+</span><span class="boring">    friends: Vec&lt;String&gt;,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">#[derive(Debug, Deserialize)]
+</span><span class="boring">#[allow(dead_code)]
+</span><span class="boring">struct PersonHome {
+</span><span class="boring">    country: String,
+</span><span class="boring">    address: String,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">fn main() -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span>    let mut database = AssetDatabase::default()
+        // Asset protocols tell how to deserialize bytes into assets.
+        .with_protocol(TextAssetProtocol)
+        .with_protocol(BytesAssetProtocol)
+        // Bundle protocol allows for easly making a protocol that takes
+        // bytes and returns bundle with optional dependencies.
+        .with_protocol(BundleAssetProtocol::new("json", |bytes: Vec&lt;u8&gt;| {
+            let asset = serde_json::from_slice::&lt;Value&gt;(&amp;bytes)?;
+            Ok((asset,).into())
+        }))
+        .with_protocol(BundleAssetProtocol::new("person", |bytes: Vec&lt;u8&gt;| {
+            let asset = serde_json::from_slice::&lt;Person&gt;(&amp;bytes)?;
+            Ok((asset,).into())
+        }))
+        // Asset fetch tells how to get bytes from specific source.
+        .with_fetch(FileAssetFetch::default().with_root("resources"));
 
-let lorem = database.ensure("text://lorem.txt")?;
-println!("Text: {:?}", lorem.access::&lt;&amp;String&gt;(&amp;database));</code></pre>
+    // Ensure method either gives existing asset handle or creates new
+    // and loads asset if not existing yet in storage.
+    let lorem = database.ensure("text://lorem.txt")?;
+    // Accessing component(s) of asset entry.
+    // Assets can store multiple data associated to them, consider them meta data.
+    println!("Lorem Ipsum: {}", lorem.access::&lt;&amp;String&gt;(&amp;database));
+
+    let json = database.ensure("json://person.json")?;
+    println!("JSON: {:#}", json.access::&lt;&amp;Value&gt;(&amp;database));
+
+    let person = database.ensure("person://person.json")?;
+    println!("Person: {:#?}", person.access::&lt;&amp;Person&gt;(&amp;database));
+
+    let trash = database.ensure("bytes://trash.bin")?;
+    println!("Bytes: {:?}", trash.access::&lt;&amp;Vec&lt;u8&gt;&gt;(&amp;database));
+
+    // We can query storage for asset components to process assets, just like with ECS.
+    for (asset_path, file_path, metadata) in database
+        .storage
+        .query::&lt;true, (&amp;AssetPath, &amp;PathBuf, &amp;Metadata)&gt;()
+    {
+        println!(
+            "Asset: `{}` at location: {:?} has metadata: {:#?}",
+            asset_path, file_path, metadata
+        );
+    }
+<span class="boring">
+</span><span class="boring">    Ok(())
+</span><span class="boring">}</span></code></pre>
 
                     </main>
 

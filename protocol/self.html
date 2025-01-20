@@ -160,48 +160,218 @@ them with source asset, if there are any dependencies.</p>
 asset fetch engines to make them not care about source of the asset and by that
 be used no matter where assets come from, which solves the need for asset loaders
 to implement with all possible asset sources, which is cumbersome to deal with.</p>
-<pre><code class="language-rust ignore">let mut database = AssetDatabase::default()
-    .with_protocol(TextAssetProtocol)
-    .with_fetch(FileAssetFetch::default().with_root("resources"));
+<pre><code class="language-rust ignore"><span class="boring">use keket::{
+</span><span class="boring">    database::{path::AssetPath, AssetDatabase},
+</span><span class="boring">    fetch::file::FileAssetFetch,
+</span><span class="boring">    protocol::{bundle::BundleAssetProtocol, bytes::BytesAssetProtocol, text::TextAssetProtocol},
+</span><span class="boring">};
+</span><span class="boring">use serde::Deserialize;
+</span><span class="boring">use serde_json::Value;
+</span><span class="boring">use std::{error::Error, fs::Metadata, path::PathBuf};
+</span><span class="boring">
+</span><span class="boring">#[derive(Debug, Deserialize)]
+</span><span class="boring">#[allow(dead_code)]
+</span><span class="boring">struct Person {
+</span><span class="boring">    age: u8,
+</span><span class="boring">    home: PersonHome,
+</span><span class="boring">    friends: Vec&lt;String&gt;,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">#[derive(Debug, Deserialize)]
+</span><span class="boring">#[allow(dead_code)]
+</span><span class="boring">struct PersonHome {
+</span><span class="boring">    country: String,
+</span><span class="boring">    address: String,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">fn main() -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span>    let mut database = AssetDatabase::default()
+        // Asset protocols tell how to deserialize bytes into assets.
+        .with_protocol(TextAssetProtocol)
+        .with_protocol(BytesAssetProtocol)
+        // Bundle protocol allows for easly making a protocol that takes
+        // bytes and returns bundle with optional dependencies.
+        .with_protocol(BundleAssetProtocol::new("json", |bytes: Vec&lt;u8&gt;| {
+            let asset = serde_json::from_slice::&lt;Value&gt;(&amp;bytes)?;
+            Ok((asset,).into())
+        }))
+        .with_protocol(BundleAssetProtocol::new("person", |bytes: Vec&lt;u8&gt;| {
+            let asset = serde_json::from_slice::&lt;Person&gt;(&amp;bytes)?;
+            Ok((asset,).into())
+        }))
+        // Asset fetch tells how to get bytes from specific source.
+        .with_fetch(FileAssetFetch::default().with_root("resources"));
 
-let lorem = database.ensure("text://lorem.txt")?;
-println!("Lorem Ipsum: {}", lorem.access::&lt;&amp;String&gt;(&amp;database));</code></pre>
+    // Ensure method either gives existing asset handle or creates new
+    // and loads asset if not existing yet in storage.
+    let lorem = database.ensure("text://lorem.txt")?;
+    // Accessing component(s) of asset entry.
+    // Assets can store multiple data associated to them, consider them meta data.
+    println!("Lorem Ipsum: {}", lorem.access::&lt;&amp;String&gt;(&amp;database));
+
+    let json = database.ensure("json://person.json")?;
+    println!("JSON: {:#}", json.access::&lt;&amp;Value&gt;(&amp;database));
+
+    let person = database.ensure("person://person.json")?;
+    println!("Person: {:#?}", person.access::&lt;&amp;Person&gt;(&amp;database));
+
+    let trash = database.ensure("bytes://trash.bin")?;
+    println!("Bytes: {:?}", trash.access::&lt;&amp;Vec&lt;u8&gt;&gt;(&amp;database));
+
+    // We can query storage for asset components to process assets, just like with ECS.
+    for (asset_path, file_path, metadata) in database
+        .storage
+        .query::&lt;true, (&amp;AssetPath, &amp;PathBuf, &amp;Metadata)&gt;()
+    {
+        println!(
+            "Asset: `{}` at location: {:?} has metadata: {:#?}",
+            asset_path, file_path, metadata
+        );
+    }
+<span class="boring">
+</span><span class="boring">    Ok(())
+</span><span class="boring">}</span></code></pre>
 <p>For type to be considered asset protocol, it must implement <code>AssetProtocol</code> trait
 that has methods for processing asset bytes:</p>
-<pre><code class="language-rust ignore">struct CustomAssetProtocol;
+<pre><code class="language-rust ignore"><span class="boring">use keket::{
+</span><span class="boring">    database::{path::AssetPathStatic, AssetDatabase},
+</span><span class="boring">    fetch::file::FileAssetFetch,
+</span><span class="boring">    protocol::bundle::{
+</span><span class="boring">        BundleAssetProtocol, BundleWithDependencies, BundleWithDependenciesProcessor,
+</span><span class="boring">    },
+</span><span class="boring">};
+</span><span class="boring">use serde::Deserialize;
+</span><span class="boring">use std::error::Error;
+</span><span class="boring">
+</span><span class="boring">fn main() -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">    let mut database = AssetDatabase::default()
+</span><span class="boring">        // Register custom asset processor.
+</span><span class="boring">        .with_protocol(BundleAssetProtocol::new("custom", CustomAssetProcessor))
+</span><span class="boring">        .with_fetch(FileAssetFetch::default().with_root("resources"));
+</span><span class="boring">
+</span><span class="boring">    // Ensure custom asset existence.
+</span><span class="boring">    let handle = database.ensure("custom://part1.json")?;
+</span><span class="boring">
+</span><span class="boring">    // Make database process loaded dependencies.
+</span><span class="boring">    while database.is_busy() {
+</span><span class="boring">        database.maintain()?;
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    let contents = handle.access::&lt;&amp;CustomAsset&gt;(&amp;database).contents(&amp;database);
+</span><span class="boring">    println!("Custom chain contents: {:?}", contents);
+</span><span class="boring">
+</span><span class="boring">    Ok(())
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Custom asset type.
+</span><span class="boring">#[derive(Debug, Default, Deserialize)]
+</span><span class="boring">struct CustomAsset {
+</span><span class="boring">    // Main content.
+</span><span class="boring">    content: String,
+</span><span class="boring">    // Optional sibling asset (content continuation).
+</span><span class="boring">    #[serde(default)]
+</span><span class="boring">    next: Option&lt;AssetPathStatic&gt;,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">impl CustomAsset {
+</span><span class="boring">    fn contents(&amp;self, database: &amp;AssetDatabase) -&gt; String {
+</span><span class="boring">        // Read this and it's siblings content to output.
+</span><span class="boring">        let mut result = String::new();
+</span><span class="boring">        let mut current = Some(self);
+</span><span class="boring">        while let Some(asset) = current {
+</span><span class="boring">            result.push_str(asset.content.as_str());
+</span><span class="boring">            current = current
+</span><span class="boring">                .as_ref()
+</span><span class="boring">                .and_then(|asset| asset.next.as_ref())
+</span><span class="boring">                .and_then(|path| path.find(database))
+</span><span class="boring">                .and_then(|handle| handle.access_checked::&lt;&amp;Self&gt;(database));
+</span><span class="boring">            if current.is_some() {
+</span><span class="boring">                result.push(' ');
+</span><span class="boring">            }
+</span><span class="boring">        }
+</span><span class="boring">        result
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span>struct CustomAssetProcessor;
 
-impl AssetProtocol for CustomAssetProtocol {
-    fn name(&amp;self) -&gt; &amp;str {
-        "custom"
-    }
+impl BundleWithDependenciesProcessor for CustomAssetProcessor {
+    // Bundle of asset components this asset processor produces from processed asset.
+    type Bundle = (CustomAsset,);
 
     fn process_bytes(
         &amp;mut self,
-        handle: AssetHandle,
-        storage: &amp;mut World,
         bytes: Vec&lt;u8&gt;,
-    ) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
-        // Once we have asset bytes, we decode them into asset data.
+    ) -&gt; Result&lt;BundleWithDependencies&lt;Self::Bundle&gt;, Box&lt;dyn Error&gt;&gt; {
         let asset = serde_json::from_slice::&lt;CustomAsset&gt;(&amp;bytes)?;
-
-        // We also have to extract dependencies if it has some.
-        if let Some(path) = asset.next.clone() {
-            // For every dependency we get, we need to spawn an asset entity
-            // with AssetAwaitsResolution component to tell asset database
-            // to start loading it.
-            let entity = storage.spawn((path, AssetAwaitsResolution))?;
-
-            // We should also relate processed asset with its dependency asset.
-            // Dependency relations are useful for traversing asset graphs.
-            storage.relate::&lt;true, _&gt;(AssetDependency, handle.entity(), entity)?;
-        }
-
-        Ok(())
+        let dependency = asset.next.clone();
+        // Return bundled components and optional dependency which will be additionally loaded.
+        Ok(BundleWithDependencies::new((asset,)).maybe_dependency(dependency))
     }
 }</code></pre>
 <p>Optionally type can implement more specific asset processing that doesn't assume
 you only care about bytes or even only processed asset:</p>
-<pre><code class="language-rust ignore">impl AssetProtocol for CustomAssetProtocol {
+<pre><code class="language-rust ignore"><span class="boring">use anput::world::World;
+</span><span class="boring">use keket::{
+</span><span class="boring">    database::{
+</span><span class="boring">        handle::{AssetDependency, AssetHandle},
+</span><span class="boring">        path::AssetPathStatic,
+</span><span class="boring">        AssetDatabase,
+</span><span class="boring">    },
+</span><span class="boring">    fetch::{file::FileAssetFetch, AssetAwaitsResolution, AssetBytesAreReadyToProcess},
+</span><span class="boring">    protocol::AssetProtocol,
+</span><span class="boring">};
+</span><span class="boring">use serde::Deserialize;
+</span><span class="boring">use std::error::Error;
+</span><span class="boring">
+</span><span class="boring">fn main() -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">    let mut database = AssetDatabase::default()
+</span><span class="boring">        // Register custom asset protocol.
+</span><span class="boring">        .with_protocol(CustomAssetProtocol)
+</span><span class="boring">        .with_fetch(FileAssetFetch::default().with_root("resources"));
+</span><span class="boring">
+</span><span class="boring">    let handle = database.ensure("custom://part1.json")?;
+</span><span class="boring">
+</span><span class="boring">    while database.is_busy() {
+</span><span class="boring">        database.maintain()?;
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    let contents = handle.access::&lt;&amp;CustomAsset&gt;(&amp;database).contents(&amp;database);
+</span><span class="boring">    println!("Custom chain contents: {:?}", contents);
+</span><span class="boring">
+</span><span class="boring">    Ok(())
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Custom asset type.
+</span><span class="boring">#[derive(Debug, Default, Deserialize)]
+</span><span class="boring">struct CustomAsset {
+</span><span class="boring">    content: String,
+</span><span class="boring">    #[serde(default)]
+</span><span class="boring">    next: Option&lt;AssetPathStatic&gt;,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">impl CustomAsset {
+</span><span class="boring">    fn contents(&amp;self, database: &amp;AssetDatabase) -&gt; String {
+</span><span class="boring">        let mut result = String::new();
+</span><span class="boring">        let mut current = Some(self);
+</span><span class="boring">        while let Some(asset) = current {
+</span><span class="boring">            result.push_str(asset.content.as_str());
+</span><span class="boring">            current = current
+</span><span class="boring">                .as_ref()
+</span><span class="boring">                .and_then(|asset| asset.next.as_ref())
+</span><span class="boring">                .and_then(|path| path.find(database))
+</span><span class="boring">                .and_then(|handle| handle.access_checked::&lt;&amp;Self&gt;(database));
+</span><span class="boring">            if current.is_some() {
+</span><span class="boring">                result.push(' ');
+</span><span class="boring">            }
+</span><span class="boring">        }
+</span><span class="boring">        result
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span>struct CustomAssetProtocol;
+
+impl AssetProtocol for CustomAssetProtocol {
     fn name(&amp;self) -&gt; &amp;str {
         "custom"
     }
@@ -211,23 +381,27 @@ you only care about bytes or even only processed asset:</p>
         handle: AssetHandle,
         storage: &amp;mut World,
     ) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
-        // Always remember that in order for asset to be considered done with
-        // processing bytes, it has to remove AssetBytesAreReadyToProcess
-        // component from that asset. We are doing that by taking its bytes
-        // content first and removing it after.
+        // Always remember that in order for asset to be considered done with processing
+        // bytes, it has to remove AssetBytesAreReadyToProcess component from that asset.
+        // We are doing that by taking its bytes content first and removing it after.
         let bytes = {
-            let mut bytes = storage
-                .component_mut::&lt;true, AssetBytesAreReadyToProcess&gt;(
-                    handle.entity()
-                )?;
+            let mut bytes =
+                storage.component_mut::&lt;true, AssetBytesAreReadyToProcess&gt;(handle.entity())?;
             std::mem::take(&amp;mut bytes.0)
         };
         storage.remove::&lt;(AssetBytesAreReadyToProcess,)&gt;(handle.entity())?;
 
+        // Once we have asset bytes, we decode them into asset data.
         let asset = serde_json::from_slice::&lt;CustomAsset&gt;(&amp;bytes)?;
 
+        // We also have to extract dependencies if it has some.
         if let Some(path) = asset.next.clone() {
+            // For every dependency we get, we need to spawn an asset entity with
+            // AssetAwaitsResolution component to tell asset database to start loading it.
             let entity = storage.spawn((path, AssetAwaitsResolution))?;
+
+            // We should also relate processed asset with its dependency asset.
+            // Dependency relations are useful for traversing asset graphs.
             storage.relate::&lt;true, _&gt;(AssetDependency, handle.entity(), entity)?;
         }
 

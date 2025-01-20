@@ -157,25 +157,38 @@
 to load instead of requested assets (with matching protocol) when requested asset
 fails to load - for example if requested texture does not exists, we can fallback
 to popular magenta solid color texture that indicates missing textures.</p>
-<pre><code class="language-rust ignore">let mut database = AssetDatabase::default()
-    .with_protocol(TextAssetProtocol)
-    .with_fetch(
-        FallbackAssetFetch::new(FileAssetFetch::default().with_root("assets"))
-            // This fallback asset does not exists so it will be ignored.
-            .path("text://this-fails-to-load.txt")
-            // This asset exists so it will be loaded as fallback.
-            .path("text://lorem.txt"),
-    );
+<pre><code class="language-rust ignore"><span class="boring">use keket::{
+</span><span class="boring">    database::AssetDatabase,
+</span><span class="boring">    fetch::{fallback::FallbackAssetFetch, file::FileAssetFetch},
+</span><span class="boring">    protocol::text::TextAssetProtocol,
+</span><span class="boring">};
+</span><span class="boring">use std::error::Error;
+</span><span class="boring">
+</span><span class="boring">fn main() -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span>    let mut database = AssetDatabase::default()
+        .with_protocol(TextAssetProtocol)
+        .with_fetch(
+            // Fallback asset fetch in case of error on requested asset bytes load
+            // will try to load asset with matching protocol from fallback paths.
+            FallbackAssetFetch::new(FileAssetFetch::default().with_root("resources"))
+                // This fallback asset does not exists so it will be ignored.
+                .path("text://this-fails-to-load.txt")
+                // This asset exists so it will be loaded as fallback.
+                .path("text://lorem.txt"),
+        );
 
-// This asset exists so it loads normally.
-let lorem = database.ensure("text://lorem.txt")?;
+    // This asset exists so it loads normally.
+    let lorem = database.ensure("text://lorem.txt")?;
 
-// This asset does not exists so it loads fallback asset.
-let non_existent = database.ensure("text://non-existent.txt")?;
+    // This asset does not exists so it loads fallback asset.
+    let non_existent = database.ensure("text://non-existent.txt")?;
 
-if lorem.access::&lt;&amp;String&gt;(&amp;database) == non_existent.access::&lt;&amp;String&gt;(&amp;database) {
-    println!("Non existent asset loaded from fallback!");
-}</code></pre>
+    if lorem.access::&lt;&amp;String&gt;(&amp;database) == non_existent.access::&lt;&amp;String&gt;(&amp;database) {
+        println!("Non existent asset loaded from fallback!");
+    }
+<span class="boring">
+</span><span class="boring">    Ok(())
+</span><span class="boring">}</span></code></pre>
 
                     </main>
 

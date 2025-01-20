@@ -155,48 +155,59 @@
                         <h1 id="hot-reloading-wrapper-for-file-system"><a class="header" href="#hot-reloading-wrapper-for-file-system">Hot-reloading wrapper for file system</a></h1>
 <p><code>HotReloadAssetFetch</code> wrapper alows assets loaded from <code>FileAssetFetch</code> to be
 watched and reloaded when source file changes.</p>
-<pre><code class="language-rust ignore">let mut database = AssetDatabase::default()
-    .with_protocol(TextAssetProtocol)
-    .with_protocol(BytesAssetProtocol)
-    .with_fetch(HotReloadFileAssetFetch::new(
-        FileAssetFetch::default().with_root("assets"),
-        // File system watcher polling interval.
-        Duration::from_secs(5),
-    )?);
+<pre><code class="language-rust ignore"><span class="boring">use keket::{
+</span><span class="boring">    database::{handle::AssetHandle, path::AssetPath, AssetDatabase},
+</span><span class="boring">    fetch::{file::FileAssetFetch, hotreload::HotReloadFileAssetFetch},
+</span><span class="boring">    protocol::{bytes::BytesAssetProtocol, text::TextAssetProtocol},
+</span><span class="boring">};
+</span><span class="boring">use std::{error::Error, time::Duration};
+</span><span class="boring">
+</span><span class="boring">fn main() -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span>    let mut database = AssetDatabase::default()
+        .with_protocol(TextAssetProtocol)
+        .with_protocol(BytesAssetProtocol)
+        // Hot reload wrapper watches for changes in file fetch root path.
+        .with_fetch(HotReloadFileAssetFetch::new(
+            FileAssetFetch::default().with_root("resources"),
+            // File system watcher polling interval.
+            Duration::from_secs(5),
+        )?);
 
-// First we fill database with some assets, hot reload only
-// cares about changes in files present in database.
-database.ensure("text://lorem.txt")?;
-database.ensure("bytes://trash.bin")?;
+    // First we fill database with some assets, hot reload only
+    // cares about changes in files present in database.
+    database.ensure("text://lorem.txt")?;
+    database.ensure("bytes://trash.bin")?;
 
-loop {
-    database.maintain()?;
+    println!("Watching for file changes...");
+    loop {
+        database.maintain()?;
 
-    // With storage change detection we can ask for asset entities
-    // that their paths were updated (hot reloading updates them).
-    if let Some(changes) = database.storage.updated() {
-        for entity in changes.iter_of::&lt;AssetPath&gt;() {
+        // With storage change detection we can ask for asset entities
+        // that their paths were updated (hot reloading updates them).
+        if let Some(changes) = database.storage.updated() {
+            for entity in changes.iter_of::&lt;AssetPath&gt;() {
+                println!(
+                    "Asset changed: `{}`",
+                    AssetHandle::new(entity).access::&lt;&amp;AssetPath&gt;(&amp;database)
+                );
+            }
+        }
+
+        // Simulate systems that detect particular asset type reload.
+        for entity in database.storage.added().iter_of::&lt;String&gt;() {
             println!(
-                "Asset changed: `{}`",
-                AssetHandle::new(entity).access::&lt;&amp;AssetPath&gt;(&amp;database)
+                "Text asset changed: `{}`",
+                AssetHandle::new(entity).access::&lt;&amp;String&gt;(&amp;database)
+            );
+        }
+        for entity in database.storage.added().iter_of::&lt;Vec&lt;u8&gt;&gt;() {
+            println!(
+                "Bytes asset changed: `{:?}`",
+                AssetHandle::new(entity).access::&lt;&amp;Vec&lt;u8&gt;&gt;(&amp;database)
             );
         }
     }
-
-    // Simulate systems that detect particular asset type reload.
-    for entity in database.storage.added().iter_of::&lt;String&gt;() {
-        println!(
-            "Text asset changed: `{}`",
-            AssetHandle::new(entity).access::&lt;&amp;String&gt;(&amp;database)
-        );
-    }
-    for entity in database.storage.added().iter_of::&lt;Vec&lt;u8&gt;&gt;() {
-        println!(
-            "Bytes asset changed: `{:?}`",
-            AssetHandle::new(entity).access::&lt;&amp;Vec&lt;u8&gt;&gt;(&amp;database)
-        );
-    }
-}</code></pre>
+<span class="boring">}</span></code></pre>
 
                     </main>
 

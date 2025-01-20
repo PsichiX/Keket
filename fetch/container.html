@@ -156,7 +156,31 @@
 <p><code>ContainerAssetFetch</code> allows for partial loading from sources that are considered
 containers that store other assets. Typical container example would be ZIP archives,
 databases, etc.</p>
-<pre><code class="language-rust ignore">struct ZipContainerPartialFetch {
+<pre><code class="language-rust ignore"><span class="boring">use keket::{
+</span><span class="boring">    database::{path::AssetPath, AssetDatabase},
+</span><span class="boring">    fetch::container::{ContainerAssetFetch, ContainerPartialFetch},
+</span><span class="boring">    protocol::text::TextAssetProtocol,
+</span><span class="boring">};
+</span><span class="boring">use std::{error::Error, fs::File, io::Read};
+</span><span class="boring">use zip::ZipArchive;
+</span><span class="boring">
+</span><span class="boring">fn main() -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">    let mut database = AssetDatabase::default()
+</span><span class="boring">        .with_protocol(TextAssetProtocol)
+</span><span class="boring">        // Container asset fetch allows to use partial asset fetch object
+</span><span class="boring">        // that can take asset path and returns bytes from some container.
+</span><span class="boring">        .with_fetch(ContainerAssetFetch::new(ZipContainerPartialFetch::new(
+</span><span class="boring">            ZipArchive::new(File::open("./resources/package.zip")?)?,
+</span><span class="boring">        )));
+</span><span class="boring">
+</span><span class="boring">    let lorem = database.ensure("text://lorem.txt")?;
+</span><span class="boring">    println!("Lorem Ipsum: {}", lorem.access::&lt;&amp;String&gt;(&amp;database));
+</span><span class="boring">
+</span><span class="boring">    Ok(())
+</span><span class="boring">}
+</span><span class="boring">
+</span>// Here we show how to make ZIP archive file reader.
+struct ZipContainerPartialFetch {
     archive: ZipArchive&lt;File&gt;,
 }
 
@@ -167,6 +191,7 @@ impl ZipContainerPartialFetch {
 }
 
 impl ContainerPartialFetch for ZipContainerPartialFetch {
+    // We use input path and try to unpack file under that path from ZIP archive.
     fn load_bytes(&amp;mut self, path: AssetPath) -&gt; Result&lt;Vec&lt;u8&gt;, Box&lt;dyn Error&gt;&gt; {
         let mut file = self
             .archive
@@ -176,16 +201,53 @@ impl ContainerPartialFetch for ZipContainerPartialFetch {
         file.read_to_end(&amp;mut bytes)?;
         Ok(bytes)
     }
-}
+}</code></pre>
+<pre><code class="language-rust ignore"><span class="boring">use keket::{
+</span><span class="boring">    database::{path::AssetPath, AssetDatabase},
+</span><span class="boring">    fetch::container::{ContainerAssetFetch, ContainerPartialFetch},
+</span><span class="boring">    protocol::text::TextAssetProtocol,
+</span><span class="boring">};
+</span><span class="boring">use std::{error::Error, fs::File, io::Read};
+</span><span class="boring">use zip::ZipArchive;
+</span><span class="boring">
+</span><span class="boring">fn main() -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span>    let mut database = AssetDatabase::default()
+        .with_protocol(TextAssetProtocol)
+        // Container asset fetch allows to use partial asset fetch object
+        // that can take asset path and returns bytes from some container.
+        .with_fetch(ContainerAssetFetch::new(ZipContainerPartialFetch::new(
+            ZipArchive::new(File::open("./resources/package.zip")?)?,
+        )));
 
-let mut database = AssetDatabase::default()
-    .with_protocol(TextAssetProtocol)
-    .with_fetch(ContainerAssetFetch::new(ZipContainerPartialFetch::new(
-        ZipArchive::new(File::open("./assets/package.zip")?)?,
-    )));
-
-let lorem = database.ensure("text://lorem.txt")?;
-println!("Lorem Ipsum: {}", lorem.access::&lt;&amp;String&gt;(&amp;database));</code></pre>
+    let lorem = database.ensure("text://lorem.txt")?;
+    println!("Lorem Ipsum: {}", lorem.access::&lt;&amp;String&gt;(&amp;database));
+<span class="boring">
+</span><span class="boring">    Ok(())
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Here we show how to make ZIP archive file reader.
+</span><span class="boring">struct ZipContainerPartialFetch {
+</span><span class="boring">    archive: ZipArchive&lt;File&gt;,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">impl ZipContainerPartialFetch {
+</span><span class="boring">    pub fn new(archive: ZipArchive&lt;File&gt;) -&gt; Self {
+</span><span class="boring">        Self { archive }
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">impl ContainerPartialFetch for ZipContainerPartialFetch {
+</span><span class="boring">    // We use input path and try to unpack file under that path from ZIP archive.
+</span><span class="boring">    fn load_bytes(&amp;mut self, path: AssetPath) -&gt; Result&lt;Vec&lt;u8&gt;, Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">        let mut file = self
+</span><span class="boring">            .archive
+</span><span class="boring">            .by_name(path.path())
+</span><span class="boring">            .map_err(|error| format!("Could not read zip file: `{}` - {}", path.path(), error))?;
+</span><span class="boring">        let mut bytes = vec![];
+</span><span class="boring">        file.read_to_end(&amp;mut bytes)?;
+</span><span class="boring">        Ok(bytes)
+</span><span class="boring">    }
+</span><span class="boring">}</span></code></pre>
 
                     </main>
 

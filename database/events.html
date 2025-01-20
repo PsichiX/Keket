@@ -160,28 +160,61 @@ its listener (anything that implements <code>AssetEventListener</code> trait, fo
 closure or <code>Sender</code>), and once asset progression changes, that will be dispatched
 to registered listeners. User can also listen for all asset events by registering
 to event bindings in asset database.</p>
-<pre><code class="language-rust ignore">// We can bind closures to asset event bindings for any asset progression tracking.
-database.events.bind(|event| {
-    println!("Asset closure event: {:?}", event);
-    Ok(())
-});
+<pre><code class="language-rust ignore"><span class="boring">use keket::{
+</span><span class="boring">    database::{events::AssetEventBindings, AssetDatabase},
+</span><span class="boring">    fetch::file::FileAssetFetch,
+</span><span class="boring">    protocol::{
+</span><span class="boring">        bundle::BundleAssetProtocol, bytes::BytesAssetProtocol, group::GroupAssetProtocol,
+</span><span class="boring">        text::TextAssetProtocol,
+</span><span class="boring">    },
+</span><span class="boring">};
+</span><span class="boring">use serde_json::Value;
+</span><span class="boring">use std::{error::Error, sync::mpsc::channel};
+</span><span class="boring">
+</span><span class="boring">fn main() -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">    let mut database = AssetDatabase::default()
+</span><span class="boring">        .with_protocol(TextAssetProtocol)
+</span><span class="boring">        .with_protocol(BytesAssetProtocol)
+</span><span class="boring">        .with_protocol(BundleAssetProtocol::new("json", |bytes: Vec&lt;u8&gt;| {
+</span><span class="boring">            let asset = serde_json::from_slice::&lt;Value&gt;(&amp;bytes)?;
+</span><span class="boring">            Ok((asset,).into())
+</span><span class="boring">        }))
+</span><span class="boring">        .with_protocol(GroupAssetProtocol)
+</span><span class="boring">        .with_fetch(FileAssetFetch::default().with_root("resources"));
+</span><span class="boring">
+</span>    // We can bind closures to asset event bindings for any asset progression tracking.
+    database.events.bind(|event| {
+        println!("Asset closure event: {:#?}", event);
+        Ok(())
+    });
 
-// Create channel for asset events communication.
-let (tx, rx) = channel();
+    // Create channel for asset events communication.
+    let (tx, rx) = channel();
 
-// Start loading asset and its dependencies.
-let group = database.ensure("group://group.txt")?;
-// We can also bind sender to asset event bindings.
-group.ensure::&lt;AssetEventBindings&gt;(&amp;mut database)?.bind(tx);
+    // Start loading asset and its dependencies.
+    let group = database.ensure("group://group.txt")?;
+    // We can also bind sender to asset event bindings.
+    group.ensure::&lt;AssetEventBindings&gt;(&amp;mut database)?.bind(tx);
 
-while database.is_busy() {
-    database.maintain()?;
-}
+    while database.is_busy() {
+        database.maintain()?;
+    }
 
-// Read sent events from receiver.
-while let Ok(event) = rx.try_recv() {
-    println!("Group channel event: {:?}", event);
-}</code></pre>
+    // Read sent events from receiver.
+    while let Ok(event) = rx.try_recv() {
+        println!("Group channel event: {:#?}", event);
+    }
+<span class="boring">
+</span><span class="boring">    println!(
+</span><span class="boring">        "Lorem Ipsum: {}",
+</span><span class="boring">        database
+</span><span class="boring">            .find("text://lorem.txt")
+</span><span class="boring">            .unwrap()
+</span><span class="boring">            .access::&lt;&amp;String&gt;(&amp;database)
+</span><span class="boring">    );
+</span><span class="boring">
+</span><span class="boring">    Ok(())
+</span><span class="boring">}</span></code></pre>
 
                     </main>
 

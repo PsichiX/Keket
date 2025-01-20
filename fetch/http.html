@@ -157,25 +157,58 @@
 <p><strong>Required crate: <code>keket-http</code>.</strong></p>
 </blockquote>
 <p><code>HttpAssetFetch</code> allows to fetch bytes with HTTP sources.</p>
-<pre><code class="language-rust ignore">let mut database = AssetDatabase::default()
-    .with_protocol(TextAssetProtocol)
-    // HTTP asset fetch with root URL for assets.
-    .with_fetch(DeferredAssetFetch::new(HttpAssetFetch::new(
-        "https://raw.githubusercontent.com/PsichiX/Keket/refs/heads/master/resources/",
-    )?));
+<pre><code class="language-rust ignore"><span class="boring">use keket::{
+</span><span class="boring">    database::{path::AssetPath, AssetDatabase},
+</span><span class="boring">    fetch::deferred::DeferredAssetFetch,
+</span><span class="boring">    protocol::{bundle::BundleAssetProtocol, bytes::BytesAssetProtocol, text::TextAssetProtocol},
+</span><span class="boring">};
+</span><span class="boring">use keket_http::{third_party::reqwest::Url, HttpAssetFetch};
+</span><span class="boring">use serde_json::Value;
+</span><span class="boring">use std::error::Error;
+</span><span class="boring">
+</span><span class="boring">fn main() -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span>    let mut database = AssetDatabase::default()
+        .with_protocol(TextAssetProtocol)
+        .with_protocol(BytesAssetProtocol)
+        .with_protocol(BundleAssetProtocol::new("json", |bytes: Vec&lt;u8&gt;| {
+            Ok((serde_json::from_slice::&lt;Value&gt;(&amp;bytes)?,).into())
+        }))
+        // HTTP asset fetch with root URL for assets.
+        .with_fetch(DeferredAssetFetch::new(HttpAssetFetch::new(
+            "https://raw.githubusercontent.com/PsichiX/Keket/refs/heads/master/resources/",
+        )?));
 
-// Ensure assets exists or start getting fetched.
-let lorem = database.ensure("text://lorem.txt")?;
+    // Ensure assets exists or start getting fetched.
+    let lorem = database.ensure("text://lorem.txt")?;
+    let json = database.ensure("json://person.json")?;
+    let trash = database.ensure("bytes://trash.bin")?;
 
-// Wait for pending fetches.
-while database.does_await_deferred_job() {
+    // Wait for pending fetches.
+    while database.does_await_deferred_job() {
+        println!("Waiting for database to be free");
+        println!(
+            "Loading:\n- Lorem Ipsum: {}\n- JSON: {}\n- Bytes: {}",
+            lorem.awaits_deferred_job(&amp;database),
+            json.awaits_deferred_job(&amp;database),
+            trash.awaits_deferred_job(&amp;database)
+        );
+        database.maintain()?;
+    }
+
+    // After all assets bytes are fetched, process them into assets.
     database.maintain()?;
-}
 
-// After all assets bytes are fetched, process them into assets.
-database.maintain()?;
+    println!("Lorem Ipsum: {}", lorem.access::&lt;&amp;String&gt;(&amp;database));
+    println!("JSON: {:#}", json.access::&lt;&amp;Value&gt;(&amp;database));
+    println!("Bytes: {:?}", trash.access::&lt;&amp;Vec&lt;u8&gt;&gt;(&amp;database));
 
-println!("Lorem Ipsum: {}", lorem.access::&lt;&amp;String&gt;(&amp;database));</code></pre>
+    // List all assets from HTTP.
+    for (asset_path, url) in database.storage.query::&lt;true, (&amp;AssetPath, &amp;Url)&gt;() {
+        println!("Asset: `{}` at url: `{}`", asset_path, url);
+    }
+<span class="boring">
+</span><span class="boring">    Ok(())
+</span><span class="boring">}</span></code></pre>
 <blockquote>
 <p>Since this is blocking fetch, you might want to wrap it with <code>DeferredAssetFetch</code>
 to run HTTP fetching jobs in background.</p>

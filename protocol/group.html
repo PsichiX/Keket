@@ -154,30 +154,56 @@
                     <main>
                         <h1 id="group"><a class="header" href="#group">Group</a></h1>
 <p><code>GroupAssetProtocol</code> allows to load group of assets at once as its dependencies.</p>
-<pre><code class="language-rust ignore">let mut database = AssetDatabase::default()
-    .with_protocol(TextAssetProtocol)
-    .with_protocol(BytesAssetProtocol)
-    .with_protocol(GroupAssetProtocol)
-    .with_fetch(FileAssetFetch::default().with_root("assets"));
+<pre><code class="language-rust ignore"><span class="boring">use keket::{
+</span><span class="boring">    database::{path::AssetPath, AssetDatabase},
+</span><span class="boring">    fetch::file::FileAssetFetch,
+</span><span class="boring">    protocol::{
+</span><span class="boring">        bundle::BundleAssetProtocol,
+</span><span class="boring">        bytes::BytesAssetProtocol,
+</span><span class="boring">        group::{GroupAsset, GroupAssetProtocol},
+</span><span class="boring">        text::TextAssetProtocol,
+</span><span class="boring">    },
+</span><span class="boring">};
+</span><span class="boring">use serde_json::Value;
+</span><span class="boring">use std::error::Error;
+</span><span class="boring">
+</span><span class="boring">fn main() -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span>    let mut database = AssetDatabase::default()
+        .with_protocol(TextAssetProtocol)
+        .with_protocol(BytesAssetProtocol)
+        .with_protocol(BundleAssetProtocol::new("json", |bytes: Vec&lt;u8&gt;| {
+            Ok((serde_json::from_slice::&lt;Value&gt;(&amp;bytes)?,).into())
+        }))
+        // Group asset protocol stores paths to other assets that gets scheduled
+        // for loading when group loads.
+        .with_protocol(GroupAssetProtocol)
+        .with_fetch(FileAssetFetch::default().with_root("resources"));
 
-let group = database.ensure("group://group.txt")?;
+    let group = database.ensure("group://group.txt")?;
+    println!("Group: {:#?}", group.access::&lt;&amp;GroupAsset&gt;(&amp;database));
 
-while database.is_busy() {
-    database.maintain()?;
-}
+    while database.is_busy() {
+        database.maintain()?;
+    }
 
-let lorem = database.ensure("text://lorem.txt")?;
-println!("Lorem Ipsum: {}", lorem.access::&lt;&amp;String&gt;(&amp;database));
+    let lorem = database.ensure("text://lorem.txt")?;
+    println!("Lorem Ipsum: {}", lorem.access::&lt;&amp;String&gt;(&amp;database));
 
-let trash = database.ensure("bytes://trash.bin")?;
-println!("Bytes: {:?}", trash.access::&lt;&amp;Vec&lt;u8&gt;&gt;(&amp;database));
+    let json = database.ensure("json://person.json")?;
+    println!("JSON: {:#}", json.access::&lt;&amp;Value&gt;(&amp;database));
 
-for dependency in group.dependencies(&amp;database) {
-    println!(
-        "Group dependency: {}",
-        dependency.access::&lt;&amp;AssetPath&gt;(&amp;database)
-    );
-}</code></pre>
+    let trash = database.ensure("bytes://trash.bin")?;
+    println!("Bytes: {:?}", trash.access::&lt;&amp;Vec&lt;u8&gt;&gt;(&amp;database));
+
+    for dependency in group.dependencies(&amp;database) {
+        println!(
+            "Group dependency: {}",
+            dependency.access::&lt;&amp;AssetPath&gt;(&amp;database)
+        );
+    }
+<span class="boring">
+</span><span class="boring">    Ok(())
+</span><span class="boring">}</span></code></pre>
 
                     </main>
 

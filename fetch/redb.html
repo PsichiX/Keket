@@ -158,15 +158,38 @@
 </blockquote>
 <p><code>RedbContainerPartialFetch</code> partial fetch engine allows to unpack asset bytes
 from REDB database - useful for asset packs.</p>
-<pre><code class="language-rust ignore">let mut database = AssetDatabase::default()
-    .with_protocol(TextAssetProtocol)
-    .with_fetch(ContainerAssetFetch::new(RedbContainerPartialFetch::new(
-        Database::create("./assets/database.redb")?,
-        "assets",
-    )));
+<pre><code class="language-rust ignore"><span class="boring">use keket::{
+</span><span class="boring">    database::AssetDatabase,
+</span><span class="boring">    fetch::container::ContainerAssetFetch,
+</span><span class="boring">    protocol::{bundle::BundleAssetProtocol, bytes::BytesAssetProtocol, text::TextAssetProtocol},
+</span><span class="boring">};
+</span><span class="boring">use keket_redb::{third_party::redb::Database, RedbContainerPartialFetch};
+</span><span class="boring">use serde_json::Value;
+</span><span class="boring">use std::error::Error;
+</span><span class="boring">
+</span><span class="boring">fn main() -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span>    let mut database = AssetDatabase::default()
+        .with_protocol(TextAssetProtocol)
+        .with_protocol(BytesAssetProtocol)
+        .with_protocol(BundleAssetProtocol::new("json", |bytes: Vec&lt;u8&gt;| {
+            Ok((serde_json::from_slice::&lt;Value&gt;(&amp;bytes)?,).into())
+        }))
+        .with_fetch(ContainerAssetFetch::new(RedbContainerPartialFetch::new(
+            Database::create("./resources/database.redb")?,
+            "assets",
+        )));
 
-let lorem = database.ensure("text://lorem.txt")?;
-println!("Lorem Ipsum: {}", lorem.access::&lt;&amp;String&gt;(&amp;database));</code></pre>
+    let lorem = database.ensure("text://lorem.txt")?;
+    println!("Lorem Ipsum: {}", lorem.access::&lt;&amp;String&gt;(&amp;database));
+
+    let json = database.ensure("json://person.json")?;
+    println!("JSON: {:#}", json.access::&lt;&amp;Value&gt;(&amp;database));
+
+    let trash = database.ensure("bytes://trash.bin")?;
+    println!("Bytes: {:?}", trash.access::&lt;&amp;Vec&lt;u8&gt;&gt;(&amp;database));
+<span class="boring">
+</span><span class="boring">    Ok(())
+</span><span class="boring">}</span></code></pre>
 <blockquote>
 <p>Since this is blocking fetch, you might want to wrap it with <code>DeferredAssetFetch</code>
 to run REDB fetching jobs in background.</p>

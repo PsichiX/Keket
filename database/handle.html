@@ -158,18 +158,77 @@ Its used as key to asset in database, to allow said database to perform operatio
 on the asset using that handle - handles are returned when asset gets spawned in
 storage, so every spawned handle always point to existing asset (unless asset gets
 unloaded/deleted).</p>
-<pre><code class="language-rust ignore">// `lorem` points to existing asset that was either already existing or was just
-// spawned in storage.
-let lorem = database.ensure("text://lorem.txt")?;
-// Once we have valid handle, we can perform various operations on `lorem` asset
-// (here we access its asset data immutably).
-println!("Lorem Ipsum: {}", lorem.access::&lt;&amp;String&gt;(&amp;database));
+<pre><code class="language-rust ignore"><span class="boring">use keket::{
+</span><span class="boring">    database::{path::AssetPath, AssetDatabase},
+</span><span class="boring">    fetch::file::FileAssetFetch,
+</span><span class="boring">    protocol::{bundle::BundleAssetProtocol, bytes::BytesAssetProtocol, text::TextAssetProtocol},
+</span><span class="boring">};
+</span><span class="boring">use serde::Deserialize;
+</span><span class="boring">use serde_json::Value;
+</span><span class="boring">use std::{error::Error, fs::Metadata, path::PathBuf};
+</span><span class="boring">
+</span><span class="boring">#[derive(Debug, Deserialize)]
+</span><span class="boring">#[allow(dead_code)]
+</span><span class="boring">struct Person {
+</span><span class="boring">    age: u8,
+</span><span class="boring">    home: PersonHome,
+</span><span class="boring">    friends: Vec&lt;String&gt;,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">#[derive(Debug, Deserialize)]
+</span><span class="boring">#[allow(dead_code)]
+</span><span class="boring">struct PersonHome {
+</span><span class="boring">    country: String,
+</span><span class="boring">    address: String,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">fn main() -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">    let mut database = AssetDatabase::default()
+</span><span class="boring">        // Asset protocols tell how to deserialize bytes into assets.
+</span><span class="boring">        .with_protocol(TextAssetProtocol)
+</span><span class="boring">        .with_protocol(BytesAssetProtocol)
+</span><span class="boring">        // Bundle protocol allows for easly making a protocol that takes
+</span><span class="boring">        // bytes and returns bundle with optional dependencies.
+</span><span class="boring">        .with_protocol(BundleAssetProtocol::new("json", |bytes: Vec&lt;u8&gt;| {
+</span><span class="boring">            let asset = serde_json::from_slice::&lt;Value&gt;(&amp;bytes)?;
+</span><span class="boring">            Ok((asset,).into())
+</span><span class="boring">        }))
+</span><span class="boring">        .with_protocol(BundleAssetProtocol::new("person", |bytes: Vec&lt;u8&gt;| {
+</span><span class="boring">            let asset = serde_json::from_slice::&lt;Person&gt;(&amp;bytes)?;
+</span><span class="boring">            Ok((asset,).into())
+</span><span class="boring">        }))
+</span><span class="boring">        // Asset fetch tells how to get bytes from specific source.
+</span><span class="boring">        .with_fetch(FileAssetFetch::default().with_root("resources"));
+</span><span class="boring">
+</span>    // Ensure method either gives existing asset handle or creates new
+    // and loads asset if not existing yet in storage.
+    let lorem = database.ensure("text://lorem.txt")?;
+    // Accessing component(s) of asset entry.
+    // Assets can store multiple data associated to them, consider them meta data.
+    println!("Lorem Ipsum: {}", lorem.access::&lt;&amp;String&gt;(&amp;database));
 
-let json = database.ensure("json://person.json")?;
-println!("JSON: {:#}", json.access::&lt;&amp;Value&gt;(&amp;database));
+    let json = database.ensure("json://person.json")?;
+    println!("JSON: {:#}", json.access::&lt;&amp;Value&gt;(&amp;database));
 
-let trash = database.ensure("bytes://trash.bin")?;
-println!("Bytes: {:?}", trash.access::&lt;&amp;Vec&lt;u8&gt;&gt;(&amp;database));</code></pre>
+    let person = database.ensure("person://person.json")?;
+    println!("Person: {:#?}", person.access::&lt;&amp;Person&gt;(&amp;database));
+
+    let trash = database.ensure("bytes://trash.bin")?;
+    println!("Bytes: {:?}", trash.access::&lt;&amp;Vec&lt;u8&gt;&gt;(&amp;database));
+<span class="boring">
+</span><span class="boring">    // We can query storage for asset components to process assets, just like with ECS.
+</span><span class="boring">    for (asset_path, file_path, metadata) in database
+</span><span class="boring">        .storage
+</span><span class="boring">        .query::&lt;true, (&amp;AssetPath, &amp;PathBuf, &amp;Metadata)&gt;()
+</span><span class="boring">    {
+</span><span class="boring">        println!(
+</span><span class="boring">            "Asset: `{}` at location: {:?} has metadata: {:#?}",
+</span><span class="boring">            asset_path, file_path, metadata
+</span><span class="boring">        );
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    Ok(())
+</span><span class="boring">}</span></code></pre>
 
                     </main>
 

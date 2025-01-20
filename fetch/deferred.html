@@ -156,27 +156,39 @@
 <p><code>DeferredAssetFetch</code> allows to asynchronously load requested bytes in background
 thread(s). It is encouraged to use it for heavy latency fetch engines like file
 system or network fetch engines.</p>
-<pre><code class="language-rust ignore">let mut database = AssetDatabase::default()
-    .with_protocol(BytesAssetProtocol)
-    .with_fetch(DeferredAssetFetch::new(
-        FileAssetFetch::default().with_root("assets"),
-    ));
+<pre><code class="language-rust ignore"><span class="boring">use keket::{
+</span><span class="boring">    database::AssetDatabase,
+</span><span class="boring">    fetch::{deferred::DeferredAssetFetch, file::FileAssetFetch},
+</span><span class="boring">    protocol::bytes::BytesAssetProtocol,
+</span><span class="boring">};
+</span><span class="boring">use std::error::Error;
+</span><span class="boring">
+</span><span class="boring">fn main() -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span>    let mut database = AssetDatabase::default()
+        .with_protocol(BytesAssetProtocol)
+        // Deferred asset fetch runs fetching jobs in threads for any fetch engine.
+        .with_fetch(DeferredAssetFetch::new(
+            FileAssetFetch::default().with_root("resources"),
+        ));
 
-let package = database.ensure("bytes://package.zip")?;
+    let package = database.ensure("bytes://package.zip")?;
 
-// Simulate waiting for asset bytes loading to complete.
-while package.awaits_deferred_job(&amp;database) {
-    println!("Package awaits deferred job done");
+    // Simulate waiting for asset bytes loading to complete.
+    while package.awaits_deferred_job(&amp;database) {
+        println!("Package awaits deferred job done");
+        database.maintain()?;
+    }
+
+    // Run another maintain pass to process loaded bytes.
     database.maintain()?;
-}
 
-// Run another maintain pass to process loaded bytes.
-database.maintain()?;
-
-println!(
-    "Package byte size: {}",
-    package.access::&lt;&amp;Vec&lt;u8&gt;&gt;(&amp;database).len()
-);</code></pre>
+    println!(
+        "Package byte size: {}",
+        package.access::&lt;&amp;Vec&lt;u8&gt;&gt;(&amp;database).len()
+    );
+<span class="boring">
+</span><span class="boring">    Ok(())
+</span><span class="boring">}</span></code></pre>
 
                     </main>
 

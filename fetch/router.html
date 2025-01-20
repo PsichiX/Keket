@@ -157,37 +157,48 @@
 specific fetch engine to use for given asset is decided by the pattern in asset
 path - this is useful when we might want to have main game assets and additional
 DLC/mod asset sources.</p>
-<pre><code class="language-rust ignore">let mut database = AssetDatabase::default()
-    .with_protocol(TextAssetProtocol)
-    .with_protocol(BytesAssetProtocol)
-    .with_fetch(
-        RouterAssetFetch::default()
-            .route(
-                // Main assets source.
-                RouterPattern::default(),
-                ContainerAssetFetch::new(
-                    ZipContainerPartialFetch::new(ZipArchive::new(
-                        File::open("./resources/main.zip")?,
-                    )?)
+<pre><code class="language-rust ignore"><span class="boring">use keket::{
+</span><span class="boring">    database::AssetDatabase,
+</span><span class="boring">    fetch::{file::FileAssetFetch, router::RouterAssetFetch},
+</span><span class="boring">    protocol::{bytes::BytesAssetProtocol, text::TextAssetProtocol},
+</span><span class="boring">};
+</span><span class="boring">use std::error::Error;
+</span><span class="boring">
+</span><span class="boring">fn main() -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span>    let mut database = AssetDatabase::default()
+        .with_protocol(TextAssetProtocol)
+        .with_protocol(BytesAssetProtocol)
+        .with_fetch(
+            // Router allows to combine multiple asset sources, so that proper one to use
+            // for given asset is selected by pattern in asset path.
+            RouterAssetFetch::default()
+                // Every asset that has `router=file` meta, will load asset from file.
+                .route(
+                    |path| path.has_meta_key_value("router", "file"),
+                    FileAssetFetch::default().with_root("resources"),
+                    0,
+                )
+                // Every asset that has `memory/` path prefix, will load from in-memory collection.
+                .route(
+                    |path| path.path().starts_with("memory/"),
+                    vec![(
+                        "trash.bin".to_owned(),
+                        std::fs::read("./resources/trash.bin")?,
+                    )],
+                    1,
                 ),
-            )
-            .route(
-                // DLC assets source, with higher priority pattern to try match
-                // before main assets route matches.
-                RouterPattern::new("dlc/").priority(1),
-                ContainerAssetFetch::new(
-                    ZipContainerPartialFetch::new(ZipArchive::new(
-                        File::open("./resources/dlc.zip")?,
-                    )?)
-                ),
-            ),
-    );
+        );
 
-let lorem = database.ensure("text://lorem.txt")?;
-println!("Lorem Ipsum: {}", lorem.access::&lt;&amp;String&gt;(&amp;database));
+    // This asset will select file router.
+    let lorem = database.ensure("text://lorem.txt?router=file")?;
+    println!("Lorem Ipsum: {}", lorem.access::&lt;&amp;String&gt;(&amp;database));
 
-let trash = database.ensure("bytes://dlc/trash.bin")?;
-println!("Bytes: {:?}", trash.access::&lt;&amp;Vec&lt;u8&gt;&gt;(&amp;database));</code></pre>
+    // This asset will select memory router.
+    let trash = database.ensure("bytes://memory/trash.bin")?;
+    println!("Bytes: {:?}", trash.access::&lt;&amp;Vec&lt;u8&gt;&gt;(&amp;database));
+<span class="boring">
+</span><span class="boring">    Ok(())
+</span><span class="boring">}</span></code></pre>
 
                     </main>
 

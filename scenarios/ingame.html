@@ -177,19 +177,585 @@ use std::{
     error::Error,
     sync::{Arc, RwLock},
     time::Instant,
-};</code></pre>
+};
+<span class="boring">
+</span><span class="boring">fn main() -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">    App::&lt;Vertex&gt;::default().run(State::default());
+</span><span class="boring">
+</span><span class="boring">    Ok(())
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">const DELTA_TIME: f32 = 1.0 / 60.0;
+</span><span class="boring">
+</span><span class="boring">struct State {
+</span><span class="boring">    // We store drawing context for later use in app state.
+</span><span class="boring">    // Drawing context holds resources and stack-based states.
+</span><span class="boring">    context: DrawContext,
+</span><span class="boring">    // Timer used for fixed step frame particle system simulation.
+</span><span class="boring">    timer: Instant,
+</span><span class="boring">    assets: AssetDatabase,
+</span><span class="boring">    image_shader: AssetRef,
+</span><span class="boring">    ferris_texture: AssetRef,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">impl Default for State {
+</span><span class="boring">    fn default() -&gt; Self {
+</span><span class="boring">        Self {
+</span><span class="boring">            context: Default::default(),
+</span><span class="boring">            timer: Instant::now(),
+</span><span class="boring">            assets: AssetDatabase::default()
+</span><span class="boring">                // Text protocol for shader sources.
+</span><span class="boring">                .with_protocol(TextAssetProtocol)
+</span><span class="boring">                // Group protocol for loading many assets at once.
+</span><span class="boring">                .with_protocol(GroupAssetProtocol)
+</span><span class="boring">                // Custom shader protocol.
+</span><span class="boring">                .with_protocol(BundleAssetProtocol::new("shader", ShaderAssetProcessor))
+</span><span class="boring">                // Custom texture protocol.
+</span><span class="boring">                .with_protocol(BundleAssetProtocol::new("texture", TextureAssetProcessor))
+</span><span class="boring">                // Load all data from file system asynchronously.
+</span><span class="boring">                .with_fetch(DeferredAssetFetch::new(
+</span><span class="boring">                    FileAssetFetch::default().with_root("resources"),
+</span><span class="boring">                )),
+</span><span class="boring">            // Stored asset references for cached asset handles.
+</span><span class="boring">            image_shader: AssetRef::new("shader://image.shader"),
+</span><span class="boring">            ferris_texture: AssetRef::new("texture://ferris.png"),
+</span><span class="boring">        }
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">impl AppState&lt;Vertex&gt; for State {
+</span><span class="boring">    fn on_init(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+</span><span class="boring">        // Setup scene camera.
+</span><span class="boring">        graphics.color = [0.25, 0.25, 0.25, 1.0];
+</span><span class="boring">        graphics.main_camera.screen_alignment = 0.5.into();
+</span><span class="boring">        graphics.main_camera.scaling = CameraScaling::FitToView {
+</span><span class="boring">            size: 1000.0.into(),
+</span><span class="boring">            inside: false,
+</span><span class="boring">        };
+</span><span class="boring">
+</span><span class="boring">        // Load this scene group.
+</span><span class="boring">        self.assets.ensure("group://ingame.txt").unwrap();
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    fn on_redraw(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+</span><span class="boring">        // Process assets periotically.
+</span><span class="boring">        if self.timer.elapsed().as_secs_f32() &gt; DELTA_TIME {
+</span><span class="boring">            self.timer = Instant::now();
+</span><span class="boring">            self.process_assets(graphics);
+</span><span class="boring">        }
+</span><span class="boring">
+</span><span class="boring">        // Do not render unless we have shader loaded.
+</span><span class="boring">        let Ok(image_shader) = self.image_shader.resolve(&amp;self.assets) else {
+</span><span class="boring">            return;
+</span><span class="boring">        };
+</span><span class="boring">        let Some(image_shader) = image_shader
+</span><span class="boring">            .access_checked::&lt;&amp;AsyncHandle&lt;Shader&gt;&gt;()
+</span><span class="boring">            .map(|handle| handle.to_ref())
+</span><span class="boring">        else {
+</span><span class="boring">            return;
+</span><span class="boring">        };
+</span><span class="boring">
+</span><span class="boring">        // Begin drawing objects.
+</span><span class="boring">        self.context.begin_frame(graphics);
+</span><span class="boring">        self.context.push_shader(&amp;image_shader);
+</span><span class="boring">        self.context.push_blending(GlowBlending::Alpha);
+</span><span class="boring">
+</span><span class="boring">        // Draw sprite only if texture asset is loaded.
+</span><span class="boring">        if let Ok(texture) = self.ferris_texture.resolve(&amp;self.assets) {
+</span><span class="boring">            if let Some(texture) = texture
+</span><span class="boring">                .access_checked::&lt;&amp;AsyncHandle&lt;Texture&gt;&gt;()
+</span><span class="boring">                .map(|handle| handle.to_ref())
+</span><span class="boring">            {
+</span><span class="boring">                Sprite::single(SpriteTexture::new("u_image".into(), texture))
+</span><span class="boring">                    .pivot(0.5.into())
+</span><span class="boring">                    .draw(&amp;mut self.context, graphics);
+</span><span class="boring">            }
+</span><span class="boring">        }
+</span><span class="boring">
+</span><span class="boring">        // Commit drawn objects.
+</span><span class="boring">        self.context.end_frame();
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">impl State {
+</span><span class="boring">    fn process_assets(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+</span><span class="boring">        let mut commands = CommandBuffer::default();
+</span><span class="boring">
+</span><span class="boring">        // Process loaded shader assets into shader objects on GPU.
+</span><span class="boring">        for entity in self.assets.storage.added().iter_of::&lt;ShaderAsset&gt;() {
+</span><span class="boring">            let asset = self
+</span><span class="boring">                .assets
+</span><span class="boring">                .storage
+</span><span class="boring">                .component::&lt;true, ShaderAsset&gt;(entity)
+</span><span class="boring">                .unwrap();
+</span><span class="boring">            let shader = graphics.shader(&amp;asset.vertex, &amp;asset.fragment).unwrap();
+</span><span class="boring">            println!("* Shader asset turned into shader: {}", entity);
+</span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(shader),)));
+</span><span class="boring">        }
+</span><span class="boring">
+</span><span class="boring">        // Process loaded texture assets into texture objects on GPU.
+</span><span class="boring">        for entity in self.assets.storage.added().iter_of::&lt;TextureAsset&gt;() {
+</span><span class="boring">            let asset = self
+</span><span class="boring">                .assets
+</span><span class="boring">                .storage
+</span><span class="boring">                .component::&lt;true, TextureAsset&gt;(entity)
+</span><span class="boring">                .unwrap();
+</span><span class="boring">            let texture = graphics
+</span><span class="boring">                .texture(
+</span><span class="boring">                    asset.width,
+</span><span class="boring">                    asset.height,
+</span><span class="boring">                    1,
+</span><span class="boring">                    GlowTextureFormat::Rgba,
+</span><span class="boring">                    Some(&amp;asset.bytes),
+</span><span class="boring">                )
+</span><span class="boring">                .unwrap();
+</span><span class="boring">            println!("* Texture asset turned into texture: {}", entity);
+</span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(texture),)));
+</span><span class="boring">        }
+</span><span class="boring">
+</span><span class="boring">        commands.execute(&amp;mut self.assets.storage);
+</span><span class="boring">        self.assets.maintain().unwrap();
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Workaround for GPU handles not being Send + Sync,
+</span><span class="boring">// to be able to store them in assets database.
+</span><span class="boring">struct AsyncHandle&lt;T: Clone&gt;(Arc&lt;RwLock&lt;T&gt;&gt;);
+</span><span class="boring">
+</span><span class="boring">unsafe impl&lt;T: Clone&gt; Send for AsyncHandle&lt;T&gt; {}
+</span><span class="boring">unsafe impl&lt;T: Clone&gt; Sync for AsyncHandle&lt;T&gt; {}
+</span><span class="boring">
+</span><span class="boring">impl&lt;T: Clone&gt; AsyncHandle&lt;T&gt; {
+</span><span class="boring">    fn new(data: T) -&gt; Self {
+</span><span class="boring">        Self(Arc::new(RwLock::new(data)))
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    fn get(&amp;self) -&gt; T {
+</span><span class="boring">        self.0.read().unwrap().clone()
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    fn to_ref(&amp;self) -&gt; ResourceRef&lt;T&gt; {
+</span><span class="boring">        ResourceRef::object(self.get())
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Decoded shader asset information with dependencies.
+</span><span class="boring">#[derive(Debug, Serialize, Deserialize)]
+</span><span class="boring">struct ShaderAssetInfo {
+</span><span class="boring">    vertex: AssetRef,
+</span><span class="boring">    fragment: AssetRef,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Shader asset with vertex and fragment programs code.
+</span><span class="boring">struct ShaderAsset {
+</span><span class="boring">    vertex: String,
+</span><span class="boring">    fragment: String,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Shader asset processor that turns bytes -&gt; shader info -&gt; shader asset.
+</span><span class="boring">struct ShaderAssetProcessor;
+</span><span class="boring">
+</span><span class="boring">impl BundleWithDependenciesProcessor for ShaderAssetProcessor {
+</span><span class="boring">    type Bundle = (ShaderAssetInfo,);
+</span><span class="boring">
+</span><span class="boring">    fn process_bytes(
+</span><span class="boring">        &amp;mut self,
+</span><span class="boring">        bytes: Vec&lt;u8&gt;,
+</span><span class="boring">    ) -&gt; Result&lt;BundleWithDependencies&lt;Self::Bundle&gt;, Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">        let asset = serde_json::from_slice::&lt;ShaderAssetInfo&gt;(&amp;bytes)?;
+</span><span class="boring">        let vertex = asset.vertex.path().clone();
+</span><span class="boring">        let fragment = asset.fragment.path().clone();
+</span><span class="boring">
+</span><span class="boring">        println!("* Shader asset processed: {:#?}", asset);
+</span><span class="boring">        Ok(BundleWithDependencies::new((asset,))
+</span><span class="boring">            .dependency(vertex)
+</span><span class="boring">            .dependency(fragment))
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    fn maintain(&amp;mut self, storage: &amp;mut World) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">        let mut commands = CommandBuffer::default();
+</span><span class="boring">        let mut lookup = storage.lookup_access::&lt;true, &amp;String&gt;();
+</span><span class="boring">
+</span><span class="boring">        // We scan for decoded shader info and if dependencies are loaded,
+</span><span class="boring">        // then turn them into shader asset.
+</span><span class="boring">        for (entity, info, dependencies) in
+</span><span class="boring">            storage.query::&lt;true, (Entity, &amp;ShaderAssetInfo, &amp;Relation&lt;AssetDependency&gt;)&gt;()
+</span><span class="boring">        {
+</span><span class="boring">            if dependencies
+</span><span class="boring">                .entities()
+</span><span class="boring">                .all(|entity| storage.has_entity_component::&lt;String&gt;(entity))
+</span><span class="boring">            {
+</span><span class="boring">                let vertex = lookup
+</span><span class="boring">                    .access(storage.find_by::&lt;true, _&gt;(info.vertex.path()).unwrap())
+</span><span class="boring">                    .unwrap()
+</span><span class="boring">                    .to_owned();
+</span><span class="boring">                let fragment = lookup
+</span><span class="boring">                    .access(storage.find_by::&lt;true, _&gt;(info.fragment.path()).unwrap())
+</span><span class="boring">                    .unwrap()
+</span><span class="boring">                    .to_owned();
+</span><span class="boring">
+</span><span class="boring">                let asset = ShaderAsset { vertex, fragment };
+</span><span class="boring">                commands.command(InsertCommand::new(entity, (asset,)));
+</span><span class="boring">                commands.command(RemoveCommand::&lt;(ShaderAssetInfo,)&gt;::new(entity));
+</span><span class="boring">            }
+</span><span class="boring">        }
+</span><span class="boring">        drop(lookup);
+</span><span class="boring">
+</span><span class="boring">        commands.execute(storage);
+</span><span class="boring">
+</span><span class="boring">        Ok(())
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Decoded texture asset with its size and decoded bitmap bytes.
+</span><span class="boring">struct TextureAsset {
+</span><span class="boring">    width: u32,
+</span><span class="boring">    height: u32,
+</span><span class="boring">    bytes: Vec&lt;u8&gt;,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">struct TextureAssetProcessor;
+</span><span class="boring">
+</span><span class="boring">impl BundleWithDependenciesProcessor for TextureAssetProcessor {
+</span><span class="boring">    type Bundle = (TextureAsset,);
+</span><span class="boring">
+</span><span class="boring">    fn process_bytes(
+</span><span class="boring">        &amp;mut self,
+</span><span class="boring">        bytes: Vec&lt;u8&gt;,
+</span><span class="boring">    ) -&gt; Result&lt;BundleWithDependencies&lt;Self::Bundle&gt;, Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">        // Decode PNG image into texture size and bitmap bytes.
+</span><span class="boring">        let decoder = png::Decoder::new(bytes.as_slice());
+</span><span class="boring">        let mut reader = decoder.read_info()?;
+</span><span class="boring">        let mut buf = vec![0; reader.output_buffer_size()];
+</span><span class="boring">        let info = reader.next_frame(&amp;mut buf)?;
+</span><span class="boring">        let bytes = buf[..info.buffer_size()].to_vec();
+</span><span class="boring">
+</span><span class="boring">        println!("* Texture asset processed: {:#?}", info);
+</span><span class="boring">        Ok(BundleWithDependencies::new((TextureAsset {
+</span><span class="boring">            width: info.width,
+</span><span class="boring">            height: info.height,
+</span><span class="boring">            bytes,
+</span><span class="boring">        },)))
+</span><span class="boring">    }
+</span><span class="boring">}</span></code></pre>
 </details>
 <h2 id="main-function"><a class="header" href="#main-function">Main function</a></h2>
 <p>Main function looks boring - all we do is we run <code>App</code> with <code>State</code> object.</p>
-<pre><code class="language-rust ignore">fn main() -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+<pre><code class="language-rust ignore"><span class="boring">use keket::{
+</span><span class="boring">    database::{handle::AssetDependency, reference::AssetRef, AssetDatabase},
+</span><span class="boring">    fetch::{deferred::DeferredAssetFetch, file::FileAssetFetch},
+</span><span class="boring">    protocol::{
+</span><span class="boring">        bundle::{BundleAssetProtocol, BundleWithDependencies, BundleWithDependenciesProcessor},
+</span><span class="boring">        group::GroupAssetProtocol,
+</span><span class="boring">        text::TextAssetProtocol,
+</span><span class="boring">    },
+</span><span class="boring">    third_party::anput::{
+</span><span class="boring">        commands::{CommandBuffer, InsertCommand, RemoveCommand},
+</span><span class="boring">        entity::Entity,
+</span><span class="boring">        world::{Relation, World},
+</span><span class="boring">    },
+</span><span class="boring">};
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">use spitfire::prelude::*;
+</span><span class="boring">use std::{
+</span><span class="boring">    error::Error,
+</span><span class="boring">    sync::{Arc, RwLock},
+</span><span class="boring">    time::Instant,
+</span><span class="boring">};
+</span><span class="boring">
+</span>fn main() -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
     App::&lt;Vertex&gt;::default().run(State::default());
 
     Ok(())
-}</code></pre>
+}
+<span class="boring">
+</span><span class="boring">const DELTA_TIME: f32 = 1.0 / 60.0;
+</span><span class="boring">
+</span><span class="boring">struct State {
+</span><span class="boring">    // We store drawing context for later use in app state.
+</span><span class="boring">    // Drawing context holds resources and stack-based states.
+</span><span class="boring">    context: DrawContext,
+</span><span class="boring">    // Timer used for fixed step frame particle system simulation.
+</span><span class="boring">    timer: Instant,
+</span><span class="boring">    assets: AssetDatabase,
+</span><span class="boring">    image_shader: AssetRef,
+</span><span class="boring">    ferris_texture: AssetRef,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">impl Default for State {
+</span><span class="boring">    fn default() -&gt; Self {
+</span><span class="boring">        Self {
+</span><span class="boring">            context: Default::default(),
+</span><span class="boring">            timer: Instant::now(),
+</span><span class="boring">            assets: AssetDatabase::default()
+</span><span class="boring">                // Text protocol for shader sources.
+</span><span class="boring">                .with_protocol(TextAssetProtocol)
+</span><span class="boring">                // Group protocol for loading many assets at once.
+</span><span class="boring">                .with_protocol(GroupAssetProtocol)
+</span><span class="boring">                // Custom shader protocol.
+</span><span class="boring">                .with_protocol(BundleAssetProtocol::new("shader", ShaderAssetProcessor))
+</span><span class="boring">                // Custom texture protocol.
+</span><span class="boring">                .with_protocol(BundleAssetProtocol::new("texture", TextureAssetProcessor))
+</span><span class="boring">                // Load all data from file system asynchronously.
+</span><span class="boring">                .with_fetch(DeferredAssetFetch::new(
+</span><span class="boring">                    FileAssetFetch::default().with_root("resources"),
+</span><span class="boring">                )),
+</span><span class="boring">            // Stored asset references for cached asset handles.
+</span><span class="boring">            image_shader: AssetRef::new("shader://image.shader"),
+</span><span class="boring">            ferris_texture: AssetRef::new("texture://ferris.png"),
+</span><span class="boring">        }
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">impl AppState&lt;Vertex&gt; for State {
+</span><span class="boring">    fn on_init(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+</span><span class="boring">        // Setup scene camera.
+</span><span class="boring">        graphics.color = [0.25, 0.25, 0.25, 1.0];
+</span><span class="boring">        graphics.main_camera.screen_alignment = 0.5.into();
+</span><span class="boring">        graphics.main_camera.scaling = CameraScaling::FitToView {
+</span><span class="boring">            size: 1000.0.into(),
+</span><span class="boring">            inside: false,
+</span><span class="boring">        };
+</span><span class="boring">
+</span><span class="boring">        // Load this scene group.
+</span><span class="boring">        self.assets.ensure("group://ingame.txt").unwrap();
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    fn on_redraw(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+</span><span class="boring">        // Process assets periotically.
+</span><span class="boring">        if self.timer.elapsed().as_secs_f32() &gt; DELTA_TIME {
+</span><span class="boring">            self.timer = Instant::now();
+</span><span class="boring">            self.process_assets(graphics);
+</span><span class="boring">        }
+</span><span class="boring">
+</span><span class="boring">        // Do not render unless we have shader loaded.
+</span><span class="boring">        let Ok(image_shader) = self.image_shader.resolve(&amp;self.assets) else {
+</span><span class="boring">            return;
+</span><span class="boring">        };
+</span><span class="boring">        let Some(image_shader) = image_shader
+</span><span class="boring">            .access_checked::&lt;&amp;AsyncHandle&lt;Shader&gt;&gt;()
+</span><span class="boring">            .map(|handle| handle.to_ref())
+</span><span class="boring">        else {
+</span><span class="boring">            return;
+</span><span class="boring">        };
+</span><span class="boring">
+</span><span class="boring">        // Begin drawing objects.
+</span><span class="boring">        self.context.begin_frame(graphics);
+</span><span class="boring">        self.context.push_shader(&amp;image_shader);
+</span><span class="boring">        self.context.push_blending(GlowBlending::Alpha);
+</span><span class="boring">
+</span><span class="boring">        // Draw sprite only if texture asset is loaded.
+</span><span class="boring">        if let Ok(texture) = self.ferris_texture.resolve(&amp;self.assets) {
+</span><span class="boring">            if let Some(texture) = texture
+</span><span class="boring">                .access_checked::&lt;&amp;AsyncHandle&lt;Texture&gt;&gt;()
+</span><span class="boring">                .map(|handle| handle.to_ref())
+</span><span class="boring">            {
+</span><span class="boring">                Sprite::single(SpriteTexture::new("u_image".into(), texture))
+</span><span class="boring">                    .pivot(0.5.into())
+</span><span class="boring">                    .draw(&amp;mut self.context, graphics);
+</span><span class="boring">            }
+</span><span class="boring">        }
+</span><span class="boring">
+</span><span class="boring">        // Commit drawn objects.
+</span><span class="boring">        self.context.end_frame();
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">impl State {
+</span><span class="boring">    fn process_assets(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+</span><span class="boring">        let mut commands = CommandBuffer::default();
+</span><span class="boring">
+</span><span class="boring">        // Process loaded shader assets into shader objects on GPU.
+</span><span class="boring">        for entity in self.assets.storage.added().iter_of::&lt;ShaderAsset&gt;() {
+</span><span class="boring">            let asset = self
+</span><span class="boring">                .assets
+</span><span class="boring">                .storage
+</span><span class="boring">                .component::&lt;true, ShaderAsset&gt;(entity)
+</span><span class="boring">                .unwrap();
+</span><span class="boring">            let shader = graphics.shader(&amp;asset.vertex, &amp;asset.fragment).unwrap();
+</span><span class="boring">            println!("* Shader asset turned into shader: {}", entity);
+</span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(shader),)));
+</span><span class="boring">        }
+</span><span class="boring">
+</span><span class="boring">        // Process loaded texture assets into texture objects on GPU.
+</span><span class="boring">        for entity in self.assets.storage.added().iter_of::&lt;TextureAsset&gt;() {
+</span><span class="boring">            let asset = self
+</span><span class="boring">                .assets
+</span><span class="boring">                .storage
+</span><span class="boring">                .component::&lt;true, TextureAsset&gt;(entity)
+</span><span class="boring">                .unwrap();
+</span><span class="boring">            let texture = graphics
+</span><span class="boring">                .texture(
+</span><span class="boring">                    asset.width,
+</span><span class="boring">                    asset.height,
+</span><span class="boring">                    1,
+</span><span class="boring">                    GlowTextureFormat::Rgba,
+</span><span class="boring">                    Some(&amp;asset.bytes),
+</span><span class="boring">                )
+</span><span class="boring">                .unwrap();
+</span><span class="boring">            println!("* Texture asset turned into texture: {}", entity);
+</span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(texture),)));
+</span><span class="boring">        }
+</span><span class="boring">
+</span><span class="boring">        commands.execute(&amp;mut self.assets.storage);
+</span><span class="boring">        self.assets.maintain().unwrap();
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Workaround for GPU handles not being Send + Sync,
+</span><span class="boring">// to be able to store them in assets database.
+</span><span class="boring">struct AsyncHandle&lt;T: Clone&gt;(Arc&lt;RwLock&lt;T&gt;&gt;);
+</span><span class="boring">
+</span><span class="boring">unsafe impl&lt;T: Clone&gt; Send for AsyncHandle&lt;T&gt; {}
+</span><span class="boring">unsafe impl&lt;T: Clone&gt; Sync for AsyncHandle&lt;T&gt; {}
+</span><span class="boring">
+</span><span class="boring">impl&lt;T: Clone&gt; AsyncHandle&lt;T&gt; {
+</span><span class="boring">    fn new(data: T) -&gt; Self {
+</span><span class="boring">        Self(Arc::new(RwLock::new(data)))
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    fn get(&amp;self) -&gt; T {
+</span><span class="boring">        self.0.read().unwrap().clone()
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    fn to_ref(&amp;self) -&gt; ResourceRef&lt;T&gt; {
+</span><span class="boring">        ResourceRef::object(self.get())
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Decoded shader asset information with dependencies.
+</span><span class="boring">#[derive(Debug, Serialize, Deserialize)]
+</span><span class="boring">struct ShaderAssetInfo {
+</span><span class="boring">    vertex: AssetRef,
+</span><span class="boring">    fragment: AssetRef,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Shader asset with vertex and fragment programs code.
+</span><span class="boring">struct ShaderAsset {
+</span><span class="boring">    vertex: String,
+</span><span class="boring">    fragment: String,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Shader asset processor that turns bytes -&gt; shader info -&gt; shader asset.
+</span><span class="boring">struct ShaderAssetProcessor;
+</span><span class="boring">
+</span><span class="boring">impl BundleWithDependenciesProcessor for ShaderAssetProcessor {
+</span><span class="boring">    type Bundle = (ShaderAssetInfo,);
+</span><span class="boring">
+</span><span class="boring">    fn process_bytes(
+</span><span class="boring">        &amp;mut self,
+</span><span class="boring">        bytes: Vec&lt;u8&gt;,
+</span><span class="boring">    ) -&gt; Result&lt;BundleWithDependencies&lt;Self::Bundle&gt;, Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">        let asset = serde_json::from_slice::&lt;ShaderAssetInfo&gt;(&amp;bytes)?;
+</span><span class="boring">        let vertex = asset.vertex.path().clone();
+</span><span class="boring">        let fragment = asset.fragment.path().clone();
+</span><span class="boring">
+</span><span class="boring">        println!("* Shader asset processed: {:#?}", asset);
+</span><span class="boring">        Ok(BundleWithDependencies::new((asset,))
+</span><span class="boring">            .dependency(vertex)
+</span><span class="boring">            .dependency(fragment))
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    fn maintain(&amp;mut self, storage: &amp;mut World) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">        let mut commands = CommandBuffer::default();
+</span><span class="boring">        let mut lookup = storage.lookup_access::&lt;true, &amp;String&gt;();
+</span><span class="boring">
+</span><span class="boring">        // We scan for decoded shader info and if dependencies are loaded,
+</span><span class="boring">        // then turn them into shader asset.
+</span><span class="boring">        for (entity, info, dependencies) in
+</span><span class="boring">            storage.query::&lt;true, (Entity, &amp;ShaderAssetInfo, &amp;Relation&lt;AssetDependency&gt;)&gt;()
+</span><span class="boring">        {
+</span><span class="boring">            if dependencies
+</span><span class="boring">                .entities()
+</span><span class="boring">                .all(|entity| storage.has_entity_component::&lt;String&gt;(entity))
+</span><span class="boring">            {
+</span><span class="boring">                let vertex = lookup
+</span><span class="boring">                    .access(storage.find_by::&lt;true, _&gt;(info.vertex.path()).unwrap())
+</span><span class="boring">                    .unwrap()
+</span><span class="boring">                    .to_owned();
+</span><span class="boring">                let fragment = lookup
+</span><span class="boring">                    .access(storage.find_by::&lt;true, _&gt;(info.fragment.path()).unwrap())
+</span><span class="boring">                    .unwrap()
+</span><span class="boring">                    .to_owned();
+</span><span class="boring">
+</span><span class="boring">                let asset = ShaderAsset { vertex, fragment };
+</span><span class="boring">                commands.command(InsertCommand::new(entity, (asset,)));
+</span><span class="boring">                commands.command(RemoveCommand::&lt;(ShaderAssetInfo,)&gt;::new(entity));
+</span><span class="boring">            }
+</span><span class="boring">        }
+</span><span class="boring">        drop(lookup);
+</span><span class="boring">
+</span><span class="boring">        commands.execute(storage);
+</span><span class="boring">
+</span><span class="boring">        Ok(())
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Decoded texture asset with its size and decoded bitmap bytes.
+</span><span class="boring">struct TextureAsset {
+</span><span class="boring">    width: u32,
+</span><span class="boring">    height: u32,
+</span><span class="boring">    bytes: Vec&lt;u8&gt;,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">struct TextureAssetProcessor;
+</span><span class="boring">
+</span><span class="boring">impl BundleWithDependenciesProcessor for TextureAssetProcessor {
+</span><span class="boring">    type Bundle = (TextureAsset,);
+</span><span class="boring">
+</span><span class="boring">    fn process_bytes(
+</span><span class="boring">        &amp;mut self,
+</span><span class="boring">        bytes: Vec&lt;u8&gt;,
+</span><span class="boring">    ) -&gt; Result&lt;BundleWithDependencies&lt;Self::Bundle&gt;, Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">        // Decode PNG image into texture size and bitmap bytes.
+</span><span class="boring">        let decoder = png::Decoder::new(bytes.as_slice());
+</span><span class="boring">        let mut reader = decoder.read_info()?;
+</span><span class="boring">        let mut buf = vec![0; reader.output_buffer_size()];
+</span><span class="boring">        let info = reader.next_frame(&amp;mut buf)?;
+</span><span class="boring">        let bytes = buf[..info.buffer_size()].to_vec();
+</span><span class="boring">
+</span><span class="boring">        println!("* Texture asset processed: {:#?}", info);
+</span><span class="boring">        Ok(BundleWithDependencies::new((TextureAsset {
+</span><span class="boring">            width: info.width,
+</span><span class="boring">            height: info.height,
+</span><span class="boring">            bytes,
+</span><span class="boring">        },)))
+</span><span class="boring">    }
+</span><span class="boring">}</span></code></pre>
 <h2 id="state-struct"><a class="header" href="#state-struct">State struct</a></h2>
 <p><code>State</code> type holds <code>AssetDatabase</code> along with some other data useful for drawing,
 fixed time step mechanism and referencing assets.</p>
-<pre><code class="language-rust ignore">struct State {
+<pre><code class="language-rust ignore"><span class="boring">use keket::{
+</span><span class="boring">    database::{handle::AssetDependency, reference::AssetRef, AssetDatabase},
+</span><span class="boring">    fetch::{deferred::DeferredAssetFetch, file::FileAssetFetch},
+</span><span class="boring">    protocol::{
+</span><span class="boring">        bundle::{BundleAssetProtocol, BundleWithDependencies, BundleWithDependenciesProcessor},
+</span><span class="boring">        group::GroupAssetProtocol,
+</span><span class="boring">        text::TextAssetProtocol,
+</span><span class="boring">    },
+</span><span class="boring">    third_party::anput::{
+</span><span class="boring">        commands::{CommandBuffer, InsertCommand, RemoveCommand},
+</span><span class="boring">        entity::Entity,
+</span><span class="boring">        world::{Relation, World},
+</span><span class="boring">    },
+</span><span class="boring">};
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">use spitfire::prelude::*;
+</span><span class="boring">use std::{
+</span><span class="boring">    error::Error,
+</span><span class="boring">    sync::{Arc, RwLock},
+</span><span class="boring">    time::Instant,
+</span><span class="boring">};
+</span><span class="boring">
+</span><span class="boring">fn main() -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">    App::&lt;Vertex&gt;::default().run(State::default());
+</span><span class="boring">
+</span><span class="boring">    Ok(())
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">const DELTA_TIME: f32 = 1.0 / 60.0;
+</span><span class="boring">
+</span>struct State {
     // We store drawing context for later use in app state.
     // Drawing context holds resources and stack-based states.
     context: DrawContext,
@@ -198,11 +764,293 @@ fixed time step mechanism and referencing assets.</p>
     assets: AssetDatabase,
     image_shader: AssetRef,
     ferris_texture: AssetRef,
-}</code></pre>
+}
+<span class="boring">
+</span><span class="boring">impl Default for State {
+</span><span class="boring">    fn default() -&gt; Self {
+</span><span class="boring">        Self {
+</span><span class="boring">            context: Default::default(),
+</span><span class="boring">            timer: Instant::now(),
+</span><span class="boring">            assets: AssetDatabase::default()
+</span><span class="boring">                // Text protocol for shader sources.
+</span><span class="boring">                .with_protocol(TextAssetProtocol)
+</span><span class="boring">                // Group protocol for loading many assets at once.
+</span><span class="boring">                .with_protocol(GroupAssetProtocol)
+</span><span class="boring">                // Custom shader protocol.
+</span><span class="boring">                .with_protocol(BundleAssetProtocol::new("shader", ShaderAssetProcessor))
+</span><span class="boring">                // Custom texture protocol.
+</span><span class="boring">                .with_protocol(BundleAssetProtocol::new("texture", TextureAssetProcessor))
+</span><span class="boring">                // Load all data from file system asynchronously.
+</span><span class="boring">                .with_fetch(DeferredAssetFetch::new(
+</span><span class="boring">                    FileAssetFetch::default().with_root("resources"),
+</span><span class="boring">                )),
+</span><span class="boring">            // Stored asset references for cached asset handles.
+</span><span class="boring">            image_shader: AssetRef::new("shader://image.shader"),
+</span><span class="boring">            ferris_texture: AssetRef::new("texture://ferris.png"),
+</span><span class="boring">        }
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">impl AppState&lt;Vertex&gt; for State {
+</span><span class="boring">    fn on_init(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+</span><span class="boring">        // Setup scene camera.
+</span><span class="boring">        graphics.color = [0.25, 0.25, 0.25, 1.0];
+</span><span class="boring">        graphics.main_camera.screen_alignment = 0.5.into();
+</span><span class="boring">        graphics.main_camera.scaling = CameraScaling::FitToView {
+</span><span class="boring">            size: 1000.0.into(),
+</span><span class="boring">            inside: false,
+</span><span class="boring">        };
+</span><span class="boring">
+</span><span class="boring">        // Load this scene group.
+</span><span class="boring">        self.assets.ensure("group://ingame.txt").unwrap();
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    fn on_redraw(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+</span><span class="boring">        // Process assets periotically.
+</span><span class="boring">        if self.timer.elapsed().as_secs_f32() &gt; DELTA_TIME {
+</span><span class="boring">            self.timer = Instant::now();
+</span><span class="boring">            self.process_assets(graphics);
+</span><span class="boring">        }
+</span><span class="boring">
+</span><span class="boring">        // Do not render unless we have shader loaded.
+</span><span class="boring">        let Ok(image_shader) = self.image_shader.resolve(&amp;self.assets) else {
+</span><span class="boring">            return;
+</span><span class="boring">        };
+</span><span class="boring">        let Some(image_shader) = image_shader
+</span><span class="boring">            .access_checked::&lt;&amp;AsyncHandle&lt;Shader&gt;&gt;()
+</span><span class="boring">            .map(|handle| handle.to_ref())
+</span><span class="boring">        else {
+</span><span class="boring">            return;
+</span><span class="boring">        };
+</span><span class="boring">
+</span><span class="boring">        // Begin drawing objects.
+</span><span class="boring">        self.context.begin_frame(graphics);
+</span><span class="boring">        self.context.push_shader(&amp;image_shader);
+</span><span class="boring">        self.context.push_blending(GlowBlending::Alpha);
+</span><span class="boring">
+</span><span class="boring">        // Draw sprite only if texture asset is loaded.
+</span><span class="boring">        if let Ok(texture) = self.ferris_texture.resolve(&amp;self.assets) {
+</span><span class="boring">            if let Some(texture) = texture
+</span><span class="boring">                .access_checked::&lt;&amp;AsyncHandle&lt;Texture&gt;&gt;()
+</span><span class="boring">                .map(|handle| handle.to_ref())
+</span><span class="boring">            {
+</span><span class="boring">                Sprite::single(SpriteTexture::new("u_image".into(), texture))
+</span><span class="boring">                    .pivot(0.5.into())
+</span><span class="boring">                    .draw(&amp;mut self.context, graphics);
+</span><span class="boring">            }
+</span><span class="boring">        }
+</span><span class="boring">
+</span><span class="boring">        // Commit drawn objects.
+</span><span class="boring">        self.context.end_frame();
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">impl State {
+</span><span class="boring">    fn process_assets(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+</span><span class="boring">        let mut commands = CommandBuffer::default();
+</span><span class="boring">
+</span><span class="boring">        // Process loaded shader assets into shader objects on GPU.
+</span><span class="boring">        for entity in self.assets.storage.added().iter_of::&lt;ShaderAsset&gt;() {
+</span><span class="boring">            let asset = self
+</span><span class="boring">                .assets
+</span><span class="boring">                .storage
+</span><span class="boring">                .component::&lt;true, ShaderAsset&gt;(entity)
+</span><span class="boring">                .unwrap();
+</span><span class="boring">            let shader = graphics.shader(&amp;asset.vertex, &amp;asset.fragment).unwrap();
+</span><span class="boring">            println!("* Shader asset turned into shader: {}", entity);
+</span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(shader),)));
+</span><span class="boring">        }
+</span><span class="boring">
+</span><span class="boring">        // Process loaded texture assets into texture objects on GPU.
+</span><span class="boring">        for entity in self.assets.storage.added().iter_of::&lt;TextureAsset&gt;() {
+</span><span class="boring">            let asset = self
+</span><span class="boring">                .assets
+</span><span class="boring">                .storage
+</span><span class="boring">                .component::&lt;true, TextureAsset&gt;(entity)
+</span><span class="boring">                .unwrap();
+</span><span class="boring">            let texture = graphics
+</span><span class="boring">                .texture(
+</span><span class="boring">                    asset.width,
+</span><span class="boring">                    asset.height,
+</span><span class="boring">                    1,
+</span><span class="boring">                    GlowTextureFormat::Rgba,
+</span><span class="boring">                    Some(&amp;asset.bytes),
+</span><span class="boring">                )
+</span><span class="boring">                .unwrap();
+</span><span class="boring">            println!("* Texture asset turned into texture: {}", entity);
+</span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(texture),)));
+</span><span class="boring">        }
+</span><span class="boring">
+</span><span class="boring">        commands.execute(&amp;mut self.assets.storage);
+</span><span class="boring">        self.assets.maintain().unwrap();
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Workaround for GPU handles not being Send + Sync,
+</span><span class="boring">// to be able to store them in assets database.
+</span><span class="boring">struct AsyncHandle&lt;T: Clone&gt;(Arc&lt;RwLock&lt;T&gt;&gt;);
+</span><span class="boring">
+</span><span class="boring">unsafe impl&lt;T: Clone&gt; Send for AsyncHandle&lt;T&gt; {}
+</span><span class="boring">unsafe impl&lt;T: Clone&gt; Sync for AsyncHandle&lt;T&gt; {}
+</span><span class="boring">
+</span><span class="boring">impl&lt;T: Clone&gt; AsyncHandle&lt;T&gt; {
+</span><span class="boring">    fn new(data: T) -&gt; Self {
+</span><span class="boring">        Self(Arc::new(RwLock::new(data)))
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    fn get(&amp;self) -&gt; T {
+</span><span class="boring">        self.0.read().unwrap().clone()
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    fn to_ref(&amp;self) -&gt; ResourceRef&lt;T&gt; {
+</span><span class="boring">        ResourceRef::object(self.get())
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Decoded shader asset information with dependencies.
+</span><span class="boring">#[derive(Debug, Serialize, Deserialize)]
+</span><span class="boring">struct ShaderAssetInfo {
+</span><span class="boring">    vertex: AssetRef,
+</span><span class="boring">    fragment: AssetRef,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Shader asset with vertex and fragment programs code.
+</span><span class="boring">struct ShaderAsset {
+</span><span class="boring">    vertex: String,
+</span><span class="boring">    fragment: String,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Shader asset processor that turns bytes -&gt; shader info -&gt; shader asset.
+</span><span class="boring">struct ShaderAssetProcessor;
+</span><span class="boring">
+</span><span class="boring">impl BundleWithDependenciesProcessor for ShaderAssetProcessor {
+</span><span class="boring">    type Bundle = (ShaderAssetInfo,);
+</span><span class="boring">
+</span><span class="boring">    fn process_bytes(
+</span><span class="boring">        &amp;mut self,
+</span><span class="boring">        bytes: Vec&lt;u8&gt;,
+</span><span class="boring">    ) -&gt; Result&lt;BundleWithDependencies&lt;Self::Bundle&gt;, Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">        let asset = serde_json::from_slice::&lt;ShaderAssetInfo&gt;(&amp;bytes)?;
+</span><span class="boring">        let vertex = asset.vertex.path().clone();
+</span><span class="boring">        let fragment = asset.fragment.path().clone();
+</span><span class="boring">
+</span><span class="boring">        println!("* Shader asset processed: {:#?}", asset);
+</span><span class="boring">        Ok(BundleWithDependencies::new((asset,))
+</span><span class="boring">            .dependency(vertex)
+</span><span class="boring">            .dependency(fragment))
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    fn maintain(&amp;mut self, storage: &amp;mut World) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">        let mut commands = CommandBuffer::default();
+</span><span class="boring">        let mut lookup = storage.lookup_access::&lt;true, &amp;String&gt;();
+</span><span class="boring">
+</span><span class="boring">        // We scan for decoded shader info and if dependencies are loaded,
+</span><span class="boring">        // then turn them into shader asset.
+</span><span class="boring">        for (entity, info, dependencies) in
+</span><span class="boring">            storage.query::&lt;true, (Entity, &amp;ShaderAssetInfo, &amp;Relation&lt;AssetDependency&gt;)&gt;()
+</span><span class="boring">        {
+</span><span class="boring">            if dependencies
+</span><span class="boring">                .entities()
+</span><span class="boring">                .all(|entity| storage.has_entity_component::&lt;String&gt;(entity))
+</span><span class="boring">            {
+</span><span class="boring">                let vertex = lookup
+</span><span class="boring">                    .access(storage.find_by::&lt;true, _&gt;(info.vertex.path()).unwrap())
+</span><span class="boring">                    .unwrap()
+</span><span class="boring">                    .to_owned();
+</span><span class="boring">                let fragment = lookup
+</span><span class="boring">                    .access(storage.find_by::&lt;true, _&gt;(info.fragment.path()).unwrap())
+</span><span class="boring">                    .unwrap()
+</span><span class="boring">                    .to_owned();
+</span><span class="boring">
+</span><span class="boring">                let asset = ShaderAsset { vertex, fragment };
+</span><span class="boring">                commands.command(InsertCommand::new(entity, (asset,)));
+</span><span class="boring">                commands.command(RemoveCommand::&lt;(ShaderAssetInfo,)&gt;::new(entity));
+</span><span class="boring">            }
+</span><span class="boring">        }
+</span><span class="boring">        drop(lookup);
+</span><span class="boring">
+</span><span class="boring">        commands.execute(storage);
+</span><span class="boring">
+</span><span class="boring">        Ok(())
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Decoded texture asset with its size and decoded bitmap bytes.
+</span><span class="boring">struct TextureAsset {
+</span><span class="boring">    width: u32,
+</span><span class="boring">    height: u32,
+</span><span class="boring">    bytes: Vec&lt;u8&gt;,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">struct TextureAssetProcessor;
+</span><span class="boring">
+</span><span class="boring">impl BundleWithDependenciesProcessor for TextureAssetProcessor {
+</span><span class="boring">    type Bundle = (TextureAsset,);
+</span><span class="boring">
+</span><span class="boring">    fn process_bytes(
+</span><span class="boring">        &amp;mut self,
+</span><span class="boring">        bytes: Vec&lt;u8&gt;,
+</span><span class="boring">    ) -&gt; Result&lt;BundleWithDependencies&lt;Self::Bundle&gt;, Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">        // Decode PNG image into texture size and bitmap bytes.
+</span><span class="boring">        let decoder = png::Decoder::new(bytes.as_slice());
+</span><span class="boring">        let mut reader = decoder.read_info()?;
+</span><span class="boring">        let mut buf = vec![0; reader.output_buffer_size()];
+</span><span class="boring">        let info = reader.next_frame(&amp;mut buf)?;
+</span><span class="boring">        let bytes = buf[..info.buffer_size()].to_vec();
+</span><span class="boring">
+</span><span class="boring">        println!("* Texture asset processed: {:#?}", info);
+</span><span class="boring">        Ok(BundleWithDependencies::new((TextureAsset {
+</span><span class="boring">            width: info.width,
+</span><span class="boring">            height: info.height,
+</span><span class="boring">            bytes,
+</span><span class="boring">        },)))
+</span><span class="boring">    }
+</span><span class="boring">}</span></code></pre>
 <h2 id="state-default-impl"><a class="header" href="#state-default-impl">State <code>Default</code> impl</a></h2>
 <p>In <code>Default</code> implementatio we setup app state.</p>
 <p>Take a look at how we setup <code>AssetDatabase</code> protocols:</p>
-<pre><code class="language-rust ignore">impl Default for State {
+<pre><code class="language-rust ignore"><span class="boring">use keket::{
+</span><span class="boring">    database::{handle::AssetDependency, reference::AssetRef, AssetDatabase},
+</span><span class="boring">    fetch::{deferred::DeferredAssetFetch, file::FileAssetFetch},
+</span><span class="boring">    protocol::{
+</span><span class="boring">        bundle::{BundleAssetProtocol, BundleWithDependencies, BundleWithDependenciesProcessor},
+</span><span class="boring">        group::GroupAssetProtocol,
+</span><span class="boring">        text::TextAssetProtocol,
+</span><span class="boring">    },
+</span><span class="boring">    third_party::anput::{
+</span><span class="boring">        commands::{CommandBuffer, InsertCommand, RemoveCommand},
+</span><span class="boring">        entity::Entity,
+</span><span class="boring">        world::{Relation, World},
+</span><span class="boring">    },
+</span><span class="boring">};
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">use spitfire::prelude::*;
+</span><span class="boring">use std::{
+</span><span class="boring">    error::Error,
+</span><span class="boring">    sync::{Arc, RwLock},
+</span><span class="boring">    time::Instant,
+</span><span class="boring">};
+</span><span class="boring">
+</span><span class="boring">fn main() -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">    App::&lt;Vertex&gt;::default().run(State::default());
+</span><span class="boring">
+</span><span class="boring">    Ok(())
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">const DELTA_TIME: f32 = 1.0 / 60.0;
+</span><span class="boring">
+</span><span class="boring">struct State {
+</span><span class="boring">    // We store drawing context for later use in app state.
+</span><span class="boring">    // Drawing context holds resources and stack-based states.
+</span><span class="boring">    context: DrawContext,
+</span><span class="boring">    // Timer used for fixed step frame particle system simulation.
+</span><span class="boring">    timer: Instant,
+</span><span class="boring">    assets: AssetDatabase,
+</span><span class="boring">    image_shader: AssetRef,
+</span><span class="boring">    ferris_texture: AssetRef,
+</span><span class="boring">}
+</span><span class="boring">
+</span>impl Default for State {
     fn default() -&gt; Self {
         Self {
             context: Default::default(),
@@ -225,7 +1073,223 @@ fixed time step mechanism and referencing assets.</p>
             ferris_texture: AssetRef::new("texture://ferris.png"),
         }
     }
-}</code></pre>
+}
+<span class="boring">
+</span><span class="boring">impl AppState&lt;Vertex&gt; for State {
+</span><span class="boring">    fn on_init(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+</span><span class="boring">        // Setup scene camera.
+</span><span class="boring">        graphics.color = [0.25, 0.25, 0.25, 1.0];
+</span><span class="boring">        graphics.main_camera.screen_alignment = 0.5.into();
+</span><span class="boring">        graphics.main_camera.scaling = CameraScaling::FitToView {
+</span><span class="boring">            size: 1000.0.into(),
+</span><span class="boring">            inside: false,
+</span><span class="boring">        };
+</span><span class="boring">
+</span><span class="boring">        // Load this scene group.
+</span><span class="boring">        self.assets.ensure("group://ingame.txt").unwrap();
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    fn on_redraw(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+</span><span class="boring">        // Process assets periotically.
+</span><span class="boring">        if self.timer.elapsed().as_secs_f32() &gt; DELTA_TIME {
+</span><span class="boring">            self.timer = Instant::now();
+</span><span class="boring">            self.process_assets(graphics);
+</span><span class="boring">        }
+</span><span class="boring">
+</span><span class="boring">        // Do not render unless we have shader loaded.
+</span><span class="boring">        let Ok(image_shader) = self.image_shader.resolve(&amp;self.assets) else {
+</span><span class="boring">            return;
+</span><span class="boring">        };
+</span><span class="boring">        let Some(image_shader) = image_shader
+</span><span class="boring">            .access_checked::&lt;&amp;AsyncHandle&lt;Shader&gt;&gt;()
+</span><span class="boring">            .map(|handle| handle.to_ref())
+</span><span class="boring">        else {
+</span><span class="boring">            return;
+</span><span class="boring">        };
+</span><span class="boring">
+</span><span class="boring">        // Begin drawing objects.
+</span><span class="boring">        self.context.begin_frame(graphics);
+</span><span class="boring">        self.context.push_shader(&amp;image_shader);
+</span><span class="boring">        self.context.push_blending(GlowBlending::Alpha);
+</span><span class="boring">
+</span><span class="boring">        // Draw sprite only if texture asset is loaded.
+</span><span class="boring">        if let Ok(texture) = self.ferris_texture.resolve(&amp;self.assets) {
+</span><span class="boring">            if let Some(texture) = texture
+</span><span class="boring">                .access_checked::&lt;&amp;AsyncHandle&lt;Texture&gt;&gt;()
+</span><span class="boring">                .map(|handle| handle.to_ref())
+</span><span class="boring">            {
+</span><span class="boring">                Sprite::single(SpriteTexture::new("u_image".into(), texture))
+</span><span class="boring">                    .pivot(0.5.into())
+</span><span class="boring">                    .draw(&amp;mut self.context, graphics);
+</span><span class="boring">            }
+</span><span class="boring">        }
+</span><span class="boring">
+</span><span class="boring">        // Commit drawn objects.
+</span><span class="boring">        self.context.end_frame();
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">impl State {
+</span><span class="boring">    fn process_assets(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+</span><span class="boring">        let mut commands = CommandBuffer::default();
+</span><span class="boring">
+</span><span class="boring">        // Process loaded shader assets into shader objects on GPU.
+</span><span class="boring">        for entity in self.assets.storage.added().iter_of::&lt;ShaderAsset&gt;() {
+</span><span class="boring">            let asset = self
+</span><span class="boring">                .assets
+</span><span class="boring">                .storage
+</span><span class="boring">                .component::&lt;true, ShaderAsset&gt;(entity)
+</span><span class="boring">                .unwrap();
+</span><span class="boring">            let shader = graphics.shader(&amp;asset.vertex, &amp;asset.fragment).unwrap();
+</span><span class="boring">            println!("* Shader asset turned into shader: {}", entity);
+</span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(shader),)));
+</span><span class="boring">        }
+</span><span class="boring">
+</span><span class="boring">        // Process loaded texture assets into texture objects on GPU.
+</span><span class="boring">        for entity in self.assets.storage.added().iter_of::&lt;TextureAsset&gt;() {
+</span><span class="boring">            let asset = self
+</span><span class="boring">                .assets
+</span><span class="boring">                .storage
+</span><span class="boring">                .component::&lt;true, TextureAsset&gt;(entity)
+</span><span class="boring">                .unwrap();
+</span><span class="boring">            let texture = graphics
+</span><span class="boring">                .texture(
+</span><span class="boring">                    asset.width,
+</span><span class="boring">                    asset.height,
+</span><span class="boring">                    1,
+</span><span class="boring">                    GlowTextureFormat::Rgba,
+</span><span class="boring">                    Some(&amp;asset.bytes),
+</span><span class="boring">                )
+</span><span class="boring">                .unwrap();
+</span><span class="boring">            println!("* Texture asset turned into texture: {}", entity);
+</span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(texture),)));
+</span><span class="boring">        }
+</span><span class="boring">
+</span><span class="boring">        commands.execute(&amp;mut self.assets.storage);
+</span><span class="boring">        self.assets.maintain().unwrap();
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Workaround for GPU handles not being Send + Sync,
+</span><span class="boring">// to be able to store them in assets database.
+</span><span class="boring">struct AsyncHandle&lt;T: Clone&gt;(Arc&lt;RwLock&lt;T&gt;&gt;);
+</span><span class="boring">
+</span><span class="boring">unsafe impl&lt;T: Clone&gt; Send for AsyncHandle&lt;T&gt; {}
+</span><span class="boring">unsafe impl&lt;T: Clone&gt; Sync for AsyncHandle&lt;T&gt; {}
+</span><span class="boring">
+</span><span class="boring">impl&lt;T: Clone&gt; AsyncHandle&lt;T&gt; {
+</span><span class="boring">    fn new(data: T) -&gt; Self {
+</span><span class="boring">        Self(Arc::new(RwLock::new(data)))
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    fn get(&amp;self) -&gt; T {
+</span><span class="boring">        self.0.read().unwrap().clone()
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    fn to_ref(&amp;self) -&gt; ResourceRef&lt;T&gt; {
+</span><span class="boring">        ResourceRef::object(self.get())
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Decoded shader asset information with dependencies.
+</span><span class="boring">#[derive(Debug, Serialize, Deserialize)]
+</span><span class="boring">struct ShaderAssetInfo {
+</span><span class="boring">    vertex: AssetRef,
+</span><span class="boring">    fragment: AssetRef,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Shader asset with vertex and fragment programs code.
+</span><span class="boring">struct ShaderAsset {
+</span><span class="boring">    vertex: String,
+</span><span class="boring">    fragment: String,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Shader asset processor that turns bytes -&gt; shader info -&gt; shader asset.
+</span><span class="boring">struct ShaderAssetProcessor;
+</span><span class="boring">
+</span><span class="boring">impl BundleWithDependenciesProcessor for ShaderAssetProcessor {
+</span><span class="boring">    type Bundle = (ShaderAssetInfo,);
+</span><span class="boring">
+</span><span class="boring">    fn process_bytes(
+</span><span class="boring">        &amp;mut self,
+</span><span class="boring">        bytes: Vec&lt;u8&gt;,
+</span><span class="boring">    ) -&gt; Result&lt;BundleWithDependencies&lt;Self::Bundle&gt;, Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">        let asset = serde_json::from_slice::&lt;ShaderAssetInfo&gt;(&amp;bytes)?;
+</span><span class="boring">        let vertex = asset.vertex.path().clone();
+</span><span class="boring">        let fragment = asset.fragment.path().clone();
+</span><span class="boring">
+</span><span class="boring">        println!("* Shader asset processed: {:#?}", asset);
+</span><span class="boring">        Ok(BundleWithDependencies::new((asset,))
+</span><span class="boring">            .dependency(vertex)
+</span><span class="boring">            .dependency(fragment))
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    fn maintain(&amp;mut self, storage: &amp;mut World) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">        let mut commands = CommandBuffer::default();
+</span><span class="boring">        let mut lookup = storage.lookup_access::&lt;true, &amp;String&gt;();
+</span><span class="boring">
+</span><span class="boring">        // We scan for decoded shader info and if dependencies are loaded,
+</span><span class="boring">        // then turn them into shader asset.
+</span><span class="boring">        for (entity, info, dependencies) in
+</span><span class="boring">            storage.query::&lt;true, (Entity, &amp;ShaderAssetInfo, &amp;Relation&lt;AssetDependency&gt;)&gt;()
+</span><span class="boring">        {
+</span><span class="boring">            if dependencies
+</span><span class="boring">                .entities()
+</span><span class="boring">                .all(|entity| storage.has_entity_component::&lt;String&gt;(entity))
+</span><span class="boring">            {
+</span><span class="boring">                let vertex = lookup
+</span><span class="boring">                    .access(storage.find_by::&lt;true, _&gt;(info.vertex.path()).unwrap())
+</span><span class="boring">                    .unwrap()
+</span><span class="boring">                    .to_owned();
+</span><span class="boring">                let fragment = lookup
+</span><span class="boring">                    .access(storage.find_by::&lt;true, _&gt;(info.fragment.path()).unwrap())
+</span><span class="boring">                    .unwrap()
+</span><span class="boring">                    .to_owned();
+</span><span class="boring">
+</span><span class="boring">                let asset = ShaderAsset { vertex, fragment };
+</span><span class="boring">                commands.command(InsertCommand::new(entity, (asset,)));
+</span><span class="boring">                commands.command(RemoveCommand::&lt;(ShaderAssetInfo,)&gt;::new(entity));
+</span><span class="boring">            }
+</span><span class="boring">        }
+</span><span class="boring">        drop(lookup);
+</span><span class="boring">
+</span><span class="boring">        commands.execute(storage);
+</span><span class="boring">
+</span><span class="boring">        Ok(())
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Decoded texture asset with its size and decoded bitmap bytes.
+</span><span class="boring">struct TextureAsset {
+</span><span class="boring">    width: u32,
+</span><span class="boring">    height: u32,
+</span><span class="boring">    bytes: Vec&lt;u8&gt;,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">struct TextureAssetProcessor;
+</span><span class="boring">
+</span><span class="boring">impl BundleWithDependenciesProcessor for TextureAssetProcessor {
+</span><span class="boring">    type Bundle = (TextureAsset,);
+</span><span class="boring">
+</span><span class="boring">    fn process_bytes(
+</span><span class="boring">        &amp;mut self,
+</span><span class="boring">        bytes: Vec&lt;u8&gt;,
+</span><span class="boring">    ) -&gt; Result&lt;BundleWithDependencies&lt;Self::Bundle&gt;, Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">        // Decode PNG image into texture size and bitmap bytes.
+</span><span class="boring">        let decoder = png::Decoder::new(bytes.as_slice());
+</span><span class="boring">        let mut reader = decoder.read_info()?;
+</span><span class="boring">        let mut buf = vec![0; reader.output_buffer_size()];
+</span><span class="boring">        let info = reader.next_frame(&amp;mut buf)?;
+</span><span class="boring">        let bytes = buf[..info.buffer_size()].to_vec();
+</span><span class="boring">
+</span><span class="boring">        println!("* Texture asset processed: {:#?}", info);
+</span><span class="boring">        Ok(BundleWithDependencies::new((TextureAsset {
+</span><span class="boring">            width: info.width,
+</span><span class="boring">            height: info.height,
+</span><span class="boring">            bytes,
+</span><span class="boring">        },)))
+</span><span class="boring">    }
+</span><span class="boring">}</span></code></pre>
 <p>In there you can see bundle asset protocols wrapping custom shader and texture
 asset processors.</p>
 <h2 id="state-appstate-impl"><a class="header" href="#state-appstate-impl">State <code>AppState</code> impl</a></h2>
@@ -233,7 +1297,73 @@ asset processors.</p>
 graphics and load scene group asset, and in <code>on_redraw</code> we run asset database
 maintanance periodically and then try to render Ferris sprite only if shader and
 texture assets are ready.</p>
-<pre><code class="language-rust ignore">impl AppState&lt;Vertex&gt; for State {
+<pre><code class="language-rust ignore"><span class="boring">use keket::{
+</span><span class="boring">    database::{handle::AssetDependency, reference::AssetRef, AssetDatabase},
+</span><span class="boring">    fetch::{deferred::DeferredAssetFetch, file::FileAssetFetch},
+</span><span class="boring">    protocol::{
+</span><span class="boring">        bundle::{BundleAssetProtocol, BundleWithDependencies, BundleWithDependenciesProcessor},
+</span><span class="boring">        group::GroupAssetProtocol,
+</span><span class="boring">        text::TextAssetProtocol,
+</span><span class="boring">    },
+</span><span class="boring">    third_party::anput::{
+</span><span class="boring">        commands::{CommandBuffer, InsertCommand, RemoveCommand},
+</span><span class="boring">        entity::Entity,
+</span><span class="boring">        world::{Relation, World},
+</span><span class="boring">    },
+</span><span class="boring">};
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">use spitfire::prelude::*;
+</span><span class="boring">use std::{
+</span><span class="boring">    error::Error,
+</span><span class="boring">    sync::{Arc, RwLock},
+</span><span class="boring">    time::Instant,
+</span><span class="boring">};
+</span><span class="boring">
+</span><span class="boring">fn main() -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">    App::&lt;Vertex&gt;::default().run(State::default());
+</span><span class="boring">
+</span><span class="boring">    Ok(())
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">const DELTA_TIME: f32 = 1.0 / 60.0;
+</span><span class="boring">
+</span><span class="boring">struct State {
+</span><span class="boring">    // We store drawing context for later use in app state.
+</span><span class="boring">    // Drawing context holds resources and stack-based states.
+</span><span class="boring">    context: DrawContext,
+</span><span class="boring">    // Timer used for fixed step frame particle system simulation.
+</span><span class="boring">    timer: Instant,
+</span><span class="boring">    assets: AssetDatabase,
+</span><span class="boring">    image_shader: AssetRef,
+</span><span class="boring">    ferris_texture: AssetRef,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">impl Default for State {
+</span><span class="boring">    fn default() -&gt; Self {
+</span><span class="boring">        Self {
+</span><span class="boring">            context: Default::default(),
+</span><span class="boring">            timer: Instant::now(),
+</span><span class="boring">            assets: AssetDatabase::default()
+</span><span class="boring">                // Text protocol for shader sources.
+</span><span class="boring">                .with_protocol(TextAssetProtocol)
+</span><span class="boring">                // Group protocol for loading many assets at once.
+</span><span class="boring">                .with_protocol(GroupAssetProtocol)
+</span><span class="boring">                // Custom shader protocol.
+</span><span class="boring">                .with_protocol(BundleAssetProtocol::new("shader", ShaderAssetProcessor))
+</span><span class="boring">                // Custom texture protocol.
+</span><span class="boring">                .with_protocol(BundleAssetProtocol::new("texture", TextureAssetProcessor))
+</span><span class="boring">                // Load all data from file system asynchronously.
+</span><span class="boring">                .with_fetch(DeferredAssetFetch::new(
+</span><span class="boring">                    FileAssetFetch::default().with_root("resources"),
+</span><span class="boring">                )),
+</span><span class="boring">            // Stored asset references for cached asset handles.
+</span><span class="boring">            image_shader: AssetRef::new("shader://image.shader"),
+</span><span class="boring">            ferris_texture: AssetRef::new("texture://ferris.png"),
+</span><span class="boring">        }
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span>impl AppState&lt;Vertex&gt; for State {
     fn on_init(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
         // Setup scene camera.
         graphics.color = [0.25, 0.25, 0.25, 1.0];
@@ -285,13 +1415,295 @@ texture assets are ready.</p>
         // Commit drawn objects.
         self.context.end_frame();
     }
-}</code></pre>
+}
+<span class="boring">
+</span><span class="boring">impl State {
+</span><span class="boring">    fn process_assets(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+</span><span class="boring">        let mut commands = CommandBuffer::default();
+</span><span class="boring">
+</span><span class="boring">        // Process loaded shader assets into shader objects on GPU.
+</span><span class="boring">        for entity in self.assets.storage.added().iter_of::&lt;ShaderAsset&gt;() {
+</span><span class="boring">            let asset = self
+</span><span class="boring">                .assets
+</span><span class="boring">                .storage
+</span><span class="boring">                .component::&lt;true, ShaderAsset&gt;(entity)
+</span><span class="boring">                .unwrap();
+</span><span class="boring">            let shader = graphics.shader(&amp;asset.vertex, &amp;asset.fragment).unwrap();
+</span><span class="boring">            println!("* Shader asset turned into shader: {}", entity);
+</span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(shader),)));
+</span><span class="boring">        }
+</span><span class="boring">
+</span><span class="boring">        // Process loaded texture assets into texture objects on GPU.
+</span><span class="boring">        for entity in self.assets.storage.added().iter_of::&lt;TextureAsset&gt;() {
+</span><span class="boring">            let asset = self
+</span><span class="boring">                .assets
+</span><span class="boring">                .storage
+</span><span class="boring">                .component::&lt;true, TextureAsset&gt;(entity)
+</span><span class="boring">                .unwrap();
+</span><span class="boring">            let texture = graphics
+</span><span class="boring">                .texture(
+</span><span class="boring">                    asset.width,
+</span><span class="boring">                    asset.height,
+</span><span class="boring">                    1,
+</span><span class="boring">                    GlowTextureFormat::Rgba,
+</span><span class="boring">                    Some(&amp;asset.bytes),
+</span><span class="boring">                )
+</span><span class="boring">                .unwrap();
+</span><span class="boring">            println!("* Texture asset turned into texture: {}", entity);
+</span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(texture),)));
+</span><span class="boring">        }
+</span><span class="boring">
+</span><span class="boring">        commands.execute(&amp;mut self.assets.storage);
+</span><span class="boring">        self.assets.maintain().unwrap();
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Workaround for GPU handles not being Send + Sync,
+</span><span class="boring">// to be able to store them in assets database.
+</span><span class="boring">struct AsyncHandle&lt;T: Clone&gt;(Arc&lt;RwLock&lt;T&gt;&gt;);
+</span><span class="boring">
+</span><span class="boring">unsafe impl&lt;T: Clone&gt; Send for AsyncHandle&lt;T&gt; {}
+</span><span class="boring">unsafe impl&lt;T: Clone&gt; Sync for AsyncHandle&lt;T&gt; {}
+</span><span class="boring">
+</span><span class="boring">impl&lt;T: Clone&gt; AsyncHandle&lt;T&gt; {
+</span><span class="boring">    fn new(data: T) -&gt; Self {
+</span><span class="boring">        Self(Arc::new(RwLock::new(data)))
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    fn get(&amp;self) -&gt; T {
+</span><span class="boring">        self.0.read().unwrap().clone()
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    fn to_ref(&amp;self) -&gt; ResourceRef&lt;T&gt; {
+</span><span class="boring">        ResourceRef::object(self.get())
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Decoded shader asset information with dependencies.
+</span><span class="boring">#[derive(Debug, Serialize, Deserialize)]
+</span><span class="boring">struct ShaderAssetInfo {
+</span><span class="boring">    vertex: AssetRef,
+</span><span class="boring">    fragment: AssetRef,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Shader asset with vertex and fragment programs code.
+</span><span class="boring">struct ShaderAsset {
+</span><span class="boring">    vertex: String,
+</span><span class="boring">    fragment: String,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Shader asset processor that turns bytes -&gt; shader info -&gt; shader asset.
+</span><span class="boring">struct ShaderAssetProcessor;
+</span><span class="boring">
+</span><span class="boring">impl BundleWithDependenciesProcessor for ShaderAssetProcessor {
+</span><span class="boring">    type Bundle = (ShaderAssetInfo,);
+</span><span class="boring">
+</span><span class="boring">    fn process_bytes(
+</span><span class="boring">        &amp;mut self,
+</span><span class="boring">        bytes: Vec&lt;u8&gt;,
+</span><span class="boring">    ) -&gt; Result&lt;BundleWithDependencies&lt;Self::Bundle&gt;, Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">        let asset = serde_json::from_slice::&lt;ShaderAssetInfo&gt;(&amp;bytes)?;
+</span><span class="boring">        let vertex = asset.vertex.path().clone();
+</span><span class="boring">        let fragment = asset.fragment.path().clone();
+</span><span class="boring">
+</span><span class="boring">        println!("* Shader asset processed: {:#?}", asset);
+</span><span class="boring">        Ok(BundleWithDependencies::new((asset,))
+</span><span class="boring">            .dependency(vertex)
+</span><span class="boring">            .dependency(fragment))
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    fn maintain(&amp;mut self, storage: &amp;mut World) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">        let mut commands = CommandBuffer::default();
+</span><span class="boring">        let mut lookup = storage.lookup_access::&lt;true, &amp;String&gt;();
+</span><span class="boring">
+</span><span class="boring">        // We scan for decoded shader info and if dependencies are loaded,
+</span><span class="boring">        // then turn them into shader asset.
+</span><span class="boring">        for (entity, info, dependencies) in
+</span><span class="boring">            storage.query::&lt;true, (Entity, &amp;ShaderAssetInfo, &amp;Relation&lt;AssetDependency&gt;)&gt;()
+</span><span class="boring">        {
+</span><span class="boring">            if dependencies
+</span><span class="boring">                .entities()
+</span><span class="boring">                .all(|entity| storage.has_entity_component::&lt;String&gt;(entity))
+</span><span class="boring">            {
+</span><span class="boring">                let vertex = lookup
+</span><span class="boring">                    .access(storage.find_by::&lt;true, _&gt;(info.vertex.path()).unwrap())
+</span><span class="boring">                    .unwrap()
+</span><span class="boring">                    .to_owned();
+</span><span class="boring">                let fragment = lookup
+</span><span class="boring">                    .access(storage.find_by::&lt;true, _&gt;(info.fragment.path()).unwrap())
+</span><span class="boring">                    .unwrap()
+</span><span class="boring">                    .to_owned();
+</span><span class="boring">
+</span><span class="boring">                let asset = ShaderAsset { vertex, fragment };
+</span><span class="boring">                commands.command(InsertCommand::new(entity, (asset,)));
+</span><span class="boring">                commands.command(RemoveCommand::&lt;(ShaderAssetInfo,)&gt;::new(entity));
+</span><span class="boring">            }
+</span><span class="boring">        }
+</span><span class="boring">        drop(lookup);
+</span><span class="boring">
+</span><span class="boring">        commands.execute(storage);
+</span><span class="boring">
+</span><span class="boring">        Ok(())
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Decoded texture asset with its size and decoded bitmap bytes.
+</span><span class="boring">struct TextureAsset {
+</span><span class="boring">    width: u32,
+</span><span class="boring">    height: u32,
+</span><span class="boring">    bytes: Vec&lt;u8&gt;,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">struct TextureAssetProcessor;
+</span><span class="boring">
+</span><span class="boring">impl BundleWithDependenciesProcessor for TextureAssetProcessor {
+</span><span class="boring">    type Bundle = (TextureAsset,);
+</span><span class="boring">
+</span><span class="boring">    fn process_bytes(
+</span><span class="boring">        &amp;mut self,
+</span><span class="boring">        bytes: Vec&lt;u8&gt;,
+</span><span class="boring">    ) -&gt; Result&lt;BundleWithDependencies&lt;Self::Bundle&gt;, Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">        // Decode PNG image into texture size and bitmap bytes.
+</span><span class="boring">        let decoder = png::Decoder::new(bytes.as_slice());
+</span><span class="boring">        let mut reader = decoder.read_info()?;
+</span><span class="boring">        let mut buf = vec![0; reader.output_buffer_size()];
+</span><span class="boring">        let info = reader.next_frame(&amp;mut buf)?;
+</span><span class="boring">        let bytes = buf[..info.buffer_size()].to_vec();
+</span><span class="boring">
+</span><span class="boring">        println!("* Texture asset processed: {:#?}", info);
+</span><span class="boring">        Ok(BundleWithDependencies::new((TextureAsset {
+</span><span class="boring">            width: info.width,
+</span><span class="boring">            height: info.height,
+</span><span class="boring">            bytes,
+</span><span class="boring">        },)))
+</span><span class="boring">    }
+</span><span class="boring">}</span></code></pre>
 <h2 id="state-impl"><a class="header" href="#state-impl">State impl</a></h2>
 <p>In <code>State</code> implementation we finally do our first interesting bit - since asset
 protocols does not have access to our state, we can process prepared shader and
 texture assets and then build GPU objects for these assets and put them into
 their assets.</p>
-<pre><code class="language-rust ignore">impl State {
+<pre><code class="language-rust ignore"><span class="boring">use keket::{
+</span><span class="boring">    database::{handle::AssetDependency, reference::AssetRef, AssetDatabase},
+</span><span class="boring">    fetch::{deferred::DeferredAssetFetch, file::FileAssetFetch},
+</span><span class="boring">    protocol::{
+</span><span class="boring">        bundle::{BundleAssetProtocol, BundleWithDependencies, BundleWithDependenciesProcessor},
+</span><span class="boring">        group::GroupAssetProtocol,
+</span><span class="boring">        text::TextAssetProtocol,
+</span><span class="boring">    },
+</span><span class="boring">    third_party::anput::{
+</span><span class="boring">        commands::{CommandBuffer, InsertCommand, RemoveCommand},
+</span><span class="boring">        entity::Entity,
+</span><span class="boring">        world::{Relation, World},
+</span><span class="boring">    },
+</span><span class="boring">};
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">use spitfire::prelude::*;
+</span><span class="boring">use std::{
+</span><span class="boring">    error::Error,
+</span><span class="boring">    sync::{Arc, RwLock},
+</span><span class="boring">    time::Instant,
+</span><span class="boring">};
+</span><span class="boring">
+</span><span class="boring">fn main() -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">    App::&lt;Vertex&gt;::default().run(State::default());
+</span><span class="boring">
+</span><span class="boring">    Ok(())
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">const DELTA_TIME: f32 = 1.0 / 60.0;
+</span><span class="boring">
+</span><span class="boring">struct State {
+</span><span class="boring">    // We store drawing context for later use in app state.
+</span><span class="boring">    // Drawing context holds resources and stack-based states.
+</span><span class="boring">    context: DrawContext,
+</span><span class="boring">    // Timer used for fixed step frame particle system simulation.
+</span><span class="boring">    timer: Instant,
+</span><span class="boring">    assets: AssetDatabase,
+</span><span class="boring">    image_shader: AssetRef,
+</span><span class="boring">    ferris_texture: AssetRef,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">impl Default for State {
+</span><span class="boring">    fn default() -&gt; Self {
+</span><span class="boring">        Self {
+</span><span class="boring">            context: Default::default(),
+</span><span class="boring">            timer: Instant::now(),
+</span><span class="boring">            assets: AssetDatabase::default()
+</span><span class="boring">                // Text protocol for shader sources.
+</span><span class="boring">                .with_protocol(TextAssetProtocol)
+</span><span class="boring">                // Group protocol for loading many assets at once.
+</span><span class="boring">                .with_protocol(GroupAssetProtocol)
+</span><span class="boring">                // Custom shader protocol.
+</span><span class="boring">                .with_protocol(BundleAssetProtocol::new("shader", ShaderAssetProcessor))
+</span><span class="boring">                // Custom texture protocol.
+</span><span class="boring">                .with_protocol(BundleAssetProtocol::new("texture", TextureAssetProcessor))
+</span><span class="boring">                // Load all data from file system asynchronously.
+</span><span class="boring">                .with_fetch(DeferredAssetFetch::new(
+</span><span class="boring">                    FileAssetFetch::default().with_root("resources"),
+</span><span class="boring">                )),
+</span><span class="boring">            // Stored asset references for cached asset handles.
+</span><span class="boring">            image_shader: AssetRef::new("shader://image.shader"),
+</span><span class="boring">            ferris_texture: AssetRef::new("texture://ferris.png"),
+</span><span class="boring">        }
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">impl AppState&lt;Vertex&gt; for State {
+</span><span class="boring">    fn on_init(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+</span><span class="boring">        // Setup scene camera.
+</span><span class="boring">        graphics.color = [0.25, 0.25, 0.25, 1.0];
+</span><span class="boring">        graphics.main_camera.screen_alignment = 0.5.into();
+</span><span class="boring">        graphics.main_camera.scaling = CameraScaling::FitToView {
+</span><span class="boring">            size: 1000.0.into(),
+</span><span class="boring">            inside: false,
+</span><span class="boring">        };
+</span><span class="boring">
+</span><span class="boring">        // Load this scene group.
+</span><span class="boring">        self.assets.ensure("group://ingame.txt").unwrap();
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    fn on_redraw(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+</span><span class="boring">        // Process assets periotically.
+</span><span class="boring">        if self.timer.elapsed().as_secs_f32() &gt; DELTA_TIME {
+</span><span class="boring">            self.timer = Instant::now();
+</span><span class="boring">            self.process_assets(graphics);
+</span><span class="boring">        }
+</span><span class="boring">
+</span><span class="boring">        // Do not render unless we have shader loaded.
+</span><span class="boring">        let Ok(image_shader) = self.image_shader.resolve(&amp;self.assets) else {
+</span><span class="boring">            return;
+</span><span class="boring">        };
+</span><span class="boring">        let Some(image_shader) = image_shader
+</span><span class="boring">            .access_checked::&lt;&amp;AsyncHandle&lt;Shader&gt;&gt;()
+</span><span class="boring">            .map(|handle| handle.to_ref())
+</span><span class="boring">        else {
+</span><span class="boring">            return;
+</span><span class="boring">        };
+</span><span class="boring">
+</span><span class="boring">        // Begin drawing objects.
+</span><span class="boring">        self.context.begin_frame(graphics);
+</span><span class="boring">        self.context.push_shader(&amp;image_shader);
+</span><span class="boring">        self.context.push_blending(GlowBlending::Alpha);
+</span><span class="boring">
+</span><span class="boring">        // Draw sprite only if texture asset is loaded.
+</span><span class="boring">        if let Ok(texture) = self.ferris_texture.resolve(&amp;self.assets) {
+</span><span class="boring">            if let Some(texture) = texture
+</span><span class="boring">                .access_checked::&lt;&amp;AsyncHandle&lt;Texture&gt;&gt;()
+</span><span class="boring">                .map(|handle| handle.to_ref())
+</span><span class="boring">            {
+</span><span class="boring">                Sprite::single(SpriteTexture::new("u_image".into(), texture))
+</span><span class="boring">                    .pivot(0.5.into())
+</span><span class="boring">                    .draw(&amp;mut self.context, graphics);
+</span><span class="boring">            }
+</span><span class="boring">        }
+</span><span class="boring">
+</span><span class="boring">        // Commit drawn objects.
+</span><span class="boring">        self.context.end_frame();
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span>impl State {
     fn process_assets(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
         let mut commands = CommandBuffer::default();
 
@@ -330,10 +1742,381 @@ their assets.</p>
         commands.execute(&amp;mut self.assets.storage);
         self.assets.maintain().unwrap();
     }
-}</code></pre>
+}
+<span class="boring">
+</span><span class="boring">// Workaround for GPU handles not being Send + Sync,
+</span><span class="boring">// to be able to store them in assets database.
+</span><span class="boring">struct AsyncHandle&lt;T: Clone&gt;(Arc&lt;RwLock&lt;T&gt;&gt;);
+</span><span class="boring">
+</span><span class="boring">unsafe impl&lt;T: Clone&gt; Send for AsyncHandle&lt;T&gt; {}
+</span><span class="boring">unsafe impl&lt;T: Clone&gt; Sync for AsyncHandle&lt;T&gt; {}
+</span><span class="boring">
+</span><span class="boring">impl&lt;T: Clone&gt; AsyncHandle&lt;T&gt; {
+</span><span class="boring">    fn new(data: T) -&gt; Self {
+</span><span class="boring">        Self(Arc::new(RwLock::new(data)))
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    fn get(&amp;self) -&gt; T {
+</span><span class="boring">        self.0.read().unwrap().clone()
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    fn to_ref(&amp;self) -&gt; ResourceRef&lt;T&gt; {
+</span><span class="boring">        ResourceRef::object(self.get())
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Decoded shader asset information with dependencies.
+</span><span class="boring">#[derive(Debug, Serialize, Deserialize)]
+</span><span class="boring">struct ShaderAssetInfo {
+</span><span class="boring">    vertex: AssetRef,
+</span><span class="boring">    fragment: AssetRef,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Shader asset with vertex and fragment programs code.
+</span><span class="boring">struct ShaderAsset {
+</span><span class="boring">    vertex: String,
+</span><span class="boring">    fragment: String,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Shader asset processor that turns bytes -&gt; shader info -&gt; shader asset.
+</span><span class="boring">struct ShaderAssetProcessor;
+</span><span class="boring">
+</span><span class="boring">impl BundleWithDependenciesProcessor for ShaderAssetProcessor {
+</span><span class="boring">    type Bundle = (ShaderAssetInfo,);
+</span><span class="boring">
+</span><span class="boring">    fn process_bytes(
+</span><span class="boring">        &amp;mut self,
+</span><span class="boring">        bytes: Vec&lt;u8&gt;,
+</span><span class="boring">    ) -&gt; Result&lt;BundleWithDependencies&lt;Self::Bundle&gt;, Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">        let asset = serde_json::from_slice::&lt;ShaderAssetInfo&gt;(&amp;bytes)?;
+</span><span class="boring">        let vertex = asset.vertex.path().clone();
+</span><span class="boring">        let fragment = asset.fragment.path().clone();
+</span><span class="boring">
+</span><span class="boring">        println!("* Shader asset processed: {:#?}", asset);
+</span><span class="boring">        Ok(BundleWithDependencies::new((asset,))
+</span><span class="boring">            .dependency(vertex)
+</span><span class="boring">            .dependency(fragment))
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    fn maintain(&amp;mut self, storage: &amp;mut World) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">        let mut commands = CommandBuffer::default();
+</span><span class="boring">        let mut lookup = storage.lookup_access::&lt;true, &amp;String&gt;();
+</span><span class="boring">
+</span><span class="boring">        // We scan for decoded shader info and if dependencies are loaded,
+</span><span class="boring">        // then turn them into shader asset.
+</span><span class="boring">        for (entity, info, dependencies) in
+</span><span class="boring">            storage.query::&lt;true, (Entity, &amp;ShaderAssetInfo, &amp;Relation&lt;AssetDependency&gt;)&gt;()
+</span><span class="boring">        {
+</span><span class="boring">            if dependencies
+</span><span class="boring">                .entities()
+</span><span class="boring">                .all(|entity| storage.has_entity_component::&lt;String&gt;(entity))
+</span><span class="boring">            {
+</span><span class="boring">                let vertex = lookup
+</span><span class="boring">                    .access(storage.find_by::&lt;true, _&gt;(info.vertex.path()).unwrap())
+</span><span class="boring">                    .unwrap()
+</span><span class="boring">                    .to_owned();
+</span><span class="boring">                let fragment = lookup
+</span><span class="boring">                    .access(storage.find_by::&lt;true, _&gt;(info.fragment.path()).unwrap())
+</span><span class="boring">                    .unwrap()
+</span><span class="boring">                    .to_owned();
+</span><span class="boring">
+</span><span class="boring">                let asset = ShaderAsset { vertex, fragment };
+</span><span class="boring">                commands.command(InsertCommand::new(entity, (asset,)));
+</span><span class="boring">                commands.command(RemoveCommand::&lt;(ShaderAssetInfo,)&gt;::new(entity));
+</span><span class="boring">            }
+</span><span class="boring">        }
+</span><span class="boring">        drop(lookup);
+</span><span class="boring">
+</span><span class="boring">        commands.execute(storage);
+</span><span class="boring">
+</span><span class="boring">        Ok(())
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Decoded texture asset with its size and decoded bitmap bytes.
+</span><span class="boring">struct TextureAsset {
+</span><span class="boring">    width: u32,
+</span><span class="boring">    height: u32,
+</span><span class="boring">    bytes: Vec&lt;u8&gt;,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">struct TextureAssetProcessor;
+</span><span class="boring">
+</span><span class="boring">impl BundleWithDependenciesProcessor for TextureAssetProcessor {
+</span><span class="boring">    type Bundle = (TextureAsset,);
+</span><span class="boring">
+</span><span class="boring">    fn process_bytes(
+</span><span class="boring">        &amp;mut self,
+</span><span class="boring">        bytes: Vec&lt;u8&gt;,
+</span><span class="boring">    ) -&gt; Result&lt;BundleWithDependencies&lt;Self::Bundle&gt;, Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">        // Decode PNG image into texture size and bitmap bytes.
+</span><span class="boring">        let decoder = png::Decoder::new(bytes.as_slice());
+</span><span class="boring">        let mut reader = decoder.read_info()?;
+</span><span class="boring">        let mut buf = vec![0; reader.output_buffer_size()];
+</span><span class="boring">        let info = reader.next_frame(&amp;mut buf)?;
+</span><span class="boring">        let bytes = buf[..info.buffer_size()].to_vec();
+</span><span class="boring">
+</span><span class="boring">        println!("* Texture asset processed: {:#?}", info);
+</span><span class="boring">        Ok(BundleWithDependencies::new((TextureAsset {
+</span><span class="boring">            width: info.width,
+</span><span class="boring">            height: info.height,
+</span><span class="boring">            bytes,
+</span><span class="boring">        },)))
+</span><span class="boring">    }
+</span><span class="boring">}</span></code></pre>
 <h2 id="texture-asset-processor"><a class="header" href="#texture-asset-processor">Texture asset processor</a></h2>
 <p>Now let's see how we have made our texture asset processor:</p>
-<pre><code class="language-rust ignore">// Decoded texture asset with its size and decoded bitmap bytes.
+<pre><code class="language-rust ignore"><span class="boring">use keket::{
+</span><span class="boring">    database::{handle::AssetDependency, reference::AssetRef, AssetDatabase},
+</span><span class="boring">    fetch::{deferred::DeferredAssetFetch, file::FileAssetFetch},
+</span><span class="boring">    protocol::{
+</span><span class="boring">        bundle::{BundleAssetProtocol, BundleWithDependencies, BundleWithDependenciesProcessor},
+</span><span class="boring">        group::GroupAssetProtocol,
+</span><span class="boring">        text::TextAssetProtocol,
+</span><span class="boring">    },
+</span><span class="boring">    third_party::anput::{
+</span><span class="boring">        commands::{CommandBuffer, InsertCommand, RemoveCommand},
+</span><span class="boring">        entity::Entity,
+</span><span class="boring">        world::{Relation, World},
+</span><span class="boring">    },
+</span><span class="boring">};
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">use spitfire::prelude::*;
+</span><span class="boring">use std::{
+</span><span class="boring">    error::Error,
+</span><span class="boring">    sync::{Arc, RwLock},
+</span><span class="boring">    time::Instant,
+</span><span class="boring">};
+</span><span class="boring">
+</span><span class="boring">fn main() -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">    App::&lt;Vertex&gt;::default().run(State::default());
+</span><span class="boring">
+</span><span class="boring">    Ok(())
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">const DELTA_TIME: f32 = 1.0 / 60.0;
+</span><span class="boring">
+</span><span class="boring">struct State {
+</span><span class="boring">    // We store drawing context for later use in app state.
+</span><span class="boring">    // Drawing context holds resources and stack-based states.
+</span><span class="boring">    context: DrawContext,
+</span><span class="boring">    // Timer used for fixed step frame particle system simulation.
+</span><span class="boring">    timer: Instant,
+</span><span class="boring">    assets: AssetDatabase,
+</span><span class="boring">    image_shader: AssetRef,
+</span><span class="boring">    ferris_texture: AssetRef,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">impl Default for State {
+</span><span class="boring">    fn default() -&gt; Self {
+</span><span class="boring">        Self {
+</span><span class="boring">            context: Default::default(),
+</span><span class="boring">            timer: Instant::now(),
+</span><span class="boring">            assets: AssetDatabase::default()
+</span><span class="boring">                // Text protocol for shader sources.
+</span><span class="boring">                .with_protocol(TextAssetProtocol)
+</span><span class="boring">                // Group protocol for loading many assets at once.
+</span><span class="boring">                .with_protocol(GroupAssetProtocol)
+</span><span class="boring">                // Custom shader protocol.
+</span><span class="boring">                .with_protocol(BundleAssetProtocol::new("shader", ShaderAssetProcessor))
+</span><span class="boring">                // Custom texture protocol.
+</span><span class="boring">                .with_protocol(BundleAssetProtocol::new("texture", TextureAssetProcessor))
+</span><span class="boring">                // Load all data from file system asynchronously.
+</span><span class="boring">                .with_fetch(DeferredAssetFetch::new(
+</span><span class="boring">                    FileAssetFetch::default().with_root("resources"),
+</span><span class="boring">                )),
+</span><span class="boring">            // Stored asset references for cached asset handles.
+</span><span class="boring">            image_shader: AssetRef::new("shader://image.shader"),
+</span><span class="boring">            ferris_texture: AssetRef::new("texture://ferris.png"),
+</span><span class="boring">        }
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">impl AppState&lt;Vertex&gt; for State {
+</span><span class="boring">    fn on_init(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+</span><span class="boring">        // Setup scene camera.
+</span><span class="boring">        graphics.color = [0.25, 0.25, 0.25, 1.0];
+</span><span class="boring">        graphics.main_camera.screen_alignment = 0.5.into();
+</span><span class="boring">        graphics.main_camera.scaling = CameraScaling::FitToView {
+</span><span class="boring">            size: 1000.0.into(),
+</span><span class="boring">            inside: false,
+</span><span class="boring">        };
+</span><span class="boring">
+</span><span class="boring">        // Load this scene group.
+</span><span class="boring">        self.assets.ensure("group://ingame.txt").unwrap();
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    fn on_redraw(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+</span><span class="boring">        // Process assets periotically.
+</span><span class="boring">        if self.timer.elapsed().as_secs_f32() &gt; DELTA_TIME {
+</span><span class="boring">            self.timer = Instant::now();
+</span><span class="boring">            self.process_assets(graphics);
+</span><span class="boring">        }
+</span><span class="boring">
+</span><span class="boring">        // Do not render unless we have shader loaded.
+</span><span class="boring">        let Ok(image_shader) = self.image_shader.resolve(&amp;self.assets) else {
+</span><span class="boring">            return;
+</span><span class="boring">        };
+</span><span class="boring">        let Some(image_shader) = image_shader
+</span><span class="boring">            .access_checked::&lt;&amp;AsyncHandle&lt;Shader&gt;&gt;()
+</span><span class="boring">            .map(|handle| handle.to_ref())
+</span><span class="boring">        else {
+</span><span class="boring">            return;
+</span><span class="boring">        };
+</span><span class="boring">
+</span><span class="boring">        // Begin drawing objects.
+</span><span class="boring">        self.context.begin_frame(graphics);
+</span><span class="boring">        self.context.push_shader(&amp;image_shader);
+</span><span class="boring">        self.context.push_blending(GlowBlending::Alpha);
+</span><span class="boring">
+</span><span class="boring">        // Draw sprite only if texture asset is loaded.
+</span><span class="boring">        if let Ok(texture) = self.ferris_texture.resolve(&amp;self.assets) {
+</span><span class="boring">            if let Some(texture) = texture
+</span><span class="boring">                .access_checked::&lt;&amp;AsyncHandle&lt;Texture&gt;&gt;()
+</span><span class="boring">                .map(|handle| handle.to_ref())
+</span><span class="boring">            {
+</span><span class="boring">                Sprite::single(SpriteTexture::new("u_image".into(), texture))
+</span><span class="boring">                    .pivot(0.5.into())
+</span><span class="boring">                    .draw(&amp;mut self.context, graphics);
+</span><span class="boring">            }
+</span><span class="boring">        }
+</span><span class="boring">
+</span><span class="boring">        // Commit drawn objects.
+</span><span class="boring">        self.context.end_frame();
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">impl State {
+</span><span class="boring">    fn process_assets(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+</span><span class="boring">        let mut commands = CommandBuffer::default();
+</span><span class="boring">
+</span><span class="boring">        // Process loaded shader assets into shader objects on GPU.
+</span><span class="boring">        for entity in self.assets.storage.added().iter_of::&lt;ShaderAsset&gt;() {
+</span><span class="boring">            let asset = self
+</span><span class="boring">                .assets
+</span><span class="boring">                .storage
+</span><span class="boring">                .component::&lt;true, ShaderAsset&gt;(entity)
+</span><span class="boring">                .unwrap();
+</span><span class="boring">            let shader = graphics.shader(&amp;asset.vertex, &amp;asset.fragment).unwrap();
+</span><span class="boring">            println!("* Shader asset turned into shader: {}", entity);
+</span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(shader),)));
+</span><span class="boring">        }
+</span><span class="boring">
+</span><span class="boring">        // Process loaded texture assets into texture objects on GPU.
+</span><span class="boring">        for entity in self.assets.storage.added().iter_of::&lt;TextureAsset&gt;() {
+</span><span class="boring">            let asset = self
+</span><span class="boring">                .assets
+</span><span class="boring">                .storage
+</span><span class="boring">                .component::&lt;true, TextureAsset&gt;(entity)
+</span><span class="boring">                .unwrap();
+</span><span class="boring">            let texture = graphics
+</span><span class="boring">                .texture(
+</span><span class="boring">                    asset.width,
+</span><span class="boring">                    asset.height,
+</span><span class="boring">                    1,
+</span><span class="boring">                    GlowTextureFormat::Rgba,
+</span><span class="boring">                    Some(&amp;asset.bytes),
+</span><span class="boring">                )
+</span><span class="boring">                .unwrap();
+</span><span class="boring">            println!("* Texture asset turned into texture: {}", entity);
+</span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(texture),)));
+</span><span class="boring">        }
+</span><span class="boring">
+</span><span class="boring">        commands.execute(&amp;mut self.assets.storage);
+</span><span class="boring">        self.assets.maintain().unwrap();
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Workaround for GPU handles not being Send + Sync,
+</span><span class="boring">// to be able to store them in assets database.
+</span><span class="boring">struct AsyncHandle&lt;T: Clone&gt;(Arc&lt;RwLock&lt;T&gt;&gt;);
+</span><span class="boring">
+</span><span class="boring">unsafe impl&lt;T: Clone&gt; Send for AsyncHandle&lt;T&gt; {}
+</span><span class="boring">unsafe impl&lt;T: Clone&gt; Sync for AsyncHandle&lt;T&gt; {}
+</span><span class="boring">
+</span><span class="boring">impl&lt;T: Clone&gt; AsyncHandle&lt;T&gt; {
+</span><span class="boring">    fn new(data: T) -&gt; Self {
+</span><span class="boring">        Self(Arc::new(RwLock::new(data)))
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    fn get(&amp;self) -&gt; T {
+</span><span class="boring">        self.0.read().unwrap().clone()
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    fn to_ref(&amp;self) -&gt; ResourceRef&lt;T&gt; {
+</span><span class="boring">        ResourceRef::object(self.get())
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Decoded shader asset information with dependencies.
+</span><span class="boring">#[derive(Debug, Serialize, Deserialize)]
+</span><span class="boring">struct ShaderAssetInfo {
+</span><span class="boring">    vertex: AssetRef,
+</span><span class="boring">    fragment: AssetRef,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Shader asset with vertex and fragment programs code.
+</span><span class="boring">struct ShaderAsset {
+</span><span class="boring">    vertex: String,
+</span><span class="boring">    fragment: String,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Shader asset processor that turns bytes -&gt; shader info -&gt; shader asset.
+</span><span class="boring">struct ShaderAssetProcessor;
+</span><span class="boring">
+</span><span class="boring">impl BundleWithDependenciesProcessor for ShaderAssetProcessor {
+</span><span class="boring">    type Bundle = (ShaderAssetInfo,);
+</span><span class="boring">
+</span><span class="boring">    fn process_bytes(
+</span><span class="boring">        &amp;mut self,
+</span><span class="boring">        bytes: Vec&lt;u8&gt;,
+</span><span class="boring">    ) -&gt; Result&lt;BundleWithDependencies&lt;Self::Bundle&gt;, Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">        let asset = serde_json::from_slice::&lt;ShaderAssetInfo&gt;(&amp;bytes)?;
+</span><span class="boring">        let vertex = asset.vertex.path().clone();
+</span><span class="boring">        let fragment = asset.fragment.path().clone();
+</span><span class="boring">
+</span><span class="boring">        println!("* Shader asset processed: {:#?}", asset);
+</span><span class="boring">        Ok(BundleWithDependencies::new((asset,))
+</span><span class="boring">            .dependency(vertex)
+</span><span class="boring">            .dependency(fragment))
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    fn maintain(&amp;mut self, storage: &amp;mut World) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">        let mut commands = CommandBuffer::default();
+</span><span class="boring">        let mut lookup = storage.lookup_access::&lt;true, &amp;String&gt;();
+</span><span class="boring">
+</span><span class="boring">        // We scan for decoded shader info and if dependencies are loaded,
+</span><span class="boring">        // then turn them into shader asset.
+</span><span class="boring">        for (entity, info, dependencies) in
+</span><span class="boring">            storage.query::&lt;true, (Entity, &amp;ShaderAssetInfo, &amp;Relation&lt;AssetDependency&gt;)&gt;()
+</span><span class="boring">        {
+</span><span class="boring">            if dependencies
+</span><span class="boring">                .entities()
+</span><span class="boring">                .all(|entity| storage.has_entity_component::&lt;String&gt;(entity))
+</span><span class="boring">            {
+</span><span class="boring">                let vertex = lookup
+</span><span class="boring">                    .access(storage.find_by::&lt;true, _&gt;(info.vertex.path()).unwrap())
+</span><span class="boring">                    .unwrap()
+</span><span class="boring">                    .to_owned();
+</span><span class="boring">                let fragment = lookup
+</span><span class="boring">                    .access(storage.find_by::&lt;true, _&gt;(info.fragment.path()).unwrap())
+</span><span class="boring">                    .unwrap()
+</span><span class="boring">                    .to_owned();
+</span><span class="boring">
+</span><span class="boring">                let asset = ShaderAsset { vertex, fragment };
+</span><span class="boring">                commands.command(InsertCommand::new(entity, (asset,)));
+</span><span class="boring">                commands.command(RemoveCommand::&lt;(ShaderAssetInfo,)&gt;::new(entity));
+</span><span class="boring">            }
+</span><span class="boring">        }
+</span><span class="boring">        drop(lookup);
+</span><span class="boring">
+</span><span class="boring">        commands.execute(storage);
+</span><span class="boring">
+</span><span class="boring">        Ok(())
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span>// Decoded texture asset with its size and decoded bitmap bytes.
 struct TextureAsset {
     width: u32,
     height: u32,
@@ -368,7 +2151,189 @@ impl BundleWithDependenciesProcessor for TextureAssetProcessor {
 texture dimensions.</p>
 <h2 id="shader-asset-processor"><a class="header" href="#shader-asset-processor">Shader asset processor</a></h2>
 <p>Shader asset processor is a lot more interesting:</p>
-<pre><code class="language-rust ignore">// Decoded shader asset information with dependencies.
+<pre><code class="language-rust ignore"><span class="boring">use keket::{
+</span><span class="boring">    database::{handle::AssetDependency, reference::AssetRef, AssetDatabase},
+</span><span class="boring">    fetch::{deferred::DeferredAssetFetch, file::FileAssetFetch},
+</span><span class="boring">    protocol::{
+</span><span class="boring">        bundle::{BundleAssetProtocol, BundleWithDependencies, BundleWithDependenciesProcessor},
+</span><span class="boring">        group::GroupAssetProtocol,
+</span><span class="boring">        text::TextAssetProtocol,
+</span><span class="boring">    },
+</span><span class="boring">    third_party::anput::{
+</span><span class="boring">        commands::{CommandBuffer, InsertCommand, RemoveCommand},
+</span><span class="boring">        entity::Entity,
+</span><span class="boring">        world::{Relation, World},
+</span><span class="boring">    },
+</span><span class="boring">};
+</span><span class="boring">use serde::{Deserialize, Serialize};
+</span><span class="boring">use spitfire::prelude::*;
+</span><span class="boring">use std::{
+</span><span class="boring">    error::Error,
+</span><span class="boring">    sync::{Arc, RwLock},
+</span><span class="boring">    time::Instant,
+</span><span class="boring">};
+</span><span class="boring">
+</span><span class="boring">fn main() -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">    App::&lt;Vertex&gt;::default().run(State::default());
+</span><span class="boring">
+</span><span class="boring">    Ok(())
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">const DELTA_TIME: f32 = 1.0 / 60.0;
+</span><span class="boring">
+</span><span class="boring">struct State {
+</span><span class="boring">    // We store drawing context for later use in app state.
+</span><span class="boring">    // Drawing context holds resources and stack-based states.
+</span><span class="boring">    context: DrawContext,
+</span><span class="boring">    // Timer used for fixed step frame particle system simulation.
+</span><span class="boring">    timer: Instant,
+</span><span class="boring">    assets: AssetDatabase,
+</span><span class="boring">    image_shader: AssetRef,
+</span><span class="boring">    ferris_texture: AssetRef,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">impl Default for State {
+</span><span class="boring">    fn default() -&gt; Self {
+</span><span class="boring">        Self {
+</span><span class="boring">            context: Default::default(),
+</span><span class="boring">            timer: Instant::now(),
+</span><span class="boring">            assets: AssetDatabase::default()
+</span><span class="boring">                // Text protocol for shader sources.
+</span><span class="boring">                .with_protocol(TextAssetProtocol)
+</span><span class="boring">                // Group protocol for loading many assets at once.
+</span><span class="boring">                .with_protocol(GroupAssetProtocol)
+</span><span class="boring">                // Custom shader protocol.
+</span><span class="boring">                .with_protocol(BundleAssetProtocol::new("shader", ShaderAssetProcessor))
+</span><span class="boring">                // Custom texture protocol.
+</span><span class="boring">                .with_protocol(BundleAssetProtocol::new("texture", TextureAssetProcessor))
+</span><span class="boring">                // Load all data from file system asynchronously.
+</span><span class="boring">                .with_fetch(DeferredAssetFetch::new(
+</span><span class="boring">                    FileAssetFetch::default().with_root("resources"),
+</span><span class="boring">                )),
+</span><span class="boring">            // Stored asset references for cached asset handles.
+</span><span class="boring">            image_shader: AssetRef::new("shader://image.shader"),
+</span><span class="boring">            ferris_texture: AssetRef::new("texture://ferris.png"),
+</span><span class="boring">        }
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">impl AppState&lt;Vertex&gt; for State {
+</span><span class="boring">    fn on_init(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+</span><span class="boring">        // Setup scene camera.
+</span><span class="boring">        graphics.color = [0.25, 0.25, 0.25, 1.0];
+</span><span class="boring">        graphics.main_camera.screen_alignment = 0.5.into();
+</span><span class="boring">        graphics.main_camera.scaling = CameraScaling::FitToView {
+</span><span class="boring">            size: 1000.0.into(),
+</span><span class="boring">            inside: false,
+</span><span class="boring">        };
+</span><span class="boring">
+</span><span class="boring">        // Load this scene group.
+</span><span class="boring">        self.assets.ensure("group://ingame.txt").unwrap();
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    fn on_redraw(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+</span><span class="boring">        // Process assets periotically.
+</span><span class="boring">        if self.timer.elapsed().as_secs_f32() &gt; DELTA_TIME {
+</span><span class="boring">            self.timer = Instant::now();
+</span><span class="boring">            self.process_assets(graphics);
+</span><span class="boring">        }
+</span><span class="boring">
+</span><span class="boring">        // Do not render unless we have shader loaded.
+</span><span class="boring">        let Ok(image_shader) = self.image_shader.resolve(&amp;self.assets) else {
+</span><span class="boring">            return;
+</span><span class="boring">        };
+</span><span class="boring">        let Some(image_shader) = image_shader
+</span><span class="boring">            .access_checked::&lt;&amp;AsyncHandle&lt;Shader&gt;&gt;()
+</span><span class="boring">            .map(|handle| handle.to_ref())
+</span><span class="boring">        else {
+</span><span class="boring">            return;
+</span><span class="boring">        };
+</span><span class="boring">
+</span><span class="boring">        // Begin drawing objects.
+</span><span class="boring">        self.context.begin_frame(graphics);
+</span><span class="boring">        self.context.push_shader(&amp;image_shader);
+</span><span class="boring">        self.context.push_blending(GlowBlending::Alpha);
+</span><span class="boring">
+</span><span class="boring">        // Draw sprite only if texture asset is loaded.
+</span><span class="boring">        if let Ok(texture) = self.ferris_texture.resolve(&amp;self.assets) {
+</span><span class="boring">            if let Some(texture) = texture
+</span><span class="boring">                .access_checked::&lt;&amp;AsyncHandle&lt;Texture&gt;&gt;()
+</span><span class="boring">                .map(|handle| handle.to_ref())
+</span><span class="boring">            {
+</span><span class="boring">                Sprite::single(SpriteTexture::new("u_image".into(), texture))
+</span><span class="boring">                    .pivot(0.5.into())
+</span><span class="boring">                    .draw(&amp;mut self.context, graphics);
+</span><span class="boring">            }
+</span><span class="boring">        }
+</span><span class="boring">
+</span><span class="boring">        // Commit drawn objects.
+</span><span class="boring">        self.context.end_frame();
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">impl State {
+</span><span class="boring">    fn process_assets(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+</span><span class="boring">        let mut commands = CommandBuffer::default();
+</span><span class="boring">
+</span><span class="boring">        // Process loaded shader assets into shader objects on GPU.
+</span><span class="boring">        for entity in self.assets.storage.added().iter_of::&lt;ShaderAsset&gt;() {
+</span><span class="boring">            let asset = self
+</span><span class="boring">                .assets
+</span><span class="boring">                .storage
+</span><span class="boring">                .component::&lt;true, ShaderAsset&gt;(entity)
+</span><span class="boring">                .unwrap();
+</span><span class="boring">            let shader = graphics.shader(&amp;asset.vertex, &amp;asset.fragment).unwrap();
+</span><span class="boring">            println!("* Shader asset turned into shader: {}", entity);
+</span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(shader),)));
+</span><span class="boring">        }
+</span><span class="boring">
+</span><span class="boring">        // Process loaded texture assets into texture objects on GPU.
+</span><span class="boring">        for entity in self.assets.storage.added().iter_of::&lt;TextureAsset&gt;() {
+</span><span class="boring">            let asset = self
+</span><span class="boring">                .assets
+</span><span class="boring">                .storage
+</span><span class="boring">                .component::&lt;true, TextureAsset&gt;(entity)
+</span><span class="boring">                .unwrap();
+</span><span class="boring">            let texture = graphics
+</span><span class="boring">                .texture(
+</span><span class="boring">                    asset.width,
+</span><span class="boring">                    asset.height,
+</span><span class="boring">                    1,
+</span><span class="boring">                    GlowTextureFormat::Rgba,
+</span><span class="boring">                    Some(&amp;asset.bytes),
+</span><span class="boring">                )
+</span><span class="boring">                .unwrap();
+</span><span class="boring">            println!("* Texture asset turned into texture: {}", entity);
+</span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(texture),)));
+</span><span class="boring">        }
+</span><span class="boring">
+</span><span class="boring">        commands.execute(&amp;mut self.assets.storage);
+</span><span class="boring">        self.assets.maintain().unwrap();
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">// Workaround for GPU handles not being Send + Sync,
+</span><span class="boring">// to be able to store them in assets database.
+</span><span class="boring">struct AsyncHandle&lt;T: Clone&gt;(Arc&lt;RwLock&lt;T&gt;&gt;);
+</span><span class="boring">
+</span><span class="boring">unsafe impl&lt;T: Clone&gt; Send for AsyncHandle&lt;T&gt; {}
+</span><span class="boring">unsafe impl&lt;T: Clone&gt; Sync for AsyncHandle&lt;T&gt; {}
+</span><span class="boring">
+</span><span class="boring">impl&lt;T: Clone&gt; AsyncHandle&lt;T&gt; {
+</span><span class="boring">    fn new(data: T) -&gt; Self {
+</span><span class="boring">        Self(Arc::new(RwLock::new(data)))
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    fn get(&amp;self) -&gt; T {
+</span><span class="boring">        self.0.read().unwrap().clone()
+</span><span class="boring">    }
+</span><span class="boring">
+</span><span class="boring">    fn to_ref(&amp;self) -&gt; ResourceRef&lt;T&gt; {
+</span><span class="boring">        ResourceRef::object(self.get())
+</span><span class="boring">    }
+</span><span class="boring">}
+</span><span class="boring">
+</span>// Decoded shader asset information with dependencies.
 #[derive(Debug, Serialize, Deserialize)]
 struct ShaderAssetInfo {
     vertex: AssetRef,
@@ -434,7 +2399,39 @@ impl BundleWithDependenciesProcessor for ShaderAssetProcessor {
 
         Ok(())
     }
-}</code></pre>
+}
+<span class="boring">
+</span><span class="boring">// Decoded texture asset with its size and decoded bitmap bytes.
+</span><span class="boring">struct TextureAsset {
+</span><span class="boring">    width: u32,
+</span><span class="boring">    height: u32,
+</span><span class="boring">    bytes: Vec&lt;u8&gt;,
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">struct TextureAssetProcessor;
+</span><span class="boring">
+</span><span class="boring">impl BundleWithDependenciesProcessor for TextureAssetProcessor {
+</span><span class="boring">    type Bundle = (TextureAsset,);
+</span><span class="boring">
+</span><span class="boring">    fn process_bytes(
+</span><span class="boring">        &amp;mut self,
+</span><span class="boring">        bytes: Vec&lt;u8&gt;,
+</span><span class="boring">    ) -&gt; Result&lt;BundleWithDependencies&lt;Self::Bundle&gt;, Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">        // Decode PNG image into texture size and bitmap bytes.
+</span><span class="boring">        let decoder = png::Decoder::new(bytes.as_slice());
+</span><span class="boring">        let mut reader = decoder.read_info()?;
+</span><span class="boring">        let mut buf = vec![0; reader.output_buffer_size()];
+</span><span class="boring">        let info = reader.next_frame(&amp;mut buf)?;
+</span><span class="boring">        let bytes = buf[..info.buffer_size()].to_vec();
+</span><span class="boring">
+</span><span class="boring">        println!("* Texture asset processed: {:#?}", info);
+</span><span class="boring">        Ok(BundleWithDependencies::new((TextureAsset {
+</span><span class="boring">            width: info.width,
+</span><span class="boring">            height: info.height,
+</span><span class="boring">            bytes,
+</span><span class="boring">        },)))
+</span><span class="boring">    }
+</span><span class="boring">}</span></code></pre>
 <p>Since this asset is just a descriptor that holds references to dependencies such
 as vertex anf fragment shader code, in asset processing we only schedule
 dependency loading and then in <code>maintain</code> method we scan database storage for
