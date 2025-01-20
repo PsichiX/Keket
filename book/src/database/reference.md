@@ -13,23 +13,9 @@ way to reference assets in serializable data, so once container gets deserializa
 into typed data, asset handle resolution will happen only at first time.
 
 ```rust,ignore
-#[derive(Debug, Default, Deserialize)]
-struct CustomAsset {
-    content: String,
-    next: AssetRef,
-}
+{{#rustdoc_include ../../../crates/_/examples/10_references.rs:custom_asset}}
+```
 
-// Here we grab first asset by path.
-let part1 = database.ensure("custom://part1.json")?;
-let part1 = part1.access::<&CustomAsset>(&database);
-println!("Part 1 content: {:?}", part1.content);
-
-// Then we grab next asset by reference stored in loaded first asset.
-// It's important to note that dependency assets should be scheduled to load by
-// asset protocols that load parent asset in their processing method, otherwise
-// dependent assets won't be resolved - here we assume custom asset protocol did
-// loaded dependent assets so they can be resolved.
-let part2 = part1.next.resolve(&database)?;
-let part2 = part2.access::<&CustomAsset>();
-println!("Part 2 content: {:?}", part2.content);
+```rust,ignore
+{{#rustdoc_include ../../../crates/_/examples/10_references.rs:main}}
 ```

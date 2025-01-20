@@ -136,6 +136,16 @@ impl<'a> AssetPath<'a> {
             })
     }
 
+    /// Checks if path has specific meta key.
+    pub fn has_meta_key(&self, key: &str) -> bool {
+        self.meta_items().any(|(k, _)| k == key)
+    }
+
+    /// Checks if path has specific meta key-value.
+    pub fn has_meta_key_value(&self, key: &str, value: &str) -> bool {
+        self.meta_items().any(|(k, v)| k == key && v == value)
+    }
+
     /// Tries to retrieve the metadata, returning `None` if it's empty.
     pub fn try_meta(&self) -> Option<&str> {
         let meta = self.meta();

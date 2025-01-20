@@ -22,15 +22,7 @@ that come from file system, we can just query them with `PathBuf` component and
 use that fast query for asset statistics report.
 
 ```rust,ignore
-for (asset_path, file_path, metadata) in database
-    .storage
-    .query::<true, (&AssetPath, &PathBuf, &Metadata)>()
-{
-    println!(
-        "Asset: `{}` at location: {:?} has metadata: {:#?}",
-        asset_path, file_path, metadata
-    );
-}
+{{#rustdoc_include ../../../crates/_/examples/01_hello_world.rs:fs_query}}
 ```
 
 Since storage is just an ECS, every asset entity always must store at least

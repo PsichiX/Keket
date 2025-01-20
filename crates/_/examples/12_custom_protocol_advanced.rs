@@ -56,6 +56,7 @@ impl CustomAsset {
     }
 }
 
+/* ANCHOR: custom_asset_protocol */
 struct CustomAssetProtocol;
 
 impl AssetProtocol for CustomAssetProtocol {
@@ -95,3 +96,4 @@ impl AssetProtocol for CustomAssetProtocol {
         Ok(())
     }
 }
+/* ANCHOR_END: custom_asset_protocol */

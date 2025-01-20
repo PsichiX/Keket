@@ -20,6 +20,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .with_protocol(GroupAssetProtocol)
         .with_fetch(FileAssetFetch::default().with_root("resources"));
 
+    /* ANCHOR: events */
     // We can bind closures to asset event bindings for any asset progression tracking.
     database.events.bind(|event| {
         println!("Asset closure event: {:#?}", event);
@@ -42,6 +43,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     while let Ok(event) = rx.try_recv() {
         println!("Group channel event: {:#?}", event);
     }
+    /* ANCHOR_END: events */
 
     println!(
         "Lorem Ipsum: {}",

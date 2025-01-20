@@ -9,6 +9,7 @@ use serde::Deserialize;
 use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
+    /* ANCHOR: main */
     let mut database = AssetDatabase::default()
         .with_protocol(BundleAssetProtocol::new("custom", CustomAssetProcessor))
         .with_fetch(FileAssetFetch::default().with_root("resources"));
@@ -21,10 +22,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let contents = handle.access::<&CustomAsset>(&database).contents(&database);
     println!("Custom chain contents: {:?}", contents);
+    /* ANCHOR_END: main */
 
     Ok(())
 }
 
+/* ANCHOR: custom_asset */
 #[derive(Debug, Default, Deserialize)]
 struct CustomAsset {
     content: String,
@@ -47,6 +50,7 @@ impl CustomAsset {
         result
     }
 }
+/* ANCHOR_END: custom_asset */
 
 struct CustomAssetProcessor;
 

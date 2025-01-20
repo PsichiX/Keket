@@ -12,6 +12,7 @@ use serde_json::Value;
 use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
+    /* ANCHOR: main */
     let mut database = AssetDatabase::default()
         .with_protocol(TextAssetProtocol)
         .with_protocol(BytesAssetProtocol)
@@ -45,6 +46,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             dependency.access::<&AssetPath>(&database)
         );
     }
+    /* ANCHOR_END: main */
 
     Ok(())
 }

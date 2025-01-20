@@ -7,6 +7,7 @@ use keket_client::{third_party::reqwest::Url, ClientAssetFetch};
 use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
+    /* ANCHOR: main */
     let mut database = AssetDatabase::default()
         .with_protocol(TextAssetProtocol)
         .with_protocol(BytesAssetProtocol)
@@ -71,4 +72,5 @@ fn main() -> Result<(), Box<dyn Error>> {
             );
         }
     }
+    /* ANCHOR_END: main */
 }

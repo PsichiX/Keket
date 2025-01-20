@@ -6,6 +6,7 @@ use keket::{
 use std::{error::Error, time::Duration};
 
 fn main() -> Result<(), Box<dyn Error>> {
+    /* ANCHOR: main */
     let mut database = AssetDatabase::default()
         .with_protocol(TextAssetProtocol)
         .with_protocol(BytesAssetProtocol)
@@ -50,4 +51,5 @@ fn main() -> Result<(), Box<dyn Error>> {
             );
         }
     }
+    /* ANCHOR_END: main */
 }

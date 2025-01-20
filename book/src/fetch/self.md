@@ -15,6 +15,7 @@ can for example use different bytes source for different build mode or different
 platform, without having to bytes decoding to care about where bytes come from.
 
 ```rust,ignore
+{{#rustdoc_include ../../../crates/_/examples/01_hello_world.rs:fetch_use}}
 let mut database = AssetDatabase::default()
     .with_protocol(TextAssetProtocol)
     // Whichever asset source we use, we will make them async load.

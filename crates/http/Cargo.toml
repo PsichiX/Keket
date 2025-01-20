@@ -1,6 +1,6 @@
 [package]
 name = "keket-http"
-version = "0.12.0"
+version = "0.12.1"
 edition = "2021"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 description = "HTTP asset fetch engine for Keket toolkit"
@@ -16,3 +16,10 @@ reqwest = { version = "0.12", features = ["blocking"] }
 
 [dev-dependencies]
 serde_json = "1"
+
+[[example]]
+doc-scrape-examples = true
+name = "hello_http"
+
+[package.metadata.docs.rs]
+cargo-args = ["-Zunstable-options", "-Zrustdoc-scrape-examples"]

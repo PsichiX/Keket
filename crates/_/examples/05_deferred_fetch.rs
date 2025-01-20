@@ -6,6 +6,7 @@ use keket::{
 use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
+    /* ANCHOR: main */
     let mut database = AssetDatabase::default()
         .with_protocol(BytesAssetProtocol)
         // Deferred asset fetch runs fetching jobs in threads for any fetch engine.
@@ -28,6 +29,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         "Package byte size: {}",
         package.access::<&Vec<u8>>(&database).len()
     );
+    /* ANCHOR_END: main */
 
     Ok(())
 }

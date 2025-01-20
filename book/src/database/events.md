@@ -10,26 +10,5 @@ to registered listeners. User can also listen for all asset events by registerin
 to event bindings in asset database.
 
 ```rust,ignore
-// We can bind closures to asset event bindings for any asset progression tracking.
-database.events.bind(|event| {
-    println!("Asset closure event: {:?}", event);
-    Ok(())
-});
-
-// Create channel for asset events communication.
-let (tx, rx) = channel();
-
-// Start loading asset and its dependencies.
-let group = database.ensure("group://group.txt")?;
-// We can also bind sender to asset event bindings.
-group.ensure::<AssetEventBindings>(&mut database)?.bind(tx);
-
-while database.is_busy() {
-    database.maintain()?;
-}
-
-// Read sent events from receiver.
-while let Ok(event) = rx.try_recv() {
-    println!("Group channel event: {:?}", event);
-}
+{{#rustdoc_include ../../../crates/_/examples/04_events.rs:events}}
 ```

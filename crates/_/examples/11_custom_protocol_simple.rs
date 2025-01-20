@@ -28,6 +28,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+/* ANCHOR: custom_asset */
 // Custom asset type.
 #[derive(Debug, Default, Deserialize)]
 struct CustomAsset {
@@ -37,6 +38,7 @@ struct CustomAsset {
     #[serde(default)]
     next: Option<AssetPathStatic>,
 }
+/* ANCHOR_END: custom_asset */
 
 impl CustomAsset {
     fn contents(&self, database: &AssetDatabase) -> String {
@@ -58,6 +60,7 @@ impl CustomAsset {
     }
 }
 
+/* ANCHOR: custom_asset_protocol */
 struct CustomAssetProcessor;
 
 impl BundleWithDependenciesProcessor for CustomAssetProcessor {
@@ -74,3 +77,4 @@ impl BundleWithDependenciesProcessor for CustomAssetProcessor {
         Ok(BundleWithDependencies::new((asset,)).maybe_dependency(dependency))
     }
 }
+/* ANCHOR_END: custom_asset_protocol */

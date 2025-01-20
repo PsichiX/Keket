@@ -8,6 +8,7 @@ use serde_json::Value;
 use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
+    /* ANCHOR: main */
     let mut database = AssetDatabase::default()
         .with_protocol(TextAssetProtocol)
         .with_protocol(BytesAssetProtocol)
@@ -27,6 +28,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let trash = database.ensure("bytes://trash.bin")?;
     println!("Bytes: {:?}", trash.access::<&Vec<u8>>(&database));
+    /* ANCHOR_END: main */
 
     Ok(())
 }

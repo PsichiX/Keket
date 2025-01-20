@@ -21,6 +21,7 @@ pub struct HttpAssetFetch {
 }
 
 impl HttpAssetFetch {
+    #[allow(rustdoc::bare_urls)]
     /// Creates a new `HttpAssetFetch` with a provided root URL.
     ///
     /// # Arguments

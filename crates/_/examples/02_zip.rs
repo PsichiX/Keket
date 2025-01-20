@@ -7,6 +7,7 @@ use std::{error::Error, fs::File, io::Read};
 use zip::ZipArchive;
 
 fn main() -> Result<(), Box<dyn Error>> {
+    /* ANCHOR: main */
     let mut database = AssetDatabase::default()
         .with_protocol(TextAssetProtocol)
         // Container asset fetch allows to use partial asset fetch object
@@ -17,10 +18,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let lorem = database.ensure("text://lorem.txt")?;
     println!("Lorem Ipsum: {}", lorem.access::<&String>(&database));
+    /* ANCHOR_END: main */
 
     Ok(())
 }
 
+/* ANCHOR: zip */
 // Here we show how to make ZIP archive file reader.
 struct ZipContainerPartialFetch {
     archive: ZipArchive<File>,
@@ -44,3 +47,4 @@ impl ContainerPartialFetch for ZipContainerPartialFetch {
         Ok(bytes)
     }
 }
+/* ANCHOR_END: zip */

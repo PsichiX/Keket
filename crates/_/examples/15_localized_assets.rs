@@ -9,6 +9,7 @@ use std::{
 };
 
 fn main() -> Result<(), Box<dyn Error>> {
+    /* ANCHOR: main */
     let language = Arc::new(RwLock::new("en"));
     let language2 = language.clone();
 
@@ -17,6 +18,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .with_fetch(RewriteAssetFetch::new(
             FileAssetFetch::default().with_root("resources"),
             move |path| {
+                // Rewrite input path to localized one.
                 Ok(AssetPath::from_parts(
                     path.protocol(),
                     &format!(
@@ -41,6 +43,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Gets `text://localized.de.txt`.
     let asset = database.ensure("text://localized.txt")?;
     println!("German: {}", asset.access::<&String>(&database));
+    /* ANCHOR_END: main */
 
     Ok(())
 }

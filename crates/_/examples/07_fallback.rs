@@ -6,6 +6,7 @@ use keket::{
 use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
+    /* ANCHOR: main */
     let mut database = AssetDatabase::default()
         .with_protocol(TextAssetProtocol)
         .with_fetch(
@@ -27,6 +28,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     if lorem.access::<&String>(&database) == non_existent.access::<&String>(&database) {
         println!("Non existent asset loaded from fallback!");
     }
+    /* ANCHOR_END: main */
 
     Ok(())
 }

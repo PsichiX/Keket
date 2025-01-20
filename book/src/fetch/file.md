@@ -4,13 +4,7 @@
 file synchronously.
 
 ```rust,ignore
-let mut database = AssetDatabase::default()
-    .with_protocol(TextAssetProtocol)
-    .with_protocol(BytesAssetProtocol)
-    .with_fetch(FileAssetFetch::default().with_root("assets"));
-
-let lorem = database.ensure("text://lorem.txt")?;
-println!("Lorem Ipsum: {}", lorem.access::<&String>(&database));
+{{#rustdoc_include ../../../crates/_/examples/01_hello_world.rs:main}}
 ```
 
 > Since this is blocking fetch, you might want to wrap it with `DeferredAssetFetch`

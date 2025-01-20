@@ -8,6 +8,7 @@ use serde_json::Value;
 use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
+    /* ANCHOR: main */
     let mut database = AssetDatabase::default()
         .with_protocol(TextAssetProtocol)
         .with_protocol(BytesAssetProtocol)
@@ -47,6 +48,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     for (asset_path, url) in database.storage.query::<true, (&AssetPath, &Url)>() {
         println!("Asset: `{}` at url: `{}`", asset_path, url);
     }
+    /* ANCHOR_END: main */
 
     Ok(())
 }

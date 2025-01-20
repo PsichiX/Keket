@@ -1,6 +1,6 @@
 [package]
 name = "keket-client"
-version = "0.12.0"
+version = "0.12.1"
 edition = "2021"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 description = "Asset server client fetch engine for Keket toolkit"
@@ -14,3 +14,10 @@ readme = "../../README.md"
 keket = { version = "0.12", path = "../_" }
 reqwest = { version = "0.12", features = ["blocking"] }
 tungstenite = "0.26"
+
+[[example]]
+doc-scrape-examples = true
+name = "hello_client"
+
+[package.metadata.docs.rs]
+cargo-args = ["-Zunstable-options", "-Zrustdoc-scrape-examples"]

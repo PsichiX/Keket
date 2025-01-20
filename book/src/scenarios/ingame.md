@@ -7,7 +7,7 @@ In this example we will use [Spitfire](https://github.com/PsichiX/spitfire) crat
 <summary>See `use` section</summary>
 
 ```rust,ignore
-{{#include ../../../crates/_/examples/ingame.rs:use}}
+{{#rustdoc_include ../../../crates/_/examples/ingame.rs:use}}
 ```
 
 </details>
@@ -17,7 +17,7 @@ In this example we will use [Spitfire](https://github.com/PsichiX/spitfire) crat
 Main function looks boring - all we do is we run `App` with `State` object.
 
 ```rust,ignore
-{{#include ../../../crates/_/examples/ingame.rs:main}}
+{{#rustdoc_include ../../../crates/_/examples/ingame.rs:main}}
 ```
 
 ## State struct
@@ -26,7 +26,7 @@ Main function looks boring - all we do is we run `App` with `State` object.
 fixed time step mechanism and referencing assets.
 
 ```rust,ignore
-{{#include ../../../crates/_/examples/ingame.rs:state_struct}}
+{{#rustdoc_include ../../../crates/_/examples/ingame.rs:state_struct}}
 ```
 
 ## State `Default` impl
@@ -36,7 +36,7 @@ In `Default` implementatio we setup app state.
 Take a look at how we setup `AssetDatabase` protocols:
 
 ```rust,ignore
-{{#include ../../../crates/_/examples/ingame.rs:state_impl_default}}
+{{#rustdoc_include ../../../crates/_/examples/ingame.rs:state_impl_default}}
 ```
 
 In there you can see bundle asset protocols wrapping custom shader and texture
@@ -50,7 +50,7 @@ maintanance periodically and then try to render Ferris sprite only if shader and
 texture assets are ready.
 
 ```rust,ignore
-{{#include ../../../crates/_/examples/ingame.rs:state_impl_appstate}}
+{{#rustdoc_include ../../../crates/_/examples/ingame.rs:state_impl_appstate}}
 ```
 
 ## State impl
@@ -61,7 +61,7 @@ texture assets and then build GPU objects for these assets and put them into
 their assets.
 
 ```rust,ignore
-{{#include ../../../crates/_/examples/ingame.rs:state_impl}}
+{{#rustdoc_include ../../../crates/_/examples/ingame.rs:state_impl}}
 ```
 
 ## Texture asset processor
@@ -69,7 +69,7 @@ their assets.
 Now let's see how we have made our texture asset processor:
 
 ```rust,ignore
-{{#include ../../../crates/_/examples/ingame.rs:texture_protocol}}
+{{#rustdoc_include ../../../crates/_/examples/ingame.rs:texture_protocol}}
 ```
 
 All we do here is we decode PNG image into texture decoded bytes along with
@@ -80,7 +80,7 @@ texture dimensions.
 Shader asset processor is a lot more interesting:
 
 ```rust,ignore
-{{#include ../../../crates/_/examples/ingame.rs:shader_protocol}}
+{{#rustdoc_include ../../../crates/_/examples/ingame.rs:shader_protocol}}
 ```
 
 Since this asset is just a descriptor that holds references to dependencies such
