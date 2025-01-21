@@ -16,6 +16,7 @@
   - [Fallback assets wrapper](./fetch/fallback.md)
   - [Router fetch wrapper](./fetch/router.md)
   - [Rewrite asset path wrapper](./fetch/rewrite.md)
+  - [Extract from asset](./fetch/extract.md)
   - [HTTP requests](./fetch/http.md)
   - [REDB database](./fetch/redb.md)
   - [Asset Server](./fetch/client.md)

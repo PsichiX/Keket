@@ -1,8 +1,9 @@
 # Keket - Asset Management for Rust
 
-![crates-io version](https://img.shields.io/crates/v/keket)
-![docs.rs](https://img.shields.io/docsrs/keket)
-![book](https://img.shields.io/badge/book-Keket-orange?style=flat&link=https%3A%2F%2Fpsichix.github.io%2FKeket%2F)
+[![crates-io version](https://img.shields.io/crates/v/keket)](https://crates.io/keket)
+[![docs.rs](https://img.shields.io/docsrs/keket)](https://docs.rs/keket)
+[![book](https://img.shields.io/badge/book-Keket-orange?style=flat&link=https%3A%2F%2Fpsichix.github.io%2FKeket%2F)](https://psichix.github.io/Keket)
+[![workflow](https://img.shields.io/github/actions/workflow/status/PsichiX/Keket/rust.yml)](https://github.com/PsichiX/Keket/actions/workflows/rust.yml)
 
 **Database-like Asset management on top of ECS storage.**
 
@@ -82,6 +83,7 @@ More examples:
 - [Custom fetch engine](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/13_custom_fetch.rs)
 - [Assets versioning](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/14_assets_versioning.rs)
 - [Localized assets](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/15_localized_assets.rs)
+- [Extract from asset](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/16_extract_from_asset.rs)
 - [HTTP fetch engine](https://github.com/PsichiX/Keket/tree/master/crates/http/examples/hello_http.rs)
 - [REDB fetch engine](https://github.com/PsichiX/Keket/tree/master/crates/redb/examples/hello_redb.rs)
 - [Asset server fetch engine](https://github.com/PsichiX/Keket/tree/master/crates/client/examples/hello_client.rs)
