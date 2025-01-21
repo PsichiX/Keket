@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>HTTP requests - Keket - Asset Database on top of ECS</title>
+        <title>Extract from asset - Keket - Asset Database on top of ECS</title>
 
 
         <!-- Custom HTML head -->
@@ -152,77 +152,70 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="http-requests"><a class="header" href="#http-requests">HTTP requests</a></h1>
-<blockquote>
-<p><strong>Required crate: <code>keket-http</code>.</strong></p>
-</blockquote>
-<p><code>HttpAssetFetch</code> allows to fetch bytes with HTTP sources.</p>
+                        <h1 id="extract-from-asset"><a class="header" href="#extract-from-asset">Extract from asset</a></h1>
+<p><code>ExtractAssetFetch</code> allows for extracting asset bytes from storage. You can
+specialize extraction with specific asset as source.</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{path::AssetPath, AssetDatabase},
-</span><span class="boring">    fetch::deferred::DeferredAssetFetch,
-</span><span class="boring">    protocol::{bundle::BundleAssetProtocol, bytes::BytesAssetProtocol, text::TextAssetProtocol},
+</span><span class="boring">    database::AssetDatabase,
+</span><span class="boring">    fetch::{
+</span><span class="boring">        extract::{from_asset_extractor, ExtractAssetFetch},
+</span><span class="boring">        file::FileAssetFetch,
+</span><span class="boring">    },
+</span><span class="boring">    protocol::{bytes::BytesAssetProtocol, text::TextAssetProtocol},
 </span><span class="boring">};
-</span><span class="boring">use keket_http::{third_party::reqwest::Url, HttpAssetFetch};
-</span><span class="boring">use serde_json::Value;
-</span><span class="boring">use std::error::Error;
+</span><span class="boring">use std::{error::Error, io::Cursor, io::Read};
+</span><span class="boring">use zip::ZipArchive;
 </span><span class="boring">
 </span><span class="boring">fn main() -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
 </span>    let mut database = AssetDatabase::default()
         .with_protocol(TextAssetProtocol)
         .with_protocol(BytesAssetProtocol)
-        .with_protocol(BundleAssetProtocol::new("json", |bytes: Vec&lt;u8&gt;| {
-            Ok((serde_json::from_slice::&lt;Value&gt;(&amp;bytes)?,).into())
-        }))
-        // HTTP asset fetch with root URL for assets.
-        .with_fetch(DeferredAssetFetch::new(HttpAssetFetch::new(
-            "https://raw.githubusercontent.com/PsichiX/Keket/refs/heads/master/resources/",
-        )?));
+        // We start with regular fetch engine.
+        .with_fetch(FileAssetFetch::default().with_root("resources"));
 
-    // Ensure assets exists or start getting fetched.
-    let lorem = database.ensure("text://lorem.txt")?;
-    let json = database.ensure("json://person.json")?;
-    let trash = database.ensure("bytes://trash.bin")?;
+    // Start loading package ZIP bytes/
+    database.ensure("bytes://package.zip")?;
 
-    // Wait for pending fetches.
-    while database.does_await_deferred_job() {
-        println!("Waiting for database to be free");
-        println!(
-            "Loading:\n- Lorem Ipsum: {}\n- JSON: {}\n- Bytes: {}",
-            lorem.awaits_deferred_job(&amp;database),
-            json.awaits_deferred_job(&amp;database),
-            trash.awaits_deferred_job(&amp;database)
-        );
+    // Maintain database while busy.
+    while database.is_busy() {
         database.maintain()?;
     }
 
-    // After all assets bytes are fetched, process them into assets.
+    // Then we push extraction asset fetch to fetch engine stack. From now on
+    // any future asset request will be extracted from loaded ZIP archive.
+    database.push_fetch(ExtractAssetFetch::new(from_asset_extractor(
+        "bytes://package.zip",
+        |bytes: &amp;Vec&lt;u8&gt;, path| {
+            let mut archive = ZipArchive::new(Cursor::new(bytes))?;
+            let mut file = archive.by_name(path.path())?;
+            let mut result = vec![];
+            file.read_to_end(&amp;mut result)?;
+            Ok(result)
+        },
+    )));
+
+    // Extract some assets from ZIP asset.
+    let lorem = database.ensure("text://lorem.txt")?;
+    let trash = database.ensure("bytes://trash.bin")?;
+
+    // Run maintenance to process extracted asset bytes.
     database.maintain()?;
 
     println!("Lorem Ipsum: {}", lorem.access::&lt;&amp;String&gt;(&amp;database));
-    println!("JSON: {:#}", json.access::&lt;&amp;Value&gt;(&amp;database));
     println!("Bytes: {:?}", trash.access::&lt;&amp;Vec&lt;u8&gt;&gt;(&amp;database));
-
-    // List all assets from HTTP.
-    for (asset_path, url) in database.storage.query::&lt;true, (&amp;AssetPath, &amp;Url)&gt;() {
-        println!("Asset: `{}` at url: `{}`", asset_path, url);
-    }
 <span class="boring">
 </span><span class="boring">    Ok(())
 </span><span class="boring">}</span></code></pre>
-<blockquote>
-<p>Since this is blocking fetch, you might want to wrap it with <code>DeferredAssetFetch</code>
-to run HTTP fetching jobs in background.</p>
-</blockquote>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../fetch/extract.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../fetch/rewrite.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../fetch/redb.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../fetch/http.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -232,11 +225,11 @@ to run HTTP fetching jobs in background.</p>
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../fetch/extract.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../fetch/rewrite.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../fetch/redb.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../fetch/http.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
