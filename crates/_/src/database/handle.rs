@@ -9,6 +9,7 @@ use anput::{
     entity::Entity,
     prelude::{Command, ComponentRefMut, WorldDestroyIteratorExt},
     query::{Exclude, Include, QueryError, TypedLookupFetch, TypedQueryFetch},
+    world::World,
 };
 use std::error::Error;
 
@@ -41,6 +42,7 @@ impl AssetHandle {
         database
             .storage
             .traverse_outgoing::<true, AssetDependency>([self.entity])
+            .map(|(_, entity)| entity)
             .to_despawn_command()
             .execute(&mut database.storage);
     }
@@ -98,7 +100,7 @@ impl AssetHandle {
         database
             .storage
             .traverse_outgoing::<true, AssetDependency>([self.entity])
-            .all(|entity| lookup.access(entity).is_some())
+            .all(|(_, entity)| lookup.access(entity).is_some())
     }
 
     /// Adds a bundle of components to the asset.
@@ -200,7 +202,7 @@ impl AssetHandle {
         database
             .storage
             .traverse_outgoing::<true, AssetDependency>([self.entity])
-            .map(|entity| Self { entity })
+            .map(|(_, entity)| Self { entity })
     }
 }
 
@@ -223,6 +225,7 @@ impl<'a, const LOCKING: bool> TypedQueryFetch<'a, LOCKING> for AssetHandle {
 
 impl<'a, const LOCKING: bool> TypedLookupFetch<'a, LOCKING> for AssetHandle {
     type Value = AssetHandle;
+    type ValueOne = AssetHandle;
     type Access = <Entity as TypedLookupFetch<'a, LOCKING>>::Access;
 
     fn try_access(archetype: &'a Archetype) -> Option<Self::Access> {
@@ -231,5 +234,9 @@ impl<'a, const LOCKING: bool> TypedLookupFetch<'a, LOCKING> for AssetHandle {
 
     fn fetch(access: &mut Self::Access, entity: Entity) -> Option<Self::Value> {
         <Entity as TypedLookupFetch<'a, LOCKING>>::fetch(access, entity).map(AssetHandle::new)
+    }
+
+    fn fetch_one(world: &'a World, entity: Entity) -> Option<Self::ValueOne> {
+        <Entity as TypedLookupFetch<'a, LOCKING>>::fetch_one(world, entity).map(AssetHandle::new)
     }
 }

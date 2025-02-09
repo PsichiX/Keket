@@ -250,6 +250,7 @@ impl AssetDatabase {
             .map(|(entity, _)| entity);
         self.storage
             .traverse_outgoing::<true, AssetDependency>(to_remove)
+            .map(|(_, entity)| entity)
             .to_despawn_command()
             .execute(&mut self.storage)
     }

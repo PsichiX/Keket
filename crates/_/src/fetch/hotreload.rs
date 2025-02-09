@@ -4,7 +4,7 @@ use crate::{
 };
 use anput::{
     bundle::DynamicBundle, entity::Entity, query::Update,
-    third_party::intuicio_data::prelude::TypeHash, world::World,
+    third_party::intuicio_data::type_hash::TypeHash, world::World,
 };
 use notify::{Config, Event, PollWatcher, RecursiveMode, Result as NotifyResult, Watcher};
 use std::{

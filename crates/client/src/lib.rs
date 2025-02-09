@@ -3,7 +3,7 @@ use keket::{
     fetch::{AssetAwaitsResolution, AssetBytesAreReadyToProcess, AssetFetch},
     third_party::anput::{
         bundle::DynamicBundle, entity::Entity, query::Update,
-        third_party::intuicio_data::prelude::TypeHash, world::World,
+        third_party::intuicio_data::type_hash::TypeHash, world::World,
     },
 };
 use reqwest::Url;
