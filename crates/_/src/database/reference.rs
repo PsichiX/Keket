@@ -1,7 +1,13 @@
 use crate::database::{handle::AssetHandle, path::AssetPathStatic, AssetDatabase};
 use anput::{entity::Entity, query::TypedLookupFetch};
 use serde::{Deserialize, Serialize};
-use std::{error::Error, sync::RwLock};
+use std::{
+    error::Error,
+    ops::{Deref, DerefMut},
+    sync::{mpsc::Sender, RwLock},
+};
+
+use super::AssetDatabaseCommand;
 
 /// A reference to an asset in the asset database.
 ///
@@ -97,6 +103,27 @@ impl AssetRef {
             let result = database
                 .find(self.path.clone())
                 .ok_or_else(|| format!("Asset with `{}` path not found in database!", self.path))?;
+            *handle = Some(result);
+            Ok(AssetResolved::new(result, database))
+        }
+    }
+
+    /// Ensures existence of the asset with handle using the asset database.
+    ///
+    /// # Arguments
+    /// - `database`: Reference to the `AssetDatabase` to ensure the asset.
+    ///
+    /// # Returns
+    /// An ensured `AssetResolved` object, or an error if resolution fails.
+    pub fn ensure<'a>(
+        &'a self,
+        database: &'a mut AssetDatabase,
+    ) -> Result<AssetResolved<'a>, Box<dyn Error>> {
+        let mut handle = self.handle.write().map_err(|error| format!("{}", error))?;
+        if let Some(result) = handle.as_ref() {
+            Ok(AssetResolved::new(*result, database))
+        } else {
+            let result = database.ensure(self.path.clone())?;
             *handle = Some(result);
             Ok(AssetResolved::new(result, database))
         }
@@ -243,5 +270,69 @@ impl<'a> AssetResolved<'a> {
                     handle,
                 ))
             })
+    }
+}
+
+/// A smart reference to an asset in the asset database.
+/// The asset is automatically despawned when the reference is dropped.
+pub struct SmartAssetRef {
+    inner: AssetRef,
+    sender: Sender<AssetDatabaseCommand>,
+}
+
+impl Drop for SmartAssetRef {
+    fn drop(&mut self) {
+        if let Ok(handle) = self.inner.handle() {
+            let _ = self.sender.send(Box::new(move |storage| {
+                let _ = storage.despawn(handle.entity());
+            }));
+        }
+    }
+}
+
+impl SmartAssetRef {
+    /// Creates a new `SmartAssetRef` with the given asset path.
+    ///
+    /// # Arguments
+    /// - `path`: The path to the asset.
+    /// - `database`: Reference to the `AssetDatabase`.
+    ///
+    /// # Returns
+    /// An instance of `SmartAssetRef`.
+    pub fn new(path: impl Into<AssetPathStatic>, database: &AssetDatabase) -> Self {
+        let inner = AssetRef::new(path);
+        let sender = database.commands_sender();
+        Self { inner, sender }
+    }
+
+    /// Ensures existence of the asset with handle using the asset database.
+    ///
+    /// # Arguments
+    /// - `path`: The path to the asset.
+    /// - `database`: Reference to the `AssetDatabase`.
+    ///
+    /// # Returns
+    /// An instance of `SmartAssetRef` if succeed, or error if failed.
+    pub fn ensured(
+        path: impl Into<AssetPathStatic>,
+        database: &mut AssetDatabase,
+    ) -> Result<Self, Box<dyn Error>> {
+        let result = Self::new(path, database);
+        result.ensure(database)?;
+        Ok(result)
+    }
+}
+
+impl Deref for SmartAssetRef {
+    type Target = AssetRef;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl DerefMut for SmartAssetRef {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }

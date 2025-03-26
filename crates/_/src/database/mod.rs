@@ -24,16 +24,39 @@ use anput::{
     query::Include,
     world::World,
 };
-use std::error::Error;
+use std::{
+    error::Error,
+    sync::mpsc::{channel, Receiver, Sender},
+};
+
+pub type AssetDatabaseCommand = Box<dyn FnOnce(&mut World) + Send + Sync>;
 
 /// Asset database for managing assets and their states.
-#[derive(Default)]
 pub struct AssetDatabase {
     pub storage: World,
     pub events: AssetEventBindings,
     pub allow_asset_progression_failures: bool,
     fetch_stack: Vec<AssetFetchEngine>,
     protocols: Vec<Box<dyn AssetProtocol>>,
+    #[allow(clippy::type_complexity)]
+    sender: Sender<AssetDatabaseCommand>,
+    #[allow(clippy::type_complexity)]
+    receiver: Receiver<AssetDatabaseCommand>,
+}
+
+impl Default for AssetDatabase {
+    fn default() -> Self {
+        let (sender, receiver) = channel();
+        Self {
+            storage: Default::default(),
+            events: Default::default(),
+            allow_asset_progression_failures: false,
+            fetch_stack: Default::default(),
+            protocols: Default::default(),
+            sender,
+            receiver,
+        }
+    }
 }
 
 impl AssetDatabase {
@@ -335,6 +358,13 @@ impl AssetDatabase {
             || self.storage.has_component::<AssetAwaitsDeferredJob>()
     }
 
+    /// Returns the sender for asset database commands.
+    /// This can be used to send commands to the asset database from external places.
+    #[allow(clippy::type_complexity)]
+    pub fn commands_sender(&self) -> Sender<AssetDatabaseCommand> {
+        self.sender.clone()
+    }
+
     /// Performs maintenance on the asset database, processing events and managing states.
     ///
     /// - Processes newly added assets and dispatches relevant events.
@@ -344,6 +374,9 @@ impl AssetDatabase {
     /// # Returns
     /// `Ok(())` if successful, or an error if any step fails.
     pub fn maintain(&mut self) -> Result<(), Box<dyn Error>> {
+        while let Ok(command) = self.receiver.try_recv() {
+            command(&mut self.storage);
+        }
         {
             let mut lookup = self
                 .storage
