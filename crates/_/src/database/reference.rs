@@ -310,7 +310,19 @@ impl SmartAssetRef {
         path: impl Into<AssetPathStatic>,
         database: &mut AssetDatabase,
     ) -> Result<Self, Box<dyn Error>> {
-        let inner = AssetRef::new(path);
+        Self::from_ref(AssetRef::new(path), database)
+    }
+
+    /// Creates a new `SmartAssetRef` from an existing `AssetRef`, ensuring it's
+    /// asset existance and incrementing asset reference counter.
+    ///
+    /// # Arguments
+    /// - `inner`: The `AssetRef` to create the `SmartAssetRef` from.
+    /// - `database`: Reference to the `AssetDatabase`.
+    ///
+    /// # Returns
+    /// An instance of `SmartAssetRef`.
+    pub fn from_ref(inner: AssetRef, database: &mut AssetDatabase) -> Result<Self, Box<dyn Error>> {
         let sender = database.commands_sender();
         let handle = inner.ensure(database)?.handle;
         handle
@@ -320,6 +332,12 @@ impl SmartAssetRef {
             .storage
             .update::<AssetReferenceCounter>(handle.entity());
         Ok(Self { inner, sender })
+    }
+
+    /// Converts the `SmartAssetRef` into a regular `AssetRef`, decrementing
+    /// asset reference counter in the process.
+    pub fn into_ref(self) -> AssetRef {
+        self.inner.clone()
     }
 }
 
