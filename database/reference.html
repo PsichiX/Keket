@@ -299,8 +299,7 @@ impl CustomAsset {
 <p><code>SmartAssetRef</code> is a thin wrapper arount asset reference, that uses database
 asset reference counting feature to automatically handle asset lifetime and
 despawn asset when counter drops to 0.</p>
-<pre><code class="language-rust ignore"><span class="boring">use anput::entity::Entity;
-</span><span class="boring">use keket::{
+<pre><code class="language-rust ignore"><span class="boring">use keket::{
 </span><span class="boring">    database::{reference::SmartAssetRef, AssetDatabase, AssetReferenceCounter},
 </span><span class="boring">    fetch::file::FileAssetFetch,
 </span><span class="boring">    protocol::text::TextAssetProtocol,
