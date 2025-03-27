@@ -20,10 +20,9 @@ into typed data, asset handle resolution will happen only at first time.
 {{#rustdoc_include ../../../crates/_/examples/10_references.rs:main}}
 ```
 
-`SmartAssetRef` is a thin wrapper arount asset reference, that automatically
-despawns asset from database when that object drops. It's mostly useful when
-put in `Arc` to achieve shared reference counted asset references that manage
-asset lifetime.
+`SmartAssetRef` is a thin wrapper arount asset reference, that uses database
+asset reference counting feature to automatically handle asset lifetime and
+despawn asset when counter drops to 0.
 
 ```rust,ignore
 {{#rustdoc_include ../../../crates/_/examples/17_smart_references.rs:main}}
