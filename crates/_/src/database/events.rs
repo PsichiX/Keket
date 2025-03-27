@@ -89,7 +89,8 @@ pub struct AssetEventBinding(usize);
 #[derive(Default)]
 pub struct AssetEventBindings {
     id_generator: usize,
-    bindings: Vec<(AssetEventBinding, Box<dyn AssetEventListener>)>,
+    // [(binding, listener, dispatch once)]
+    bindings: Vec<(AssetEventBinding, Box<dyn AssetEventListener>, bool)>,
 }
 
 impl AssetEventBindings {
@@ -103,7 +104,22 @@ impl AssetEventBindings {
     pub fn bind(&mut self, listener: impl AssetEventListener + 'static) -> AssetEventBinding {
         let id = AssetEventBinding(self.id_generator);
         self.id_generator = self.id_generator.overflowing_add(1).0;
-        self.bindings.push((id, Box::new(listener)));
+        self.bindings.push((id, Box::new(listener), false));
+        id
+    }
+
+    /// Adds a new listener and returns its binding identifier.
+    /// The listener will be automatically removed after being dispatched once.
+    ///
+    /// # Arguments
+    /// - `listener`: The listener to be added.
+    ///
+    /// # Returns
+    /// A unique binding identifier for the listener.
+    pub fn bind_once(&mut self, listener: impl AssetEventListener + 'static) -> AssetEventBinding {
+        let id = AssetEventBinding(self.id_generator);
+        self.id_generator = self.id_generator.overflowing_add(1).0;
+        self.bindings.push((id, Box::new(listener), true));
         id
     }
 
@@ -117,7 +133,7 @@ impl AssetEventBindings {
     pub fn unbind(&mut self, binding: AssetEventBinding) -> Option<Box<dyn AssetEventListener>> {
         self.bindings
             .iter()
-            .position(|(listener_binding, _)| *listener_binding == binding)
+            .position(|(listener_binding, _, _)| *listener_binding == binding)
             .map(|index| self.bindings.swap_remove(index).1)
     }
 
@@ -138,10 +154,11 @@ impl AssetEventBindings {
 
     /// Returns an iterator over all binding identifiers.
     pub fn bindings(&self) -> impl Iterator<Item = AssetEventBinding> + '_ {
-        self.bindings.iter().map(|(binding, _)| *binding)
+        self.bindings.iter().map(|(binding, _, _)| *binding)
     }
 
     /// Dispatches an asset event to all listeners.
+    /// Listeners that were bound with `bind_once` will be removed after dispatch.
     ///
     /// # Arguments
     /// - `event`: The event to be dispatched.
@@ -149,9 +166,11 @@ impl AssetEventBindings {
     /// # Returns
     /// A `Result` indicating success or an error.
     pub fn dispatch(&mut self, event: AssetEvent) -> Result<(), Box<dyn Error>> {
-        for (_, listener) in &mut self.bindings {
+        for (_, listener, _) in &mut self.bindings {
             listener.on_dispatch(event.clone())?;
         }
+        self.bindings
+            .retain(|(_, _, dispatch_once)| !*dispatch_once);
         Ok(())
     }
 }
