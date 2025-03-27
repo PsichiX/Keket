@@ -26,5 +26,5 @@ put in `Arc` to achieve shared reference counted asset references that manage
 asset lifetime.
 
 ```rust,ignore
-{{#rustdoc_include ../../../crates/_/examples/16_smart_references.rs:main}}
+{{#rustdoc_include ../../../crates/_/examples/17_smart_references.rs:main}}
 ```
