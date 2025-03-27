@@ -25,9 +25,9 @@
         <link rel="stylesheet" href="fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" href="highlight.css">
-        <link rel="stylesheet" href="tomorrow-night.css">
-        <link rel="stylesheet" href="ayu-highlight.css">
+        <link rel="stylesheet" id="highlight-css" href="highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
@@ -606,6 +606,94 @@ impl CustomAsset {
 </span><span class="boring">            .map(|reference| reference.path().clone());
 </span><span class="boring">        Ok(BundleWithDependencies::new((asset,)).maybe_dependency(dependency))
 </span><span class="boring">    }
+</span><span class="boring">}</span></code></pre>
+<p><code>SmartAssetRef</code> is a thin wrapper arount asset reference, that automatically
+despawns asset from database when that object drops. It's mostly useful when
+put in <code>Arc</code> to achieve shared reference counted asset references that manage
+asset lifetime.</p>
+<pre><code class="language-rust ignore"><span class="boring">use anput::entity::Entity;
+</span><span class="boring">use keket::{
+</span><span class="boring">    database::{reference::SmartAssetRef, AssetDatabase, AssetReferenceCounter},
+</span><span class="boring">    fetch::file::FileAssetFetch,
+</span><span class="boring">    protocol::text::TextAssetProtocol,
+</span><span class="boring">};
+</span><span class="boring">use std::error::Error;
+</span><span class="boring">
+</span><span class="boring">fn main() -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span>    let mut database = AssetDatabase::default()
+        .with_protocol(TextAssetProtocol)
+        .with_fetch(FileAssetFetch::default().with_root("resources"));
+
+    // Load asset and mark its first reference.
+    let first = SmartAssetRef::new("text://lorem.txt", &amp;mut database)?;
+    println!(
+        "Lorem Ipsum: {}",
+        first.resolve(&amp;database)?.access::&lt;&amp;String&gt;()
+    );
+    database.maintain()?;
+    assert_eq!(database.storage.len(), 1);
+    assert_eq!(
+        first
+            .resolve(&amp;database)?
+            .access::&lt;&amp;AssetReferenceCounter&gt;()
+            .counter(),
+        1
+    );
+
+    // Clone the asset and mark its second reference.
+    let second = first.clone();
+    database.maintain()?;
+    assert_eq!(database.storage.len(), 1);
+    assert_eq!(
+        second
+            .resolve(&amp;database)?
+            .access::&lt;&amp;AssetReferenceCounter&gt;()
+            .counter(),
+        2
+    );
+
+    // Ensure asset again from scratch and mark its third reference.
+    let third = SmartAssetRef::new("text://lorem.txt", &amp;mut database)?;
+    database.maintain()?;
+    assert_eq!(database.storage.len(), 1);
+    assert_eq!(
+        third
+            .resolve(&amp;database)?
+            .access::&lt;&amp;AssetReferenceCounter&gt;()
+            .counter(),
+        3
+    );
+
+    // Drop the first reference and expect 2 references.
+    drop(first);
+    database.maintain()?;
+    assert_eq!(database.storage.len(), 1);
+    assert_eq!(
+        third
+            .resolve(&amp;database)?
+            .access::&lt;&amp;AssetReferenceCounter&gt;()
+            .counter(),
+        2
+    );
+
+    // Drop the second reference and expect 1 reference.
+    drop(second);
+    database.maintain()?;
+    assert_eq!(database.storage.len(), 1);
+    assert_eq!(
+        third
+            .resolve(&amp;database)?
+            .access::&lt;&amp;AssetReferenceCounter&gt;()
+            .counter(),
+        1
+    );
+
+    // Drop the third reference and expect no references and asset no more existing.
+    drop(third);
+    database.maintain()?;
+    assert_eq!(database.storage.len(), 0);
+<span class="boring">
+</span><span class="boring">    Ok(())
 </span><span class="boring">}</span></code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="asset-events"><a class="header" href="#asset-events">Asset Events</a></h1>
 <p><code>AssetEventBindings</code> is a container for event listeners that will be notified
