@@ -607,10 +607,9 @@ impl CustomAsset {
 </span><span class="boring">        Ok(BundleWithDependencies::new((asset,)).maybe_dependency(dependency))
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
-<p><code>SmartAssetRef</code> is a thin wrapper arount asset reference, that automatically
-despawns asset from database when that object drops. It's mostly useful when
-put in <code>Arc</code> to achieve shared reference counted asset references that manage
-asset lifetime.</p>
+<p><code>SmartAssetRef</code> is a thin wrapper arount asset reference, that uses database
+asset reference counting feature to automatically handle asset lifetime and
+despawn asset when counter drops to 0.</p>
 <pre><code class="language-rust ignore"><span class="boring">use anput::entity::Entity;
 </span><span class="boring">use keket::{
 </span><span class="boring">    database::{reference::SmartAssetRef, AssetDatabase, AssetReferenceCounter},
