@@ -377,6 +377,33 @@ impl AssetDatabase {
         while let Ok(command) = self.receiver.try_recv() {
             command(&mut self.storage);
         }
+        let despawn = if let Some(changes) = self.storage.updated() {
+            if changes.has_component::<AssetReferenceCounter>() {
+                Some(
+                    changes
+                        .iter_of::<AssetReferenceCounter>()
+                        .filter_map(|entity| {
+                            let counter = self
+                                .storage
+                                .component::<true, AssetReferenceCounter>(entity)
+                                .ok()?;
+                            if counter.counter() == 0 {
+                                Some(entity)
+                            } else {
+                                None
+                            }
+                        })
+                        .to_despawn_command(),
+                )
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+        if let Some(despawn) = despawn {
+            despawn.execute(&mut self.storage);
+        }
         {
             let mut lookup = self
                 .storage
@@ -529,5 +556,22 @@ impl AssetDatabase {
             }
         }
         Ok(())
+    }
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct AssetReferenceCounter(usize);
+
+impl AssetReferenceCounter {
+    pub fn counter(&self) -> usize {
+        self.0
+    }
+
+    pub fn increment(&mut self) {
+        self.0 = self.0.saturating_add(1);
+    }
+
+    pub fn decrement(&mut self) {
+        self.0 = self.0.saturating_sub(1);
     }
 }

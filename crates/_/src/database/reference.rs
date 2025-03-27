@@ -1,4 +1,7 @@
-use crate::database::{handle::AssetHandle, path::AssetPathStatic, AssetDatabase};
+use crate::database::{
+    handle::AssetHandle, path::AssetPathStatic, AssetDatabase, AssetDatabaseCommand,
+    AssetReferenceCounter,
+};
 use anput::{entity::Entity, query::TypedLookupFetch};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -6,8 +9,6 @@ use std::{
     ops::{Deref, DerefMut},
     sync::{mpsc::Sender, RwLock},
 };
-
-use super::AssetDatabaseCommand;
 
 /// A reference to an asset in the asset database.
 ///
@@ -274,7 +275,7 @@ impl<'a> AssetResolved<'a> {
 }
 
 /// A smart reference to an asset in the asset database.
-/// The asset is automatically despawned when the reference is dropped.
+/// Uses asset reference counting to ensure asset lifetime.
 pub struct SmartAssetRef {
     inner: AssetRef,
     sender: Sender<AssetDatabaseCommand>,
@@ -284,14 +285,20 @@ impl Drop for SmartAssetRef {
     fn drop(&mut self) {
         if let Ok(handle) = self.inner.handle() {
             let _ = self.sender.send(Box::new(move |storage| {
-                let _ = storage.despawn(handle.entity());
+                if let Ok(mut counter) =
+                    storage.component_mut::<true, AssetReferenceCounter>(handle.entity())
+                {
+                    counter.decrement();
+                    storage.update::<AssetReferenceCounter>(handle.entity());
+                }
             }));
         }
     }
 }
 
 impl SmartAssetRef {
-    /// Creates a new `SmartAssetRef` with the given asset path.
+    /// Creates a new `SmartAssetRef` with the given asset path, ensuring it's
+    /// existance and incrementing asset reference counter.
     ///
     /// # Arguments
     /// - `path`: The path to the asset.
@@ -299,27 +306,39 @@ impl SmartAssetRef {
     ///
     /// # Returns
     /// An instance of `SmartAssetRef`.
-    pub fn new(path: impl Into<AssetPathStatic>, database: &AssetDatabase) -> Self {
-        let inner = AssetRef::new(path);
-        let sender = database.commands_sender();
-        Self { inner, sender }
-    }
-
-    /// Ensures existence of the asset with handle using the asset database.
-    ///
-    /// # Arguments
-    /// - `path`: The path to the asset.
-    /// - `database`: Reference to the `AssetDatabase`.
-    ///
-    /// # Returns
-    /// An instance of `SmartAssetRef` if succeed, or error if failed.
-    pub fn ensured(
+    pub fn new(
         path: impl Into<AssetPathStatic>,
         database: &mut AssetDatabase,
     ) -> Result<Self, Box<dyn Error>> {
-        let result = Self::new(path, database);
-        result.ensure(database)?;
-        Ok(result)
+        let inner = AssetRef::new(path);
+        let sender = database.commands_sender();
+        let handle = inner.ensure(database)?.handle;
+        handle
+            .ensure::<AssetReferenceCounter>(database)?
+            .increment();
+        database
+            .storage
+            .update::<AssetReferenceCounter>(handle.entity());
+        Ok(Self { inner, sender })
+    }
+}
+
+impl Clone for SmartAssetRef {
+    fn clone(&self) -> Self {
+        if let Ok(handle) = self.inner.handle() {
+            let _ = self.sender.send(Box::new(move |storage| {
+                if let Ok(mut counter) =
+                    storage.component_mut::<true, AssetReferenceCounter>(handle.entity())
+                {
+                    counter.increment();
+                    storage.update::<AssetReferenceCounter>(handle.entity());
+                }
+            }));
+        }
+        Self {
+            inner: self.inner.clone(),
+            sender: self.sender.clone(),
+        }
     }
 }
 
