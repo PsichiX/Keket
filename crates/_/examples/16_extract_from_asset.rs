@@ -17,7 +17,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         // We start with regular fetch engine.
         .with_fetch(FileAssetFetch::default().with_root("resources"));
 
-    // Start loading package ZIP bytes/
+    // Start loading package ZIP bytes.
     database.ensure("bytes://package.zip")?;
 
     // Maintain database while busy.

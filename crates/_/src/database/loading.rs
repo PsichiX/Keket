@@ -96,7 +96,7 @@ impl AssetsLoadingTracker {
                     out_status.with_bytes_ready_to_process.add(*handle);
                 } else if handle.awaits_deferred_job(database) {
                     out_status.awaiting_deferred_job.add(*handle);
-                } else if handle.is_ready_to_use(database) {
+                } else {
                     out_status.ready_to_use.add(*handle);
                 }
             }
