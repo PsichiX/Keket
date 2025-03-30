@@ -1408,8 +1408,8 @@ specialize extraction with specific asset as source.</p>
     let json = database.ensure("json://person.json")?;
     let trash = database.ensure("bytes://trash.bin")?;
 
-    // Wait for pending fetches.
-    while database.does_await_deferred_job() {
+    // Wait till database is busy.
+    while database.is_busy() {
         println!("Waiting for database to be free");
         println!(
             "Loading:\n- Lorem Ipsum: {}\n- JSON: {}\n- Bytes: {}",
@@ -1419,9 +1419,6 @@ specialize extraction with specific asset as source.</p>
         );
         database.maintain()?;
     }
-
-    // After all assets bytes are fetched, process them into assets.
-    database.maintain()?;
 
     println!("Lorem Ipsum: {}", lorem.access::&lt;&amp;String&gt;(&amp;database));
     println!("JSON: {:#}", json.access::&lt;&amp;Value&gt;(&amp;database));
@@ -1508,8 +1505,8 @@ binary crate) - a humble beginnings to DDC infrastructure for live development.<
     let lorem = database.ensure("text://lorem.txt")?;
     let trash = database.ensure("bytes://trash.bin")?;
 
-    // Wait for pending fetches.
-    while database.does_await_deferred_job() {
+    // Wait till database is busy.
+    while database.is_busy() {
         println!("Waiting for database to be free");
         println!(
             "Loading:\n- Lorem Ipsum: {}\n- Bytes: {}",
@@ -1518,9 +1515,6 @@ binary crate) - a humble beginnings to DDC infrastructure for live development.<
         );
         database.maintain()?;
     }
-
-    // After all assets bytes are fetched, process them into assets.
-    database.maintain()?;
 
     println!("Lorem Ipsum: {}", lorem.access::&lt;&amp;String&gt;(&amp;database));
     println!("Bytes: {:?}", trash.access::&lt;&amp;Vec&lt;u8&gt;&gt;(&amp;database));
