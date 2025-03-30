@@ -1,6 +1,6 @@
 [package]
 name = "keket-redb"
-version = "0.12.7"
+version = "0.12.8"
 edition = "2021"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 description = "REDB asset fetch for Keket toolkit"

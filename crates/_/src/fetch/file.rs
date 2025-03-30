@@ -5,8 +5,36 @@ use crate::{
 use anput::bundle::DynamicBundle;
 use std::{error::Error, path::PathBuf};
 
+fn load_file_bundle(file_path: PathBuf) -> Result<DynamicBundle, Box<dyn Error>> {
+    let bytes = std::fs::read(&file_path)
+        .map_err(|error| format!("Failed to load `{:?}` file bytes: {}", file_path, error))?;
+    let mut bundle = DynamicBundle::default();
+    bundle
+        .add_component(AssetBytesAreReadyToProcess(bytes))
+        .ok()
+        .unwrap();
+    bundle.add_component(AssetFromFile).ok().unwrap();
+    bundle
+        .add_component(std::fs::metadata(&file_path)?)
+        .ok()
+        .unwrap();
+    bundle.add_component(file_path).ok().unwrap();
+    Ok(bundle)
+}
+
 /// Marker component for assets that originate from files.
 pub struct AssetFromFile;
+
+/// An implementation of the `AssetFetch` trait that loads assets from the file
+/// system using absolute paths.
+#[derive(Debug, Default, Clone)]
+pub struct AbsoluteFileAssetFetch;
+
+impl AssetFetch for AbsoluteFileAssetFetch {
+    fn load_bytes(&self, path: AssetPath) -> Result<DynamicBundle, Box<dyn Error>> {
+        load_file_bundle(PathBuf::from(path.path()))
+    }
+}
 
 /// An implementation of the `AssetFetch` trait that loads assets from the file system.
 #[derive(Debug, Default, Clone)]
@@ -30,20 +58,6 @@ impl FileAssetFetch {
 
 impl AssetFetch for FileAssetFetch {
     fn load_bytes(&self, path: AssetPath) -> Result<DynamicBundle, Box<dyn Error>> {
-        let file_path = self.root.join(path.path());
-        let bytes = std::fs::read(&file_path)
-            .map_err(|error| format!("Failed to load `{:?}` file bytes: {}", file_path, error))?;
-        let mut bundle = DynamicBundle::default();
-        bundle
-            .add_component(AssetBytesAreReadyToProcess(bytes))
-            .ok()
-            .unwrap();
-        bundle.add_component(AssetFromFile).ok().unwrap();
-        bundle
-            .add_component(std::fs::metadata(&file_path)?)
-            .ok()
-            .unwrap();
-        bundle.add_component(file_path).ok().unwrap();
-        Ok(bundle)
+        load_file_bundle(self.root.join(path.path()))
     }
 }

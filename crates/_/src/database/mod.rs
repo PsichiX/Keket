@@ -1,5 +1,6 @@
 pub mod events;
 pub mod handle;
+pub mod loading;
 pub mod path;
 pub mod reference;
 pub mod tags;
@@ -8,6 +9,7 @@ use crate::{
     database::{
         events::{AssetEvent, AssetEventBindings, AssetEventKind, AssetEventListener},
         handle::{AssetDependency, AssetHandle},
+        loading::AssetsLoadingStatus,
         path::{AssetPath, AssetPathStatic},
     },
     fetch::{
@@ -278,6 +280,39 @@ impl AssetDatabase {
             .execute(&mut self.storage)
     }
 
+    /// Tries to dereference an asset by its path. If asset has no references
+    /// left, it gets removed it from the storage.
+    ///
+    /// # Arguments
+    /// - `path`: The path of the asset to unload.
+    pub fn dereference_or_unload<'a>(&mut self, path: impl Into<AssetPath<'a>>) {
+        let path = path.into();
+        let to_remove = self
+            .storage
+            .query::<true, (Entity, &AssetPath)>()
+            .filter(|(_, p)| *p == &path)
+            .filter_map(|(entity, _)| {
+                if let Ok(mut counter) = self
+                    .storage
+                    .component_mut::<true, AssetReferenceCounter>(entity)
+                {
+                    counter.decrement();
+                    if counter.counter() == 0 {
+                        Some(entity)
+                    } else {
+                        None
+                    }
+                } else {
+                    Some(entity)
+                }
+            });
+        self.storage
+            .traverse_outgoing::<true, AssetDependency>(to_remove)
+            .map(|(_, entity)| entity)
+            .to_despawn_command()
+            .execute(&mut self.storage);
+    }
+
     /// Reloads an asset by unloading and ensuring it is reloaded.
     ///
     /// # Arguments
@@ -356,6 +391,35 @@ impl AssetDatabase {
         self.storage.has_component::<AssetAwaitsResolution>()
             || self.storage.has_component::<AssetBytesAreReadyToProcess>()
             || self.storage.has_component::<AssetAwaitsDeferredJob>()
+    }
+
+    /// Reports the status of assets in the database.
+    ///
+    /// # Arguments
+    /// - `out_status`: A mutable reference to output `AssetsLoadingStatus`.
+    pub fn report_loading_status(&self, out_status: &mut AssetsLoadingStatus) {
+        out_status.clear();
+        for (
+            handle,
+            asset_awaits_resolution,
+            asset_bytes_ready_to_process,
+            asset_awaits_deferred_job,
+        ) in self.storage.query::<true, (
+            AssetHandle,
+            Option<&AssetAwaitsResolution>,
+            Option<&AssetBytesAreReadyToProcess>,
+            Option<&AssetAwaitsDeferredJob>,
+        )>() {
+            if asset_awaits_resolution.is_some() {
+                out_status.awaiting_resolution.add(handle);
+            } else if asset_bytes_ready_to_process.is_some() {
+                out_status.with_bytes_ready_to_process.add(handle);
+            } else if asset_awaits_deferred_job.is_some() {
+                out_status.awaiting_deferred_job.add(handle);
+            } else {
+                out_status.ready_to_use.add(handle);
+            }
+        }
     }
 
     /// Returns the sender for asset database commands.

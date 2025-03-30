@@ -84,6 +84,7 @@ More examples:
 - [Assets versioning](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/14_assets_versioning.rs)
 - [Localized assets](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/15_localized_assets.rs)
 - [Extract from asset](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/16_extract_from_asset.rs)
+- [Smart references](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/17_smart_references.rs)
 - [HTTP fetch engine](https://github.com/PsichiX/Keket/tree/master/crates/http/examples/hello_http.rs)
 - [REDB fetch engine](https://github.com/PsichiX/Keket/tree/master/crates/redb/examples/hello_redb.rs)
 - [Asset server fetch engine](https://github.com/PsichiX/Keket/tree/master/crates/client/examples/hello_client.rs)

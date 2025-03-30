@@ -25,8 +25,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let json = database.ensure("json://person.json")?;
     let trash = database.ensure("bytes://trash.bin")?;
 
-    // Wait for pending fetches.
-    while database.does_await_deferred_job() {
+    // Wait till database is busy.
+    while database.is_busy() {
         println!("Waiting for database to be free");
         println!(
             "Loading:\n- Lorem Ipsum: {}\n- JSON: {}\n- Bytes: {}",
@@ -36,9 +36,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         );
         database.maintain()?;
     }
-
-    // After all assets bytes are fetched, process them into assets.
-    database.maintain()?;
 
     println!("Lorem Ipsum: {}", lorem.access::<&String>(&database));
     println!("JSON: {:#}", json.access::<&Value>(&database));
