@@ -2,6 +2,7 @@ use keket::{
     database::{path::AssetPath, AssetDatabase},
     fetch::{
         container::{ContainerAssetFetch, ContainerPartialFetch},
+        rewrite::RewriteAssetFetch,
         router::RouterAssetFetch,
     },
     protocol::{bytes::BytesAssetProtocol, text::TextAssetProtocol},
@@ -24,9 +25,19 @@ fn main() -> Result<(), Box<dyn Error>> {
                 )
                 .route(
                     |path| path.path().starts_with("dlc/"),
-                    ContainerAssetFetch::new(ZipContainerPartialFetch::new(ZipArchive::new(
-                        File::open("./resources/dlc.zip")?,
-                    )?)),
+                    RewriteAssetFetch::new(
+                        ContainerAssetFetch::new(ZipContainerPartialFetch::new(ZipArchive::new(
+                            File::open("./resources/dlc.zip")?,
+                        )?)),
+                        |path| {
+                            Ok(format!(
+                                "{}://{}",
+                                path.protocol(),
+                                path.path_with_meta().strip_prefix("dlc/").unwrap()
+                            )
+                            .into())
+                        },
+                    ),
                     1,
                 ),
         );

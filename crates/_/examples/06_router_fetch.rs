@@ -24,7 +24,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .route(
                     |path| path.path().starts_with("memory/"),
                     vec![(
-                        "trash.bin".to_owned(),
+                        "memory/trash.bin".to_owned(),
                         std::fs::read("./resources/trash.bin")?,
                     )],
                     1,
