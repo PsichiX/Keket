@@ -32,10 +32,11 @@
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root to javascript -->
+        <!-- Provide site root and default themes to javascript -->
         <script>
-            var path_to_root = "";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "ayu";
+            const path_to_root = "";
+            const default_light_theme = "ayu";
+            const default_dark_theme = "navy";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc.js"></script>
@@ -45,8 +46,8 @@
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                var theme = localStorage.getItem('mdbook-theme');
-                var sidebar = localStorage.getItem('mdbook-sidebar');
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -60,7 +61,8 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            var theme;
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -73,8 +75,8 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            var sidebar = null;
-            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
@@ -110,6 +112,7 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
@@ -158,7 +161,7 @@
 <p>Modern, flexible, modular Asset Management library built on top of ECS as its
 storage.</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{path::AssetPath, AssetDatabase},
+</span><span class="boring">    database::{AssetDatabase, path::AssetPath},
 </span><span class="boring">    fetch::file::FileAssetFetch,
 </span><span class="boring">    protocol::{bundle::BundleAssetProtocol, bytes::BytesAssetProtocol, text::TextAssetProtocol},
 </span><span class="boring">};
@@ -255,7 +258,7 @@ requirements based on the data they store. For example when we load assets with
 that come from file system, we can just query them with <code>PathBuf</code> component and
 use that fast query for asset statistics report.</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{path::AssetPath, AssetDatabase},
+</span><span class="boring">    database::{AssetDatabase, path::AssetPath},
 </span><span class="boring">    fetch::file::FileAssetFetch,
 </span><span class="boring">    protocol::{bundle::BundleAssetProtocol, bytes::BytesAssetProtocol, text::TextAssetProtocol},
 </span><span class="boring">};
@@ -361,7 +364,7 @@ on the asset using that handle - handles are returned when asset gets spawned in
 storage, so every spawned handle always point to existing asset (unless asset gets
 unloaded/deleted).</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{path::AssetPath, AssetDatabase},
+</span><span class="boring">    database::{AssetDatabase, path::AssetPath},
 </span><span class="boring">    fetch::file::FileAssetFetch,
 </span><span class="boring">    protocol::{bundle::BundleAssetProtocol, bytes::BytesAssetProtocol, text::TextAssetProtocol},
 </span><span class="boring">};
@@ -474,7 +477,7 @@ its cached handle for future database operations.</p>
 way to reference assets in serializable data, so once container gets deserializaed
 into typed data, asset handle resolution will happen only at first time.</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{reference::AssetRef, AssetDatabase},
+</span><span class="boring">    database::{AssetDatabase, reference::AssetRef},
 </span><span class="boring">    fetch::file::FileAssetFetch,
 </span><span class="boring">    protocol::bundle::{
 </span><span class="boring">        BundleAssetProtocol, BundleWithDependencies, BundleWithDependenciesProcessor,
@@ -541,7 +544,7 @@ impl CustomAsset {
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{reference::AssetRef, AssetDatabase},
+</span><span class="boring">    database::{AssetDatabase, reference::AssetRef},
 </span><span class="boring">    fetch::file::FileAssetFetch,
 </span><span class="boring">    protocol::bundle::{
 </span><span class="boring">        BundleAssetProtocol, BundleWithDependencies, BundleWithDependenciesProcessor,
@@ -611,7 +614,7 @@ impl CustomAsset {
 asset reference counting feature to automatically handle asset lifetime and
 despawn asset when counter drops to 0.</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{reference::SmartAssetRef, AssetDatabase, AssetReferenceCounter},
+</span><span class="boring">    database::{AssetDatabase, AssetReferenceCounter, reference::SmartAssetRef},
 </span><span class="boring">    fetch::file::FileAssetFetch,
 </span><span class="boring">    protocol::text::TextAssetProtocol,
 </span><span class="boring">};
@@ -702,7 +705,7 @@ closure or <code>Sender</code>), and once asset progression changes, that will b
 to registered listeners. User can also listen for all asset events by registering
 to event bindings in asset database.</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{events::AssetEventBindings, AssetDatabase},
+</span><span class="boring">    database::{AssetDatabase, events::AssetEventBindings},
 </span><span class="boring">    fetch::file::FileAssetFetch,
 </span><span class="boring">    protocol::{
 </span><span class="boring">        bundle::BundleAssetProtocol, bytes::BytesAssetProtocol, group::GroupAssetProtocol,
@@ -769,7 +772,7 @@ to make all possible asset sources implemented in asset loader.</p>
 can for example use different bytes source for different build mode or different
 platform, without having to bytes decoding to care about where bytes come from.</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{path::AssetPath, AssetDatabase},
+</span><span class="boring">    database::{AssetDatabase, path::AssetPath},
 </span><span class="boring">    fetch::file::FileAssetFetch,
 </span><span class="boring">    protocol::{bundle::BundleAssetProtocol, bytes::BytesAssetProtocol, text::TextAssetProtocol},
 </span><span class="boring">};
@@ -901,7 +904,7 @@ for future assets.</p>
 <p><code>FileAssetFetch</code> is a simple fetch engine that reads entire bytes of an asset
 file synchronously.</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{path::AssetPath, AssetDatabase},
+</span><span class="boring">    database::{AssetDatabase, path::AssetPath},
 </span><span class="boring">    fetch::file::FileAssetFetch,
 </span><span class="boring">    protocol::{bundle::BundleAssetProtocol, bytes::BytesAssetProtocol, text::TextAssetProtocol},
 </span><span class="boring">};
@@ -998,7 +1001,7 @@ println!("Trash: {:?}", bytes.access::&lt;&amp;Vec&lt;u8&gt;&gt;(&amp;database))
 <p><code>HotReloadAssetFetch</code> wrapper alows assets loaded from <code>FileAssetFetch</code> to be
 watched and reloaded when source file changes.</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{handle::AssetHandle, path::AssetPath, AssetDatabase},
+</span><span class="boring">    database::{AssetDatabase, handle::AssetHandle, path::AssetPath},
 </span><span class="boring">    fetch::{file::FileAssetFetch, hotreload::HotReloadFileAssetFetch},
 </span><span class="boring">    protocol::{bytes::BytesAssetProtocol, text::TextAssetProtocol},
 </span><span class="boring">};
@@ -1092,7 +1095,7 @@ system or network fetch engines.</p>
 containers that store other assets. Typical container example would be ZIP archives,
 databases, etc.</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{path::AssetPath, AssetDatabase},
+</span><span class="boring">    database::{AssetDatabase, path::AssetPath},
 </span><span class="boring">    fetch::container::{ContainerAssetFetch, ContainerPartialFetch},
 </span><span class="boring">    protocol::text::TextAssetProtocol,
 </span><span class="boring">};
@@ -1138,7 +1141,7 @@ impl ContainerPartialFetch for ZipContainerPartialFetch {
     }
 }</code></pre>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{path::AssetPath, AssetDatabase},
+</span><span class="boring">    database::{AssetDatabase, path::AssetPath},
 </span><span class="boring">    fetch::container::{ContainerAssetFetch, ContainerPartialFetch},
 </span><span class="boring">    protocol::text::TextAssetProtocol,
 </span><span class="boring">};
@@ -1272,7 +1275,7 @@ DLC/mod asset sources.</p>
 This is useful for scenarios like localized assets or assets versioning, where
 there might be different versions of assets based on some runtime state.</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{path::AssetPath, AssetDatabase},
+</span><span class="boring">    database::{AssetDatabase, path::AssetPath},
 </span><span class="boring">    fetch::{file::FileAssetFetch, rewrite::RewriteAssetFetch},
 </span><span class="boring">    protocol::text::TextAssetProtocol,
 </span><span class="boring">};
@@ -1329,7 +1332,7 @@ specialize extraction with specific asset as source.</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
 </span><span class="boring">    database::AssetDatabase,
 </span><span class="boring">    fetch::{
-</span><span class="boring">        extract::{from_asset_extractor, ExtractAssetFetch},
+</span><span class="boring">        extract::{ExtractAssetFetch, from_asset_extractor},
 </span><span class="boring">        file::FileAssetFetch,
 </span><span class="boring">    },
 </span><span class="boring">    protocol::{bytes::BytesAssetProtocol, text::TextAssetProtocol},
@@ -1383,11 +1386,11 @@ specialize extraction with specific asset as source.</p>
 </blockquote>
 <p><code>HttpAssetFetch</code> allows to fetch bytes with HTTP sources.</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{path::AssetPath, AssetDatabase},
+</span><span class="boring">    database::{AssetDatabase, path::AssetPath},
 </span><span class="boring">    fetch::deferred::DeferredAssetFetch,
 </span><span class="boring">    protocol::{bundle::BundleAssetProtocol, bytes::BytesAssetProtocol, text::TextAssetProtocol},
 </span><span class="boring">};
-</span><span class="boring">use keket_http::{third_party::reqwest::Url, HttpAssetFetch};
+</span><span class="boring">use keket_http::{HttpAssetFetch, third_party::reqwest::Url};
 </span><span class="boring">use serde_json::Value;
 </span><span class="boring">use std::error::Error;
 </span><span class="boring">
@@ -1446,7 +1449,7 @@ from REDB database - useful for asset packs.</p>
 </span><span class="boring">    fetch::container::ContainerAssetFetch,
 </span><span class="boring">    protocol::{bundle::BundleAssetProtocol, bytes::BytesAssetProtocol, text::TextAssetProtocol},
 </span><span class="boring">};
-</span><span class="boring">use keket_redb::{third_party::redb::Database, RedbContainerPartialFetch};
+</span><span class="boring">use keket_redb::{RedbContainerPartialFetch, third_party::redb::Database};
 </span><span class="boring">use serde_json::Value;
 </span><span class="boring">use std::error::Error;
 </span><span class="boring">
@@ -1484,11 +1487,11 @@ to run REDB fetching jobs in background.</p>
 <p><code>ClientAssetFetch</code> allows to get bytes from <code>Keket</code> Asset Server (<code>keket-server</code>
 binary crate) - a humble beginnings to DDC infrastructure for live development.</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{handle::AssetHandle, path::AssetPath, AssetDatabase},
+</span><span class="boring">    database::{AssetDatabase, handle::AssetHandle, path::AssetPath},
 </span><span class="boring">    fetch::deferred::DeferredAssetFetch,
 </span><span class="boring">    protocol::{bytes::BytesAssetProtocol, text::TextAssetProtocol},
 </span><span class="boring">};
-</span><span class="boring">use keket_client::{third_party::reqwest::Url, ClientAssetFetch};
+</span><span class="boring">use keket_client::{ClientAssetFetch, third_party::reqwest::Url};
 </span><span class="boring">use std::error::Error;
 </span><span class="boring">
 </span><span class="boring">fn main() -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
@@ -1567,7 +1570,7 @@ asset fetch engines to make them not care about source of the asset and by that
 be used no matter where assets come from, which solves the need for asset loaders
 to implement with all possible asset sources, which is cumbersome to deal with.</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{path::AssetPath, AssetDatabase},
+</span><span class="boring">    database::{AssetDatabase, path::AssetPath},
 </span><span class="boring">    fetch::file::FileAssetFetch,
 </span><span class="boring">    protocol::{bundle::BundleAssetProtocol, bytes::BytesAssetProtocol, text::TextAssetProtocol},
 </span><span class="boring">};
@@ -1640,7 +1643,7 @@ to implement with all possible asset sources, which is cumbersome to deal with.<
 <p>For type to be considered asset protocol, it must implement <code>AssetProtocol</code> trait
 that has methods for processing asset bytes:</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{path::AssetPathStatic, AssetDatabase},
+</span><span class="boring">    database::{AssetDatabase, path::AssetPathStatic},
 </span><span class="boring">    fetch::file::FileAssetFetch,
 </span><span class="boring">    protocol::bundle::{
 </span><span class="boring">        BundleAssetProtocol, BundleWithDependencies, BundleWithDependenciesProcessor,
@@ -1720,11 +1723,11 @@ you only care about bytes or even only processed asset:</p>
 <pre><code class="language-rust ignore"><span class="boring">use anput::world::World;
 </span><span class="boring">use keket::{
 </span><span class="boring">    database::{
+</span><span class="boring">        AssetDatabase,
 </span><span class="boring">        handle::{AssetDependency, AssetHandle},
 </span><span class="boring">        path::AssetPathStatic,
-</span><span class="boring">        AssetDatabase,
 </span><span class="boring">    },
-</span><span class="boring">    fetch::{file::FileAssetFetch, AssetAwaitsResolution, AssetBytesAreReadyToProcess},
+</span><span class="boring">    fetch::{AssetAwaitsResolution, AssetBytesAreReadyToProcess, file::FileAssetFetch},
 </span><span class="boring">    protocol::AssetProtocol,
 </span><span class="boring">};
 </span><span class="boring">use serde::Deserialize;
@@ -1817,7 +1820,7 @@ impl AssetProtocol for CustomAssetProtocol {
 <div style="break-before: page; page-break-before: always;"></div><h1 id="bytes"><a class="header" href="#bytes">Bytes</a></h1>
 <p><code>BytesAssetProtocol</code> allows to just unwrap fetched bytes into <code>Vec&lt;u8&gt;</code> component.</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{path::AssetPath, AssetDatabase},
+</span><span class="boring">    database::{AssetDatabase, path::AssetPath},
 </span><span class="boring">    fetch::file::FileAssetFetch,
 </span><span class="boring">    protocol::{bundle::BundleAssetProtocol, bytes::BytesAssetProtocol, text::TextAssetProtocol},
 </span><span class="boring">};
@@ -1890,7 +1893,7 @@ impl AssetProtocol for CustomAssetProtocol {
 <div style="break-before: page; page-break-before: always;"></div><h1 id="text"><a class="header" href="#text">Text</a></h1>
 <p><code>TextAssetProtocol</code> allows to decode fetched bytes into <code>String</code> component.</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{path::AssetPath, AssetDatabase},
+</span><span class="boring">    database::{AssetDatabase, path::AssetPath},
 </span><span class="boring">    fetch::file::FileAssetFetch,
 </span><span class="boring">    protocol::{bundle::BundleAssetProtocol, bytes::BytesAssetProtocol, text::TextAssetProtocol},
 </span><span class="boring">};
@@ -1963,7 +1966,7 @@ impl AssetProtocol for CustomAssetProtocol {
 <div style="break-before: page; page-break-before: always;"></div><h1 id="bundle"><a class="header" href="#bundle">Bundle</a></h1>
 <p><code>BundleAssetProtocol</code> allows to create easy custom bytes decoders.</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{path::AssetPath, AssetDatabase},
+</span><span class="boring">    database::{AssetDatabase, path::AssetPath},
 </span><span class="boring">    fetch::file::FileAssetFetch,
 </span><span class="boring">    protocol::{bundle::BundleAssetProtocol, bytes::BytesAssetProtocol, text::TextAssetProtocol},
 </span><span class="boring">};
@@ -2037,7 +2040,7 @@ impl AssetProtocol for CustomAssetProtocol {
 trait, which turns input bytes into <code>BundleWithDependencies</code> container with output
 components bundle and optional list of dependencies to schedule after decoding.</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{path::AssetPathStatic, AssetDatabase},
+</span><span class="boring">    database::{AssetDatabase, path::AssetPathStatic},
 </span><span class="boring">    fetch::file::FileAssetFetch,
 </span><span class="boring">    protocol::bundle::{
 </span><span class="boring">        BundleAssetProtocol, BundleWithDependencies, BundleWithDependenciesProcessor,
@@ -2113,7 +2116,7 @@ struct CustomAsset {
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{path::AssetPathStatic, AssetDatabase},
+</span><span class="boring">    database::{AssetDatabase, path::AssetPathStatic},
 </span><span class="boring">    fetch::file::FileAssetFetch,
 </span><span class="boring">    protocol::bundle::{
 </span><span class="boring">        BundleAssetProtocol, BundleWithDependencies, BundleWithDependenciesProcessor,
@@ -2191,7 +2194,7 @@ impl BundleWithDependenciesProcessor for CustomAssetProcessor {
 <div style="break-before: page; page-break-before: always;"></div><h1 id="group"><a class="header" href="#group">Group</a></h1>
 <p><code>GroupAssetProtocol</code> allows to load group of assets at once as its dependencies.</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{path::AssetPath, AssetDatabase},
+</span><span class="boring">    database::{AssetDatabase, path::AssetPath},
 </span><span class="boring">    fetch::file::FileAssetFetch,
 </span><span class="boring">    protocol::{
 </span><span class="boring">        bundle::BundleAssetProtocol,
@@ -2248,7 +2251,7 @@ In this example we will use <a href="https://github.com/PsichiX/spitfire">Spitfi
 <details>
 <summary>See `use` section</summary>
 <pre><code class="language-rust ignore">use keket::{
-    database::{handle::AssetDependency, reference::AssetRef, AssetDatabase},
+    database::{AssetDatabase, handle::AssetDependency, reference::AssetRef},
     fetch::{deferred::DeferredAssetFetch, file::FileAssetFetch},
     protocol::{
         bundle::{BundleAssetProtocol, BundleWithDependencies, BundleWithDependenciesProcessor},
@@ -2532,7 +2535,7 @@ use std::{
 <h2 id="main-function"><a class="header" href="#main-function">Main function</a></h2>
 <p>Main function looks boring - all we do is we run <code>App</code> with <code>State</code> object.</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{handle::AssetDependency, reference::AssetRef, AssetDatabase},
+</span><span class="boring">    database::{AssetDatabase, handle::AssetDependency, reference::AssetRef},
 </span><span class="boring">    fetch::{deferred::DeferredAssetFetch, file::FileAssetFetch},
 </span><span class="boring">    protocol::{
 </span><span class="boring">        bundle::{BundleAssetProtocol, BundleWithDependencies, BundleWithDependenciesProcessor},
@@ -2816,7 +2819,7 @@ use std::{
 <p><code>State</code> type holds <code>AssetDatabase</code> along with some other data useful for drawing,
 fixed time step mechanism and referencing assets.</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{handle::AssetDependency, reference::AssetRef, AssetDatabase},
+</span><span class="boring">    database::{AssetDatabase, handle::AssetDependency, reference::AssetRef},
 </span><span class="boring">    fetch::{deferred::DeferredAssetFetch, file::FileAssetFetch},
 </span><span class="boring">    protocol::{
 </span><span class="boring">        bundle::{BundleAssetProtocol, BundleWithDependencies, BundleWithDependenciesProcessor},
@@ -3100,7 +3103,7 @@ fixed time step mechanism and referencing assets.</p>
 <p>In <code>Default</code> implementatio we setup app state.</p>
 <p>Take a look at how we setup <code>AssetDatabase</code> protocols:</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{handle::AssetDependency, reference::AssetRef, AssetDatabase},
+</span><span class="boring">    database::{AssetDatabase, handle::AssetDependency, reference::AssetRef},
 </span><span class="boring">    fetch::{deferred::DeferredAssetFetch, file::FileAssetFetch},
 </span><span class="boring">    protocol::{
 </span><span class="boring">        bundle::{BundleAssetProtocol, BundleWithDependencies, BundleWithDependenciesProcessor},
@@ -3388,7 +3391,7 @@ graphics and load scene group asset, and in <code>on_redraw</code> we run asset 
 maintanance periodically and then try to render Ferris sprite only if shader and
 texture assets are ready.</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{handle::AssetDependency, reference::AssetRef, AssetDatabase},
+</span><span class="boring">    database::{AssetDatabase, handle::AssetDependency, reference::AssetRef},
 </span><span class="boring">    fetch::{deferred::DeferredAssetFetch, file::FileAssetFetch},
 </span><span class="boring">    protocol::{
 </span><span class="boring">        bundle::{BundleAssetProtocol, BundleWithDependencies, BundleWithDependenciesProcessor},
@@ -3674,7 +3677,7 @@ protocols does not have access to our state, we can process prepared shader and
 texture assets and then build GPU objects for these assets and put them into
 their assets.</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{handle::AssetDependency, reference::AssetRef, AssetDatabase},
+</span><span class="boring">    database::{AssetDatabase, handle::AssetDependency, reference::AssetRef},
 </span><span class="boring">    fetch::{deferred::DeferredAssetFetch, file::FileAssetFetch},
 </span><span class="boring">    protocol::{
 </span><span class="boring">        bundle::{BundleAssetProtocol, BundleWithDependencies, BundleWithDependenciesProcessor},
@@ -3957,7 +3960,7 @@ their assets.</p>
 <h2 id="texture-asset-processor"><a class="header" href="#texture-asset-processor">Texture asset processor</a></h2>
 <p>Now let's see how we have made our texture asset processor:</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{handle::AssetDependency, reference::AssetRef, AssetDatabase},
+</span><span class="boring">    database::{AssetDatabase, handle::AssetDependency, reference::AssetRef},
 </span><span class="boring">    fetch::{deferred::DeferredAssetFetch, file::FileAssetFetch},
 </span><span class="boring">    protocol::{
 </span><span class="boring">        bundle::{BundleAssetProtocol, BundleWithDependencies, BundleWithDependenciesProcessor},
@@ -4242,7 +4245,7 @@ texture dimensions.</p>
 <h2 id="shader-asset-processor"><a class="header" href="#shader-asset-processor">Shader asset processor</a></h2>
 <p>Shader asset processor is a lot more interesting:</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{handle::AssetDependency, reference::AssetRef, AssetDatabase},
+</span><span class="boring">    database::{AssetDatabase, handle::AssetDependency, reference::AssetRef},
 </span><span class="boring">    fetch::{deferred::DeferredAssetFetch, file::FileAssetFetch},
 </span><span class="boring">    protocol::{
 </span><span class="boring">        bundle::{BundleAssetProtocol, BundleWithDependencies, BundleWithDependenciesProcessor},

@@ -31,10 +31,11 @@
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root to javascript -->
+        <!-- Provide site root and default themes to javascript -->
         <script>
-            var path_to_root = "../";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "ayu";
+            const path_to_root = "../";
+            const default_light_theme = "ayu";
+            const default_dark_theme = "navy";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc.js"></script>
@@ -44,8 +45,8 @@
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                var theme = localStorage.getItem('mdbook-theme');
-                var sidebar = localStorage.getItem('mdbook-sidebar');
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -59,7 +60,8 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            var theme;
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -72,8 +74,8 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            var sidebar = null;
-            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
@@ -109,6 +111,7 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
@@ -163,7 +166,7 @@ its cached handle for future database operations.</p>
 way to reference assets in serializable data, so once container gets deserializaed
 into typed data, asset handle resolution will happen only at first time.</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{reference::AssetRef, AssetDatabase},
+</span><span class="boring">    database::{AssetDatabase, reference::AssetRef},
 </span><span class="boring">    fetch::file::FileAssetFetch,
 </span><span class="boring">    protocol::bundle::{
 </span><span class="boring">        BundleAssetProtocol, BundleWithDependencies, BundleWithDependenciesProcessor,
@@ -230,7 +233,7 @@ impl CustomAsset {
 </span><span class="boring">    }
 </span><span class="boring">}</span></code></pre>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{reference::AssetRef, AssetDatabase},
+</span><span class="boring">    database::{AssetDatabase, reference::AssetRef},
 </span><span class="boring">    fetch::file::FileAssetFetch,
 </span><span class="boring">    protocol::bundle::{
 </span><span class="boring">        BundleAssetProtocol, BundleWithDependencies, BundleWithDependenciesProcessor,
@@ -300,7 +303,7 @@ impl CustomAsset {
 asset reference counting feature to automatically handle asset lifetime and
 despawn asset when counter drops to 0.</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{reference::SmartAssetRef, AssetDatabase, AssetReferenceCounter},
+</span><span class="boring">    database::{AssetDatabase, AssetReferenceCounter, reference::SmartAssetRef},
 </span><span class="boring">    fetch::file::FileAssetFetch,
 </span><span class="boring">    protocol::text::TextAssetProtocol,
 </span><span class="boring">};
