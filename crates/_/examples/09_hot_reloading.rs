@@ -1,5 +1,5 @@
 use keket::{
-    database::{handle::AssetHandle, path::AssetPath, AssetDatabase},
+    database::{AssetDatabase, handle::AssetHandle, path::AssetPath},
     fetch::{file::FileAssetFetch, hotreload::HotReloadFileAssetFetch},
     protocol::{bytes::BytesAssetProtocol, text::TextAssetProtocol},
 };

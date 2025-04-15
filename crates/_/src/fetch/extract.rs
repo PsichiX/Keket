@@ -38,9 +38,9 @@ impl ExtractAssetFetch {
     /// A new `ExtractAssetFetch` instance.
     pub fn new(
         extract: impl FnMut(Entity, AssetPath, &World, &mut CommandBuffer) -> Result<(), Box<dyn Error>>
-            + Send
-            + Sync
-            + 'static,
+        + Send
+        + Sync
+        + 'static,
     ) -> Self {
         Self {
             extract: Box::new(extract),

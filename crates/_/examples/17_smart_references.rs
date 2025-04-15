@@ -1,5 +1,5 @@
 use keket::{
-    database::{reference::SmartAssetRef, AssetDatabase, AssetReferenceCounter},
+    database::{AssetDatabase, AssetReferenceCounter, reference::SmartAssetRef},
     fetch::file::FileAssetFetch,
     protocol::text::TextAssetProtocol,
 };

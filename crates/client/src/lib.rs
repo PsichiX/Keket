@@ -11,7 +11,7 @@ use std::{
     error::Error,
     net::{SocketAddr, TcpStream},
 };
-use tungstenite::{connect, stream::MaybeTlsStream, WebSocket};
+use tungstenite::{WebSocket, connect, stream::MaybeTlsStream};
 
 pub mod third_party {
     pub use reqwest;

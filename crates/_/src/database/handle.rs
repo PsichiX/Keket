@@ -1,6 +1,6 @@
 use crate::{
     database::AssetDatabase,
-    fetch::{deferred::AssetAwaitsDeferredJob, AssetAwaitsResolution, AssetBytesAreReadyToProcess},
+    fetch::{AssetAwaitsResolution, AssetBytesAreReadyToProcess, deferred::AssetAwaitsDeferredJob},
 };
 use anput::{
     archetype::Archetype,

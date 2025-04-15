@@ -1,11 +1,11 @@
 use anput::world::World;
 use keket::{
     database::{
+        AssetDatabase,
         handle::{AssetDependency, AssetHandle},
         path::AssetPathStatic,
-        AssetDatabase,
     },
-    fetch::{file::FileAssetFetch, AssetAwaitsResolution, AssetBytesAreReadyToProcess},
+    fetch::{AssetAwaitsResolution, AssetBytesAreReadyToProcess, file::FileAssetFetch},
     protocol::AssetProtocol,
 };
 use serde::Deserialize;

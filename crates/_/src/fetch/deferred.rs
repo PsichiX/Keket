@@ -6,7 +6,7 @@ use anput::{bundle::DynamicBundle, world::World};
 use std::{
     error::Error,
     sync::{Arc, RwLock},
-    thread::{spawn, JoinHandle},
+    thread::{JoinHandle, spawn},
 };
 
 /// Marker component used to signify that the asset fetch job for an asset

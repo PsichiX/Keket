@@ -1,9 +1,9 @@
 use keket::{
-    database::{handle::AssetHandle, path::AssetPath, AssetDatabase},
+    database::{AssetDatabase, handle::AssetHandle, path::AssetPath},
     fetch::deferred::DeferredAssetFetch,
     protocol::{bytes::BytesAssetProtocol, text::TextAssetProtocol},
 };
-use keket_client::{third_party::reqwest::Url, ClientAssetFetch};
+use keket_client::{ClientAssetFetch, third_party::reqwest::Url};
 use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {

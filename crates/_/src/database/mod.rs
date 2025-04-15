@@ -13,8 +13,8 @@ use crate::{
         path::{AssetPath, AssetPathStatic},
     },
     fetch::{
-        deferred::AssetAwaitsDeferredJob, AssetAwaitsResolution, AssetBytesAreReadyToProcess,
-        AssetFetch, AssetFetchEngine,
+        AssetAwaitsResolution, AssetBytesAreReadyToProcess, AssetFetch, AssetFetchEngine,
+        deferred::AssetAwaitsDeferredJob,
     },
     protocol::AssetProtocol,
 };
@@ -28,7 +28,7 @@ use anput::{
 };
 use std::{
     error::Error,
-    sync::mpsc::{channel, Receiver, Sender},
+    sync::mpsc::{Receiver, Sender, channel},
 };
 
 pub type AssetDatabaseCommand = Box<dyn FnOnce(&mut World) + Send + Sync>;

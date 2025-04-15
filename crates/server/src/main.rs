@@ -6,11 +6,11 @@ use std::{
     fs::create_dir_all,
     io::{stderr, stdout},
     net::SocketAddr,
-    process::{exit, Command},
+    process::{Command, exit},
     sync::{
-        atomic::{AtomicUsize, Ordering},
-        mpsc::{channel, Receiver, Sender},
         Arc, Mutex,
+        atomic::{AtomicUsize, Ordering},
+        mpsc::{Receiver, Sender, channel},
     },
     thread::spawn,
     time::Duration,
@@ -20,10 +20,10 @@ use tokio::{
     io::AsyncWriteExt,
 };
 use warp::{
+    Filter, Rejection, Reply,
     filters::ws::{Message, WebSocket},
     http::Response,
     reject::Reject,
-    Filter, Rejection, Reply,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

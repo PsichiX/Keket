@@ -1,9 +1,9 @@
 use keket::{
-    database::{path::AssetPath, AssetDatabase},
+    database::{AssetDatabase, path::AssetPath},
     fetch::deferred::DeferredAssetFetch,
     protocol::{bundle::BundleAssetProtocol, bytes::BytesAssetProtocol, text::TextAssetProtocol},
 };
-use keket_http::{third_party::reqwest::Url, HttpAssetFetch};
+use keket_http::{HttpAssetFetch, third_party::reqwest::Url};
 use serde_json::Value;
 use std::error::Error;
 

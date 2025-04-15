@@ -1,6 +1,6 @@
 /* ANCHOR: use */
 use keket::{
-    database::{handle::AssetDependency, reference::AssetRef, AssetDatabase},
+    database::{AssetDatabase, handle::AssetDependency, reference::AssetRef},
     fetch::{deferred::DeferredAssetFetch, file::FileAssetFetch},
     protocol::{
         bundle::{BundleAssetProtocol, BundleWithDependencies, BundleWithDependenciesProcessor},

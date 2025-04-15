@@ -1,4 +1,4 @@
-use crate::database::{handle::AssetHandle, AssetDatabase};
+use crate::database::{AssetDatabase, handle::AssetHandle};
 use serde::{Deserialize, Serialize};
 use std::{
     borrow::Cow,
@@ -149,11 +149,7 @@ impl<'a> AssetPath<'a> {
     /// Tries to retrieve the metadata, returning `None` if it's empty.
     pub fn try_meta(&self) -> Option<&str> {
         let meta = self.meta();
-        if meta.is_empty() {
-            None
-        } else {
-            Some(meta)
-        }
+        if meta.is_empty() { None } else { Some(meta) }
     }
 
     /// Returns the combined path and metadata of the `AssetPath`.

@@ -1,6 +1,6 @@
 use crate::{
     database::path::AssetPath,
-    fetch::{file::FileAssetFetch, AssetAwaitsResolution, AssetFetch},
+    fetch::{AssetAwaitsResolution, AssetFetch, file::FileAssetFetch},
 };
 use anput::{
     bundle::DynamicBundle, entity::Entity, query::Update,
@@ -11,8 +11,8 @@ use std::{
     error::Error,
     path::PathBuf,
     sync::{
-        mpsc::{channel, Receiver},
         Mutex,
+        mpsc::{Receiver, channel},
     },
     time::Duration,
 };

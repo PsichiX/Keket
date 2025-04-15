@@ -1,7 +1,7 @@
 use keket::{
     database::{
-        loading::{AssetsLoadingStatus, AssetsLoadingTracker},
         AssetDatabase,
+        loading::{AssetsLoadingStatus, AssetsLoadingTracker},
     },
     fetch::{deferred::DeferredAssetFetch, file::FileAssetFetch},
     protocol::bytes::BytesAssetProtocol,

@@ -1,5 +1,5 @@
 use keket::{
-    database::{loading::ConsumedSingleAssetLoader, AssetDatabase},
+    database::{AssetDatabase, loading::ConsumedSingleAssetLoader},
     fetch::file::FileAssetFetch,
     protocol::text::TextAssetProtocol,
 };

@@ -1,13 +1,13 @@
 use crate::database::{
-    handle::AssetHandle, path::AssetPathStatic, AssetDatabase, AssetDatabaseCommand,
-    AssetReferenceCounter,
+    AssetDatabase, AssetDatabaseCommand, AssetReferenceCounter, handle::AssetHandle,
+    path::AssetPathStatic,
 };
 use anput::{entity::Entity, query::TypedLookupFetch};
 use serde::{Deserialize, Serialize};
 use std::{
     error::Error,
     ops::{Deref, DerefMut},
-    sync::{mpsc::Sender, RwLock},
+    sync::{RwLock, mpsc::Sender},
 };
 
 /// A reference to an asset in the asset database.

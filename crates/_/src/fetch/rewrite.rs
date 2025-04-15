@@ -20,8 +20,8 @@ impl<Fetch: AssetFetch> RewriteAssetFetch<Fetch> {
     /// # Arguments
     /// - `fetch`: The inner fetcher that handles asset fetching.
     /// - `callback`: A closure that rewrites the provided asset path. The closure
-    ///    must accept an [`AssetPath`] and return a `Result` containing either
-    ///    the rewritten path or an error.
+    ///   must accept an [`AssetPath`] and return a `Result` containing either
+    ///   the rewritten path or an error.
     ///
     /// # Returns
     /// A new [`RewriteAssetFetch`] instance.

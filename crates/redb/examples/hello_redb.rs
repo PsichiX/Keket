@@ -3,7 +3,7 @@ use keket::{
     fetch::container::ContainerAssetFetch,
     protocol::{bundle::BundleAssetProtocol, bytes::BytesAssetProtocol, text::TextAssetProtocol},
 };
-use keket_redb::{third_party::redb::Database, RedbContainerPartialFetch};
+use keket_redb::{RedbContainerPartialFetch, third_party::redb::Database};
 use serde_json::Value;
 use std::error::Error;
 

@@ -1,4 +1,4 @@
-use crate::database::{handle::AssetHandle, path::AssetPathStatic, AssetDatabase};
+use crate::database::{AssetDatabase, handle::AssetHandle, path::AssetPathStatic};
 use anput::component::Component;
 use std::{collections::HashSet, error::Error};
 

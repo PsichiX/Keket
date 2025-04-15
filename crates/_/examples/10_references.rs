@@ -1,5 +1,5 @@
 use keket::{
-    database::{reference::AssetRef, AssetDatabase},
+    database::{AssetDatabase, reference::AssetRef},
     fetch::file::FileAssetFetch,
     protocol::bundle::{
         BundleAssetProtocol, BundleWithDependencies, BundleWithDependenciesProcessor,

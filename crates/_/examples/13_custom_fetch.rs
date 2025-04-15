@@ -1,6 +1,6 @@
 use anput::bundle::DynamicBundle;
 use keket::{
-    database::{path::AssetPath, AssetDatabase},
+    database::{AssetDatabase, path::AssetPath},
     fetch::{AssetBytesAreReadyToProcess, AssetFetch},
     protocol::text::TextAssetProtocol,
 };

@@ -1,7 +1,7 @@
 use keket::{
     database::AssetDatabase,
     fetch::{
-        extract::{from_asset_extractor, ExtractAssetFetch},
+        extract::{ExtractAssetFetch, from_asset_extractor},
         file::FileAssetFetch,
     },
     protocol::{bytes::BytesAssetProtocol, text::TextAssetProtocol},

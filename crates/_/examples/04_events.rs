@@ -1,5 +1,5 @@
 use keket::{
-    database::{events::AssetEventBindings, AssetDatabase},
+    database::{AssetDatabase, events::AssetEventBindings},
     fetch::file::FileAssetFetch,
     protocol::{
         bundle::BundleAssetProtocol, bytes::BytesAssetProtocol, group::GroupAssetProtocol,

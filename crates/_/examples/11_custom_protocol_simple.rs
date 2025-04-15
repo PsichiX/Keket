@@ -1,5 +1,5 @@
 use keket::{
-    database::{path::AssetPathStatic, AssetDatabase},
+    database::{AssetDatabase, path::AssetPathStatic},
     fetch::file::FileAssetFetch,
     protocol::bundle::{
         BundleAssetProtocol, BundleWithDependencies, BundleWithDependenciesProcessor,
