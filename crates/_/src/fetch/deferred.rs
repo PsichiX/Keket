@@ -2,11 +2,15 @@ use crate::{
     database::path::{AssetPath, AssetPathStatic},
     fetch::AssetFetch,
 };
-use anput::{bundle::DynamicBundle, world::World};
+use anput::{
+    bundle::DynamicBundle,
+    jobs::{JobHandle, Jobs},
+    world::World,
+};
 use std::{
+    collections::HashMap,
     error::Error,
     sync::{Arc, RwLock},
-    thread::{JoinHandle, spawn},
 };
 
 /// Marker component used to signify that the asset fetch job for an asset
@@ -14,16 +18,16 @@ use std::{
 pub struct AssetAwaitsDeferredJob;
 
 /// A deferred asset fetcher that queues tasks for loading asset bytes asynchronously
-/// on separate threads and defers processing until the tasks are completed.
+/// on separate jobs and defers processing until the tasks are completed.
 ///
 /// The `DeferredAssetFetch` struct allows asset fetching to occur in the background
-/// on worker threads, with tasks being executed asynchronously and loaded asset bytes
+/// on jobs, with tasks being executed asynchronously and loaded asset bytes
 /// being processed only when the task has finished.
 pub struct DeferredAssetFetch<Fetch: AssetFetch> {
     fetch: Arc<RwLock<Fetch>>,
-    // TODO: refactor to use worker threads with tasks queued to execution on worker threads.
+    jobs: Jobs,
     #[allow(clippy::type_complexity)]
-    tasks: RwLock<Vec<(AssetPathStatic, JoinHandle<Result<DynamicBundle, String>>)>>,
+    job_handles: RwLock<HashMap<AssetPathStatic, JobHandle<Result<DynamicBundle, String>>>>,
 }
 
 impl<Fetch: AssetFetch> DeferredAssetFetch<Fetch> {
@@ -37,7 +41,8 @@ impl<Fetch: AssetFetch> DeferredAssetFetch<Fetch> {
     pub fn new(fetch: Fetch) -> Self {
         Self {
             fetch: Arc::new(RwLock::new(fetch)),
-            tasks: Default::default(),
+            jobs: Default::default(),
+            job_handles: Default::default(),
         }
     }
 }
@@ -45,26 +50,25 @@ impl<Fetch: AssetFetch> DeferredAssetFetch<Fetch> {
 impl<Fetch: AssetFetch> AssetFetch for DeferredAssetFetch<Fetch> {
     fn load_bytes(&self, path: AssetPath) -> Result<DynamicBundle, Box<dyn Error>> {
         let path = path.into_static();
+        let path2 = path.clone();
         let fetch = self.fetch.clone();
-        self.tasks
+        let handle = self.jobs.queue(move |_| {
+            fetch.read().map_err(|error|{
+                format!(
+                    "Failed to get read access to inner fetch engine in deferred job for asset: `{}`. Error: {}",
+                    path, error
+                )
+            })?.load_bytes(path.clone()).map_err(|error| {
+                format!(
+                    "Failed deferred job for asset: `{}`. Error: {}",
+                    path, error
+                )
+            })
+        })?;
+        self.job_handles
             .write()
             .map_err(|error| format!("{}", error))?
-            .push((
-                path.clone(),
-                spawn(move || {
-                    fetch.read().map_err(|error|{
-                        format!(
-                            "Failed to get read access to inner fetch engine in deferred job for asset: `{}`. Error: {}",
-                            path, error
-                        )
-                    })?.load_bytes(path.clone()).map_err(|error| {
-                        format!(
-                            "Failed deferred job for asset: `{}`. Error: {}",
-                            path, error
-                        )
-                    })
-                }),
-            ));
+            .insert(path2, handle);
         let mut bundle = DynamicBundle::default();
         let _ = bundle.add_component(AssetAwaitsDeferredJob);
         Ok(bundle)
@@ -80,28 +84,49 @@ impl<Fetch: AssetFetch> AssetFetch for DeferredAssetFetch<Fetch> {
                 )
             })?
             .maintain(storage)?;
+
         let complete = self
-            .tasks
+            .job_handles
             .read()
             .map_err(|error| format!("{}", error))?
             .iter()
-            .enumerate()
-            .filter(|(_, (_, join))| join.is_finished())
-            .map(|(index, _)| index)
+            .filter(|(_, handle)| handle.is_done())
+            .map(|(path, _)| path.clone())
             .collect::<Vec<_>>();
-        for index in complete.into_iter().rev() {
-            let (path, join) = self
-                .tasks
+        for path in complete.into_iter().rev() {
+            let handle = self
+                .job_handles
                 .write()
                 .map_err(|error| format!("{}", error))?
-                .swap_remove(index);
-            let result = join
-                .join()
-                .map_err(|_| format!("Deferred job execution of `{}` asset panicked!", path))??;
-            if let Some(entity) = storage.find_by::<true, _>(&path) {
-                storage.remove::<(AssetAwaitsDeferredJob,)>(entity)?;
-                storage.insert(entity, result)?;
-            }
+                .remove(&path)
+                .unwrap();
+            match handle.try_take() {
+                Some(Some(result)) => {
+                    let result = result.map_err(|_| {
+                        format!("Deferred job execution of `{}` asset panicked!", path)
+                    })?;
+                    if let Some(entity) = storage.find_by::<true, _>(&path) {
+                        storage.remove::<(AssetAwaitsDeferredJob,)>(entity)?;
+                        storage.insert(entity, result)?;
+                    }
+                }
+                Some(None) => {
+                    if let Some(entity) = storage.find_by::<true, _>(&path) {
+                        storage.remove::<(AssetAwaitsDeferredJob,)>(entity)?;
+                    }
+                    return Err(format!(
+                        "Deferred job execution of `{}` asset failed with undefined error!",
+                        path
+                    )
+                    .into());
+                }
+                None => {
+                    self.job_handles
+                        .write()
+                        .map_err(|error| format!("{}", error))?
+                        .insert(path.clone(), handle);
+                }
+            };
         }
         Ok(())
     }
