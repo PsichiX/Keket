@@ -331,7 +331,11 @@ you only care about bytes or even only processed asset:</p>
 </span><span class="boring">    let mut database = AssetDatabase::default()
 </span><span class="boring">        // Register custom asset protocol.
 </span><span class="boring">        .with_protocol(CustomAssetProtocol)
-</span><span class="boring">        .with_fetch(FileAssetFetch::default().with_root("resources"));
+</span><span class="boring">        .with_fetch(FileAssetFetch::default().with_root("resources"))
+</span><span class="boring">        .with_event(|event| {
+</span><span class="boring">            println!("Asset closure event: {:#?}", event);
+</span><span class="boring">            Ok(())
+</span><span class="boring">        });
 </span><span class="boring">
 </span><span class="boring">    let handle = database.ensure("custom://part1.json")?;
 </span><span class="boring">
@@ -379,7 +383,7 @@ impl AssetProtocol for CustomAssetProtocol {
         "custom"
     }
 
-    fn process_asset(
+    fn process_asset_bytes(
         &amp;mut self,
         handle: AssetHandle,
         storage: &amp;mut World,
@@ -408,6 +412,7 @@ impl AssetProtocol for CustomAssetProtocol {
             storage.relate::&lt;true, _&gt;(AssetDependency, handle.entity(), entity)?;
         }
 
+        storage.insert(handle.entity(), (asset,))?;
         Ok(())
     }
 }</code></pre>
