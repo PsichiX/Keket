@@ -1,5 +1,5 @@
 use crate::{
-    database::AssetDatabase,
+    database::{AssetDatabase, inspector::AssetInspector, path::AssetPathStatic},
     fetch::{AssetAwaitsResolution, AssetBytesAreReadyToProcess, deferred::AssetAwaitsDeferredJob},
     store::{AssetAwaitsStoring, AssetBytesAreReadyToStore},
 };
@@ -8,7 +8,7 @@ use anput::{
     bundle::Bundle,
     component::Component,
     entity::Entity,
-    prelude::{Command, ComponentRefMut, WorldDestroyIteratorExt},
+    prelude::{Command, ComponentRef, ComponentRefMut, WorldDestroyIteratorExt},
     query::{Exclude, Include, QueryError, TypedLookupFetch, TypedQueryFetch},
     world::World,
 };
@@ -33,6 +33,33 @@ impl AssetHandle {
     /// - `entity`: The entity representing the asset.
     pub fn new(entity: Entity) -> Self {
         Self { entity }
+    }
+
+    /// Inspects the asset using the provided database.
+    ///
+    /// # Arguments
+    /// - `database`: A reference to the asset database.
+    ///
+    /// # Returns
+    /// An `AssetInspector` instance for inspecting the asset.
+    pub fn inspect(self, database: &AssetDatabase) -> AssetInspector {
+        AssetInspector::new(database, self)
+    }
+
+    /// Resolves the asset path for this handle.
+    ///
+    /// # Arguments
+    /// - `database`: A reference to the asset database.
+    ///
+    /// # Returns
+    /// A `Result` containing the asset path component reference or an error.
+    pub fn path(
+        self,
+        database: &AssetDatabase,
+    ) -> Result<ComponentRef<true, AssetPathStatic>, Box<dyn Error>> {
+        Ok(database
+            .storage
+            .component::<true, AssetPathStatic>(self.entity)?)
     }
 
     /// Deletes the asset and its dependencies from the database.

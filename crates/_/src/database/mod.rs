@@ -1,5 +1,6 @@
 pub mod events;
 pub mod handle;
+pub mod inspector;
 pub mod loading;
 pub mod path;
 pub mod reference;

@@ -88,6 +88,8 @@ More examples:
 - [Temporary fetch](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/18_temporary_fetch.rs)
 - [Loading progress](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/19_loading_progress.rs)
 - [Consumed asset load](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/20_consumed_asset_load.rs)
+- [Store asset](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/21_store_asset.rs)
+- [Store custom asset](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/22_store_custom_asset.rs)
 - [HTTP fetch engine](https://github.com/PsichiX/Keket/tree/master/crates/http/examples/hello_http.rs)
 - [REDB fetch engine](https://github.com/PsichiX/Keket/tree/master/crates/redb/examples/hello_redb.rs)
 - [Asset server fetch engine](https://github.com/PsichiX/Keket/tree/master/crates/client/examples/hello_client.rs)
