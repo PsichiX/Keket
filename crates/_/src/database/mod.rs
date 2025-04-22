@@ -17,6 +17,7 @@ use crate::{
         deferred::AssetAwaitsDeferredJob,
     },
     protocol::AssetProtocol,
+    store::{AssetAwaitsStoring, AssetBytesAreReadyToStore, AssetStore, AssetStoreEngine},
 };
 use anput::{
     bundle::{Bundle, BundleChain},
@@ -39,6 +40,7 @@ pub struct AssetDatabase {
     pub events: AssetEventBindings,
     pub allow_asset_progression_failures: bool,
     fetch_stack: Vec<AssetFetchEngine>,
+    store_stack: Vec<AssetStoreEngine>,
     protocols: Vec<Box<dyn AssetProtocol>>,
     #[allow(clippy::type_complexity)]
     sender: Sender<AssetDatabaseCommand>,
@@ -54,6 +56,7 @@ impl Default for AssetDatabase {
             events: Default::default(),
             allow_asset_progression_failures: false,
             fetch_stack: Default::default(),
+            store_stack: Default::default(),
             protocols: Default::default(),
             sender,
             receiver,
@@ -62,7 +65,7 @@ impl Default for AssetDatabase {
 }
 
 impl AssetDatabase {
-    /// Creates a new `AssetDatabase` and adds a fetcher to its fetch stack.
+    /// Adds a fetcher to its fetch stack.
     ///
     /// # Arguments
     /// - `fetch`: A concrete implementation of the `AssetFetch` trait.
@@ -71,6 +74,18 @@ impl AssetDatabase {
     /// The updated `AssetDatabase` with the fetcher added.
     pub fn with_fetch(mut self, fetch: impl AssetFetch + 'static) -> Self {
         self.push_fetch(fetch);
+        self
+    }
+
+    /// Adds a store to its store stack.
+    ///
+    /// # Arguments
+    /// - `store`: A concrete implementation of the `AssetStore` trait.
+    ///
+    /// # Returns
+    /// The updated `AssetDatabase` with the store added.
+    pub fn with_store(mut self, store: impl AssetStore + 'static) -> Self {
+        self.push_store(store);
         self
     }
 
@@ -105,11 +120,18 @@ impl AssetDatabase {
     }
 
     /// Adds a fetch engine to the stack.
+    ///
+    /// # Arguments
+    /// - `fetch`: A new fetch implementation to add to the stack.
     pub fn push_fetch(&mut self, fetch: impl AssetFetch + 'static) {
         self.fetch_stack.push(AssetFetchEngine::new(fetch));
     }
 
     /// Removes and returns the top fetch engine from the stack.
+    ///
+    /// # Returns
+    /// The old fetch engine if present.
+    /// Returns `None` if the stack is empty.
     pub fn pop_fetch(&mut self) -> Option<Box<dyn AssetFetch>> {
         self.fetch_stack.pop().map(|fetch| fetch.into_inner())
     }
@@ -146,12 +168,71 @@ impl AssetDatabase {
         Ok(result)
     }
 
+    /// Adds a store engine to the stack.
+    ///
+    /// # Arguments
+    /// - `store`: A new store implementation to add to the stack.
+    pub fn push_store(&mut self, store: impl AssetStore + 'static) {
+        self.store_stack.push(AssetStoreEngine::new(store));
+    }
+
+    /// Removes and returns the top store engine from the stack.
+    ///
+    /// # Returns
+    /// The old store engine if present.
+    /// Returns `None` if the stack is empty.
+    pub fn pop_store(&mut self) -> Option<Box<dyn AssetStore>> {
+        self.store_stack.pop().map(|store| store.into_inner())
+    }
+
+    /// Replaces the top store engine and returns the old one.
+    ///
+    /// # Arguments
+    /// - `store`: A new store implementation to replace the top one.
+    ///
+    /// # Returns
+    /// The old store engine if present.
+    /// Returns `None` if the stack is empty.
+    pub fn swap_store(&mut self, store: impl AssetStore + 'static) -> Option<Box<dyn AssetStore>> {
+        let result = self.pop_store();
+        self.store_stack.push(AssetStoreEngine::new(store));
+        result
+    }
+
+    /// Temporarily uses a store engine to perform a closure and removes it afterward.
+    ///
+    /// # Arguments
+    /// - `store`: The store engine to add temporarily.
+    /// - `f`: The closure to execute using the store engine.
+    ///
+    /// # Returns
+    /// The result of the closure if successful, or an error otherwise.
+    pub fn using_store<R>(
+        &mut self,
+        store: impl AssetStore + 'static,
+        f: impl FnOnce(&mut Self) -> Result<R, Box<dyn Error>>,
+    ) -> Result<R, Box<dyn Error>> {
+        self.push_store(store);
+        let result = f(self)?;
+        self.pop_store();
+        Ok(result)
+    }
+
     /// Registers a new protocol for processing assets.
+    ///
+    /// # Arguments
+    /// - `protocol`: An implementation of the `AssetProtocol` trait.
     pub fn add_protocol(&mut self, protocol: impl AssetProtocol + 'static) {
         self.protocols.push(Box::new(protocol));
     }
 
     /// Removes a protocol by its name.
+    ///
+    /// # Arguments
+    /// - `name`: The name of the protocol to remove.
+    ///
+    /// # Returns
+    /// The removed protocol if found, otherwise `None`.
     pub fn remove_protocol(&mut self, name: &str) -> Option<Box<dyn AssetProtocol>> {
         self.protocols
             .iter()
@@ -239,7 +320,7 @@ impl AssetDatabase {
                     handle.delete(self);
                     return Err(format!("Missing protocol for asset: `{}`", path).into());
                 };
-                let status = protocol.process_asset(handle, &mut self.storage);
+                let status = protocol.process_asset_bytes(handle, &mut self.storage);
                 if status.is_err() {
                     if let Ok(mut bindings) = self
                         .storage
@@ -278,6 +359,23 @@ impl AssetDatabase {
             .map(|(_, entity)| entity)
             .to_despawn_command()
             .execute(&mut self.storage)
+    }
+
+    /// Schedules an asset to be stored.
+    ///
+    /// # Arguments
+    /// - `path`: The path of the asset to store.
+    ///
+    /// # Returns
+    /// Result indicating success or failure.
+    pub fn store(&mut self, path: impl Into<AssetPathStatic>) -> Result<(), Box<dyn Error>> {
+        let path = path.into();
+        let entity = self
+            .storage
+            .find_by::<true, _>(&path)
+            .ok_or_else(|| format!("Asset `{}` not found", path))?;
+        self.storage.insert(entity, (AssetAwaitsStoring,))?;
+        Ok(())
     }
 
     /// Tries to dereference an asset by its path. If asset has no references
@@ -359,6 +457,22 @@ impl AssetDatabase {
             .map(|(entity, _)| AssetHandle::new(entity))
     }
 
+    /// Checks if there are any assets awaiting storing.
+    ///
+    /// # Returns
+    /// `true` if assets are awaiting storing, otherwise `false`.
+    pub fn does_await_storing(&self) -> bool {
+        self.storage.has_component::<AssetAwaitsStoring>()
+    }
+
+    /// Checks if there are any assets with bytes ready to store.
+    ///
+    /// # Returns
+    /// `true` if assets are ready to store, otherwise `false`.
+    pub fn has_bytes_ready_to_store(&self) -> bool {
+        self.storage.has_component::<AssetBytesAreReadyToStore>()
+    }
+
     /// Checks if there are any assets awaiting resolution.
     ///
     /// # Returns
@@ -391,6 +505,8 @@ impl AssetDatabase {
         self.storage.has_component::<AssetAwaitsResolution>()
             || self.storage.has_component::<AssetBytesAreReadyToProcess>()
             || self.storage.has_component::<AssetAwaitsDeferredJob>()
+            || self.storage.has_component::<AssetAwaitsStoring>()
+            || self.storage.has_component::<AssetBytesAreReadyToStore>()
     }
 
     /// Reports the status of assets in the database.
@@ -431,9 +547,10 @@ impl AssetDatabase {
 
     /// Performs maintenance on the asset database, processing events and managing states.
     ///
-    /// - Processes newly added assets and dispatches relevant events.
-    /// - Maintains fetch engines and protocols.
+    /// - Processes changed assets and dispatches relevant events.
+    /// - Maintains fetch and store engines and protocols.
     /// - Resolves assets and processes their data using protocols.
+    /// - Stores requested assets.
     ///
     /// # Returns
     /// `Ok(())` if successful, or an error if any step fails.
@@ -539,10 +656,51 @@ impl AssetDatabase {
                     bindings.dispatch(event)?;
                 }
             }
+            for entity in self.storage.added().iter_of::<AssetAwaitsStoring>() {
+                if let Some((path, bindings)) = lookup.access(entity) {
+                    let event = AssetEvent {
+                        handle: AssetHandle::new(entity),
+                        kind: AssetEventKind::AwaitsStoring,
+                        path: path.clone(),
+                    };
+                    self.events.dispatch(event.clone())?;
+                    bindings.dispatch(event)?;
+                }
+            }
+            for entity in self.storage.added().iter_of::<AssetBytesAreReadyToStore>() {
+                if let Some((path, bindings)) = lookup.access(entity) {
+                    let event = AssetEvent {
+                        handle: AssetHandle::new(entity),
+                        kind: AssetEventKind::BytesReadyToStore,
+                        path: path.clone(),
+                    };
+                    self.events.dispatch(event.clone())?;
+                    bindings.dispatch(event)?;
+                }
+            }
+            for entity in self
+                .storage
+                .removed()
+                .iter_of::<AssetBytesAreReadyToStore>()
+            {
+                if let Some((path, bindings)) = lookup.access(entity) {
+                    let handle = AssetHandle::new(entity);
+                    let event = AssetEvent {
+                        handle,
+                        kind: AssetEventKind::BytesStored,
+                        path: path.clone(),
+                    };
+                    self.events.dispatch(event.clone())?;
+                    bindings.dispatch(event)?;
+                }
+            }
         }
         self.storage.clear_changes();
         for fetch in &mut self.fetch_stack {
             fetch.maintain(&mut self.storage)?;
+        }
+        for store in &mut self.store_stack {
+            store.maintain(&mut self.storage)?;
         }
         for protocol in &mut self.protocols {
             protocol.maintain(&mut self.storage)?;
@@ -553,7 +711,7 @@ impl AssetDatabase {
                 .map(|(entity, _, _)| AssetHandle::new(entity))
                 .collect::<Vec<_>>();
             for handle in to_process {
-                let status = protocol.process_asset(handle, &mut self.storage);
+                let status = protocol.process_asset_bytes(handle, &mut self.storage);
                 if status.is_err() {
                     if let Ok(mut bindings) = self
                         .storage
@@ -573,50 +731,73 @@ impl AssetDatabase {
                     status?;
                 }
             }
+            let to_produce = self
+                .storage
+                .query::<true, (Entity, &AssetPath, Include<AssetAwaitsStoring>)>()
+                .filter(|(_, path, _)| path.protocol() == protocol.name())
+                .map(|(entity, _, _)| AssetHandle::new(entity))
+                .collect::<Vec<_>>();
+            for handle in to_produce {
+                let status = protocol.produce_asset_bytes(handle, &mut self.storage);
+                if status.is_err() {
+                    if let Ok(mut bindings) = self
+                        .storage
+                        .component_mut::<true, AssetEventBindings>(handle.entity())
+                    {
+                        bindings.dispatch(AssetEvent {
+                            handle,
+                            kind: AssetEventKind::BytesStoringFailed,
+                            path: self
+                                .storage
+                                .component::<true, AssetPathStatic>(handle.entity())?
+                                .clone(),
+                        })?;
+                    }
+                } else {
+                    self.storage
+                        .remove::<(AssetAwaitsStoring,)>(handle.entity())?;
+                }
+                if !self.allow_asset_progression_failures {
+                    status?;
+                }
+            }
         }
         let to_resolve = self
             .storage
             .query::<true, (AssetHandle, &AssetPath, Include<AssetAwaitsResolution>)>()
             .map(|(handle, path, _)| (handle, path.clone()))
             .collect::<Vec<_>>();
-        for (handle, path) in to_resolve {
+        if !to_resolve.is_empty() {
             if let Some(fetch) = self.fetch_stack.last_mut() {
-                let status = fetch.load_bytes(handle, path.clone(), &mut self.storage);
-                if !self.allow_asset_progression_failures {
-                    status?;
-                }
-                if handle.bytes_are_ready_to_process(self) {
-                    let Some(protocol) = self
-                        .protocols
-                        .iter_mut()
-                        .find(|protocol| protocol.name() == path.protocol())
-                    else {
-                        return Err(format!("Missing protocol for asset: `{}`", path).into());
-                    };
-                    let status = protocol.process_asset(handle, &mut self.storage);
-                    if status.is_err() {
-                        if let Ok(mut bindings) = self
-                            .storage
-                            .component_mut::<true, AssetEventBindings>(handle.entity())
-                        {
-                            bindings.dispatch(AssetEvent {
-                                handle,
-                                kind: AssetEventKind::BytesProcessingFailed,
-                                path: self
-                                    .storage
-                                    .component::<true, AssetPathStatic>(handle.entity())?
-                                    .clone(),
-                            })?;
-                        }
-                    }
+                for (handle, path) in to_resolve {
+                    let status = fetch.load_bytes(handle, path.clone(), &mut self.storage);
                     if !self.allow_asset_progression_failures {
                         status?;
                     }
+                    self.storage
+                        .remove::<(AssetAwaitsResolution,)>(handle.entity())?;
                 }
-                self.storage
-                    .remove::<(AssetAwaitsResolution,)>(handle.entity())?;
             } else {
                 return Err("There is no asset fetch on stack!".into());
+            }
+        }
+        let to_store = self
+            .storage
+            .query::<true, (AssetHandle, &AssetPath, &mut AssetBytesAreReadyToStore)>()
+            .map(|(handle, path, bytes)| (handle, path.clone(), std::mem::take(&mut bytes.0)))
+            .collect::<Vec<_>>();
+        if !to_store.is_empty() {
+            if let Some(store) = self.store_stack.last_mut() {
+                for (handle, path, bytes) in to_store {
+                    let status = store.save_bytes(handle, path.clone(), bytes, &mut self.storage);
+                    if !self.allow_asset_progression_failures {
+                        status?;
+                    }
+                    self.storage
+                        .remove::<(AssetBytesAreReadyToStore,)>(handle.entity())?;
+                }
+            } else {
+                return Err("There is no asset store on stack!".into());
             }
         }
         Ok(())

@@ -22,4 +22,15 @@ impl AssetProtocol for BytesAssetProtocol {
         storage.insert(handle.entity(), (bytes,))?;
         Ok(())
     }
+
+    fn produce_bytes(
+        &mut self,
+        handle: AssetHandle,
+        storage: &mut World,
+    ) -> Result<Vec<u8>, Box<dyn Error>> {
+        let result = storage
+            .component::<true, Vec<u8>>(handle.entity())
+            .map(|bytes| bytes.as_slice().to_owned())?;
+        Ok(result)
+    }
 }

@@ -11,6 +11,10 @@ pub enum AssetEventKind {
     Unloaded,
     BytesFetchingFailed,
     BytesProcessingFailed,
+    AwaitsStoring,
+    BytesReadyToStore,
+    BytesStored,
+    BytesStoringFailed,
 }
 
 impl AssetEventKind {

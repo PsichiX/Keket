@@ -25,8 +25,8 @@ fn load_file_bundle(file_path: PathBuf) -> Result<DynamicBundle, Box<dyn Error>>
 /// Marker component for assets that originate from files.
 pub struct AssetFromFile;
 
-/// An implementation of the `AssetFetch` trait that loads assets from the file
-/// system using absolute paths.
+/// An implementation of the `AssetFetch` trait that loads assets from the
+/// file system using absolute paths.
 #[derive(Debug, Default, Clone)]
 pub struct AbsoluteFileAssetFetch;
 
@@ -36,7 +36,8 @@ impl AssetFetch for AbsoluteFileAssetFetch {
     }
 }
 
-/// An implementation of the `AssetFetch` trait that loads assets from the file system.
+/// An implementation of the `AssetFetch` trait that loads assets from the
+/// file system using specified root path.
 #[derive(Debug, Default, Clone)]
 pub struct FileAssetFetch {
     pub root: PathBuf,

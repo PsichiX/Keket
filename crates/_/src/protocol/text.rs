@@ -23,4 +23,15 @@ impl AssetProtocol for TextAssetProtocol {
         storage.insert(handle.entity(), (text,))?;
         Ok(())
     }
+
+    fn produce_bytes(
+        &mut self,
+        handle: AssetHandle,
+        storage: &mut World,
+    ) -> Result<Vec<u8>, Box<dyn Error>> {
+        let result = storage
+            .component::<true, String>(handle.entity())
+            .map(|text| text.as_bytes().to_owned())?;
+        Ok(result)
+    }
 }

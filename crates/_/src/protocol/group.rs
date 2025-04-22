@@ -1,7 +1,7 @@
 use crate::{
     database::{
         handle::{AssetDependency, AssetHandle},
-        path::AssetPath,
+        path::{AssetPath, AssetPathStatic},
     },
     fetch::{AssetAwaitsResolution, AssetBytesAreReadyToProcess},
     protocol::AssetProtocol,
@@ -25,7 +25,7 @@ impl AssetProtocol for GroupAssetProtocol {
         "group"
     }
 
-    fn process_asset(
+    fn process_asset_bytes(
         &mut self,
         handle: AssetHandle,
         storage: &mut World,
@@ -38,7 +38,7 @@ impl AssetProtocol for GroupAssetProtocol {
         storage.remove::<(AssetBytesAreReadyToProcess,)>(handle.entity())?;
         for line in std::str::from_utf8(&bytes)?
             .lines()
-            .filter(|line| !line.trim().is_empty())
+            .filter(|line| !line.trim().is_empty() || line.trim().starts_with('#'))
         {
             let path = AssetPath::new(line.trim().to_owned()).into_static();
             let entity = if let Some(entity) = storage.find_by::<true, _>(&path) {
@@ -50,5 +50,19 @@ impl AssetProtocol for GroupAssetProtocol {
         }
         storage.insert(handle.entity(), (GroupAsset,))?;
         Ok(())
+    }
+
+    fn produce_bytes(
+        &mut self,
+        handle: AssetHandle,
+        storage: &mut World,
+    ) -> Result<Vec<u8>, Box<dyn Error>> {
+        let mut lines = String::default();
+        for (_, _, entity) in storage.relations_outgoing::<true, AssetDependency>(handle.entity()) {
+            let path = storage.component::<true, AssetPathStatic>(entity)?;
+            lines.push_str(path.content());
+            lines.push('\n');
+        }
+        Ok(lines.trim().as_bytes().to_owned())
     }
 }

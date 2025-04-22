@@ -125,6 +125,7 @@
 pub mod database;
 pub mod fetch;
 pub mod protocol;
+pub mod store;
 
 pub mod third_party {
     pub use anput;

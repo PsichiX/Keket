@@ -15,7 +15,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut database = AssetDatabase::default()
         // Register custom asset protocol.
         .with_protocol(CustomAssetProtocol)
-        .with_fetch(FileAssetFetch::default().with_root("resources"));
+        .with_fetch(FileAssetFetch::default().with_root("resources"))
+        .with_event(|event| {
+            println!("Asset closure event: {:#?}", event);
+            Ok(())
+        });
 
     let handle = database.ensure("custom://part1.json")?;
 
@@ -64,7 +68,7 @@ impl AssetProtocol for CustomAssetProtocol {
         "custom"
     }
 
-    fn process_asset(
+    fn process_asset_bytes(
         &mut self,
         handle: AssetHandle,
         storage: &mut World,
@@ -93,6 +97,7 @@ impl AssetProtocol for CustomAssetProtocol {
             storage.relate::<true, _>(AssetDependency, handle.entity(), entity)?;
         }
 
+        storage.insert(handle.entity(), (asset,))?;
         Ok(())
     }
 }

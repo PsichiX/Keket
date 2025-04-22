@@ -1,6 +1,7 @@
 use crate::{
     database::AssetDatabase,
     fetch::{AssetAwaitsResolution, AssetBytesAreReadyToProcess, deferred::AssetAwaitsDeferredJob},
+    store::{AssetAwaitsStoring, AssetBytesAreReadyToStore},
 };
 use anput::{
     archetype::Archetype,
@@ -61,6 +62,20 @@ impl AssetHandle {
         Ok(())
     }
 
+    /// Schedules the asset to store its bytes.
+    ///
+    /// # Arguments
+    /// - `database`: A mutable reference to the asset database.
+    ///
+    /// # Returns
+    /// A `Result` indicating success or failure.
+    pub fn store(self, database: &mut AssetDatabase) -> Result<(), Box<dyn Error>> {
+        database
+            .storage
+            .insert(self.entity, (AssetAwaitsStoring,))?;
+        Ok(())
+    }
+
     /// Returns the entity associated with this handle.
     pub fn entity(self) -> Entity {
         self.entity
@@ -69,6 +84,18 @@ impl AssetHandle {
     /// Checks if the asset exists in the database.
     pub fn does_exists(self, database: &AssetDatabase) -> bool {
         database.storage.has_entity(self.entity)
+    }
+
+    /// Checks if the asset is marked for storing its bytes.
+    pub fn awaits_storing(self, database: &AssetDatabase) -> bool {
+        self.access_checked::<(Entity, Include<AssetAwaitsStoring>)>(database)
+            .is_some()
+    }
+
+    /// Checks if the asset is marked for storing its bytes and is not already stored.
+    pub fn bytes_are_ready_to_store(self, database: &AssetDatabase) -> bool {
+        self.access_checked::<(Entity, Include<AssetBytesAreReadyToStore>)>(database)
+            .is_some()
     }
 
     /// Checks if the asset is awaiting resolution.

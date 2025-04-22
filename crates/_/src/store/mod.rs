@@ -1,41 +1,33 @@
-pub mod collections;
-pub mod container;
-pub mod deferred;
-pub mod extract;
-pub mod fallback;
 pub mod file;
-#[cfg(feature = "hotreload")]
-pub mod hotreload;
-pub mod rewrite;
-pub mod router;
 
 use crate::database::{
     events::{AssetEvent, AssetEventBindings, AssetEventKind},
     handle::AssetHandle,
     path::AssetPath,
 };
-use anput::{bundle::DynamicBundle, world::World};
+use anput::world::World;
 use std::error::Error;
 
-/// Marker type for assets that are awaiting resolution of their path.
-pub struct AssetAwaitsResolution;
+/// Marker type for assets that are awaiting storing.
+pub struct AssetAwaitsStoring;
 
-/// Represents raw byte data that is ready to be processed.
+/// Represents raw byte data that is ready to be stored.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct AssetBytesAreReadyToProcess(pub Vec<u8>);
+pub struct AssetBytesAreReadyToStore(pub Vec<u8>);
 
-/// Defines the interface for fetching asset data from an external source.
-pub trait AssetFetch: Send + Sync + 'static {
-    /// Loads the raw bytes of an asset given its path.
+/// Defines the interface for storing asset data to an external source.
+pub trait AssetStore: Send + Sync + 'static {
+    /// Saves the raw bytes of an asset given its path.
     ///
     /// # Arguments
     /// - `path`: The path to the asset.
+    /// - `bytes`: The byte data to be saved.
     ///
     /// # Returns
-    /// - A `DynamicBundle` containing the asset data or an error if loading fails.
-    fn load_bytes(&self, path: AssetPath) -> Result<DynamicBundle, Box<dyn Error>>;
+    /// - `Ok(())` if saving succeeds, otherwise an error.
+    fn save_bytes(&self, path: AssetPath, bytes: Vec<u8>) -> Result<(), Box<dyn Error>>;
 
-    /// Maintains the fetcher's state.
+    /// Maintains the store's state.
     ///
     /// Can be used for handling periodic or deferred operations.
     ///
@@ -50,44 +42,44 @@ pub trait AssetFetch: Send + Sync + 'static {
     }
 }
 
-pub(crate) struct AssetFetchEngine {
-    fetch: Box<dyn AssetFetch>,
+pub(crate) struct AssetStoreEngine {
+    store: Box<dyn AssetStore>,
 }
 
-impl AssetFetchEngine {
-    pub fn new(fetch: impl AssetFetch) -> Self {
+impl AssetStoreEngine {
+    pub fn new(store: impl AssetStore) -> Self {
         Self {
-            fetch: Box::new(fetch),
+            store: Box::new(store),
         }
     }
 
-    pub fn into_inner(self) -> Box<dyn AssetFetch> {
-        self.fetch
+    pub fn into_inner(self) -> Box<dyn AssetStore> {
+        self.store
     }
 
-    pub fn load_bytes(
+    pub fn save_bytes(
         &self,
         handle: AssetHandle,
         path: AssetPath,
+        bytes: Vec<u8>,
         storage: &mut World,
     ) -> Result<(), Box<dyn Error>> {
-        let result = self.fetch.load_bytes(path.clone());
+        let result = self.store.save_bytes(path.clone(), bytes);
         if result.is_err() {
             if let Ok(mut bindings) =
                 storage.component_mut::<true, AssetEventBindings>(handle.entity())
             {
                 bindings.dispatch(AssetEvent {
                     handle,
-                    kind: AssetEventKind::BytesFetchingFailed,
+                    kind: AssetEventKind::BytesStoringFailed,
                     path: path.into_static(),
                 })?;
             }
         }
-        storage.insert(handle.entity(), result?)?;
         Ok(())
     }
 
     pub fn maintain(&mut self, storage: &mut World) -> Result<(), Box<dyn Error>> {
-        self.fetch.maintain(storage)
+        self.store.maintain(storage)
     }
 }

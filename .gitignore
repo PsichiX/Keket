@@ -7,3 +7,4 @@ Cargo.lock
 *.log
 *.bimp
 resources/database.redb
+resources/saved.txt
