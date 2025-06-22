@@ -4,7 +4,7 @@ use crate::{
 };
 use anput::{
     bundle::DynamicBundle,
-    jobs::{JobHandle, Jobs},
+    jobs::{JobHandle, JobLocation, JobPriority, Jobs},
     world::World,
 };
 use std::{
@@ -52,7 +52,7 @@ impl<Fetch: AssetFetch> AssetFetch for DeferredAssetFetch<Fetch> {
         let path = path.into_static();
         let path2 = path.clone();
         let fetch = self.fetch.clone();
-        let handle = self.jobs.queue(move |_| {
+        let handle = self.jobs.spawn_on(JobLocation::Unknown, JobPriority::Normal,async move {
             fetch.read().map_err(|error|{
                 format!(
                     "Failed to get read access to inner fetch engine in deferred job for asset: `{}`. Error: {}",

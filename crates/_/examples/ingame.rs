@@ -74,7 +74,7 @@ impl Default for State {
 
 /* ANCHOR: state_impl_appstate */
 impl AppState<Vertex> for State {
-    fn on_init(&mut self, graphics: &mut Graphics<Vertex>) {
+    fn on_init(&mut self, graphics: &mut Graphics<Vertex>, _: &mut AppControl) {
         // Setup scene camera.
         graphics.color = [0.25, 0.25, 0.25, 1.0];
         graphics.main_camera.screen_alignment = 0.5.into();
@@ -87,7 +87,7 @@ impl AppState<Vertex> for State {
         self.assets.ensure("group://ingame.txt").unwrap();
     }
 
-    fn on_redraw(&mut self, graphics: &mut Graphics<Vertex>) {
+    fn on_redraw(&mut self, graphics: &mut Graphics<Vertex>, _: &mut AppControl) {
         // Process assets periotically.
         if self.timer.elapsed().as_secs_f32() > DELTA_TIME {
             self.timer = Instant::now();

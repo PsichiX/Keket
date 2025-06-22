@@ -1,6 +1,6 @@
 [package]
 name = "keket-server"
-version = "0.14.1"
+version = "0.14.2"
 edition = "2024"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 description = "Asset server for Keket toolkit"
@@ -13,7 +13,7 @@ readme = "../../README.md"
 [dependencies]
 warp = "0.3"
 tokio = { version = "1", features = ["full"] }
-tokio-util = "0.6"
+tokio-util = "0.7"
 bytes = "1"
 futures-util = { version = "0.3", default-features = false, features = [
     "sink",

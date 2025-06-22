@@ -217,6 +217,11 @@ impl<'a> AssetResolved<'a> {
         self.handle.is_ready_to_use(self.database)
     }
 
+    /// Waits asynchronously for the asset to be ready to use.
+    pub async fn wait_for_ready_to_use(&self) {
+        self.handle.wait_for_ready_to_use(self.database).await
+    }
+
     /// Accesses the asset's typed data, if available.
     ///
     /// # Returns
