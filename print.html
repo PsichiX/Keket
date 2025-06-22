@@ -42,6 +42,17 @@
         <script src="toc.js"></script>
     </head>
     <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
     <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
@@ -119,7 +130,7 @@
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -2322,7 +2333,7 @@ use std::{
 </span><span class="boring">}
 </span><span class="boring">
 </span><span class="boring">impl AppState&lt;Vertex&gt; for State {
-</span><span class="boring">    fn on_init(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+</span><span class="boring">    fn on_init(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;, _: &amp;mut AppControl) {
 </span><span class="boring">        // Setup scene camera.
 </span><span class="boring">        graphics.color = [0.25, 0.25, 0.25, 1.0];
 </span><span class="boring">        graphics.main_camera.screen_alignment = 0.5.into();
@@ -2335,7 +2346,7 @@ use std::{
 </span><span class="boring">        self.assets.ensure("group://ingame.txt").unwrap();
 </span><span class="boring">    }
 </span><span class="boring">
-</span><span class="boring">    fn on_redraw(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+</span><span class="boring">    fn on_redraw(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;, _: &amp;mut AppControl) {
 </span><span class="boring">        // Process assets periotically.
 </span><span class="boring">        if self.timer.elapsed().as_secs_f32() &gt; DELTA_TIME {
 </span><span class="boring">            self.timer = Instant::now();
@@ -2606,7 +2617,7 @@ use std::{
 </span><span class="boring">}
 </span><span class="boring">
 </span><span class="boring">impl AppState&lt;Vertex&gt; for State {
-</span><span class="boring">    fn on_init(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+</span><span class="boring">    fn on_init(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;, _: &amp;mut AppControl) {
 </span><span class="boring">        // Setup scene camera.
 </span><span class="boring">        graphics.color = [0.25, 0.25, 0.25, 1.0];
 </span><span class="boring">        graphics.main_camera.screen_alignment = 0.5.into();
@@ -2619,7 +2630,7 @@ use std::{
 </span><span class="boring">        self.assets.ensure("group://ingame.txt").unwrap();
 </span><span class="boring">    }
 </span><span class="boring">
-</span><span class="boring">    fn on_redraw(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+</span><span class="boring">    fn on_redraw(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;, _: &amp;mut AppControl) {
 </span><span class="boring">        // Process assets periotically.
 </span><span class="boring">        if self.timer.elapsed().as_secs_f32() &gt; DELTA_TIME {
 </span><span class="boring">            self.timer = Instant::now();
@@ -2890,7 +2901,7 @@ fixed time step mechanism and referencing assets.</p>
 </span><span class="boring">}
 </span><span class="boring">
 </span><span class="boring">impl AppState&lt;Vertex&gt; for State {
-</span><span class="boring">    fn on_init(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+</span><span class="boring">    fn on_init(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;, _: &amp;mut AppControl) {
 </span><span class="boring">        // Setup scene camera.
 </span><span class="boring">        graphics.color = [0.25, 0.25, 0.25, 1.0];
 </span><span class="boring">        graphics.main_camera.screen_alignment = 0.5.into();
@@ -2903,7 +2914,7 @@ fixed time step mechanism and referencing assets.</p>
 </span><span class="boring">        self.assets.ensure("group://ingame.txt").unwrap();
 </span><span class="boring">    }
 </span><span class="boring">
-</span><span class="boring">    fn on_redraw(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+</span><span class="boring">    fn on_redraw(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;, _: &amp;mut AppControl) {
 </span><span class="boring">        // Process assets periotically.
 </span><span class="boring">        if self.timer.elapsed().as_secs_f32() &gt; DELTA_TIME {
 </span><span class="boring">            self.timer = Instant::now();
@@ -3174,7 +3185,7 @@ fixed time step mechanism and referencing assets.</p>
 }
 <span class="boring">
 </span><span class="boring">impl AppState&lt;Vertex&gt; for State {
-</span><span class="boring">    fn on_init(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+</span><span class="boring">    fn on_init(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;, _: &amp;mut AppControl) {
 </span><span class="boring">        // Setup scene camera.
 </span><span class="boring">        graphics.color = [0.25, 0.25, 0.25, 1.0];
 </span><span class="boring">        graphics.main_camera.screen_alignment = 0.5.into();
@@ -3187,7 +3198,7 @@ fixed time step mechanism and referencing assets.</p>
 </span><span class="boring">        self.assets.ensure("group://ingame.txt").unwrap();
 </span><span class="boring">    }
 </span><span class="boring">
-</span><span class="boring">    fn on_redraw(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+</span><span class="boring">    fn on_redraw(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;, _: &amp;mut AppControl) {
 </span><span class="boring">        // Process assets periotically.
 </span><span class="boring">        if self.timer.elapsed().as_secs_f32() &gt; DELTA_TIME {
 </span><span class="boring">            self.timer = Instant::now();
@@ -3462,7 +3473,7 @@ texture assets are ready.</p>
 </span><span class="boring">}
 </span><span class="boring">
 </span>impl AppState&lt;Vertex&gt; for State {
-    fn on_init(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+    fn on_init(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;, _: &amp;mut AppControl) {
         // Setup scene camera.
         graphics.color = [0.25, 0.25, 0.25, 1.0];
         graphics.main_camera.screen_alignment = 0.5.into();
@@ -3475,7 +3486,7 @@ texture assets are ready.</p>
         self.assets.ensure("group://ingame.txt").unwrap();
     }
 
-    fn on_redraw(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+    fn on_redraw(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;, _: &amp;mut AppControl) {
         // Process assets periotically.
         if self.timer.elapsed().as_secs_f32() &gt; DELTA_TIME {
             self.timer = Instant::now();
@@ -3748,7 +3759,7 @@ their assets.</p>
 </span><span class="boring">}
 </span><span class="boring">
 </span><span class="boring">impl AppState&lt;Vertex&gt; for State {
-</span><span class="boring">    fn on_init(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+</span><span class="boring">    fn on_init(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;, _: &amp;mut AppControl) {
 </span><span class="boring">        // Setup scene camera.
 </span><span class="boring">        graphics.color = [0.25, 0.25, 0.25, 1.0];
 </span><span class="boring">        graphics.main_camera.screen_alignment = 0.5.into();
@@ -3761,7 +3772,7 @@ their assets.</p>
 </span><span class="boring">        self.assets.ensure("group://ingame.txt").unwrap();
 </span><span class="boring">    }
 </span><span class="boring">
-</span><span class="boring">    fn on_redraw(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+</span><span class="boring">    fn on_redraw(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;, _: &amp;mut AppControl) {
 </span><span class="boring">        // Process assets periotically.
 </span><span class="boring">        if self.timer.elapsed().as_secs_f32() &gt; DELTA_TIME {
 </span><span class="boring">            self.timer = Instant::now();
@@ -4031,7 +4042,7 @@ their assets.</p>
 </span><span class="boring">}
 </span><span class="boring">
 </span><span class="boring">impl AppState&lt;Vertex&gt; for State {
-</span><span class="boring">    fn on_init(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+</span><span class="boring">    fn on_init(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;, _: &amp;mut AppControl) {
 </span><span class="boring">        // Setup scene camera.
 </span><span class="boring">        graphics.color = [0.25, 0.25, 0.25, 1.0];
 </span><span class="boring">        graphics.main_camera.screen_alignment = 0.5.into();
@@ -4044,7 +4055,7 @@ their assets.</p>
 </span><span class="boring">        self.assets.ensure("group://ingame.txt").unwrap();
 </span><span class="boring">    }
 </span><span class="boring">
-</span><span class="boring">    fn on_redraw(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+</span><span class="boring">    fn on_redraw(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;, _: &amp;mut AppControl) {
 </span><span class="boring">        // Process assets periotically.
 </span><span class="boring">        if self.timer.elapsed().as_secs_f32() &gt; DELTA_TIME {
 </span><span class="boring">            self.timer = Instant::now();
@@ -4316,7 +4327,7 @@ texture dimensions.</p>
 </span><span class="boring">}
 </span><span class="boring">
 </span><span class="boring">impl AppState&lt;Vertex&gt; for State {
-</span><span class="boring">    fn on_init(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+</span><span class="boring">    fn on_init(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;, _: &amp;mut AppControl) {
 </span><span class="boring">        // Setup scene camera.
 </span><span class="boring">        graphics.color = [0.25, 0.25, 0.25, 1.0];
 </span><span class="boring">        graphics.main_camera.screen_alignment = 0.5.into();
@@ -4329,7 +4340,7 @@ texture dimensions.</p>
 </span><span class="boring">        self.assets.ensure("group://ingame.txt").unwrap();
 </span><span class="boring">    }
 </span><span class="boring">
-</span><span class="boring">    fn on_redraw(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;) {
+</span><span class="boring">    fn on_redraw(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;, _: &amp;mut AppControl) {
 </span><span class="boring">        // Process assets periotically.
 </span><span class="boring">        if self.timer.elapsed().as_secs_f32() &gt; DELTA_TIME {
 </span><span class="boring">            self.timer = Instant::now();
