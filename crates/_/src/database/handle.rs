@@ -12,7 +12,7 @@ use anput::{
     query::{Exclude, Include, QueryError, TypedLookupFetch, TypedQueryFetch},
     world::World,
 };
-use std::{error::Error, future::poll_fn, task::Poll};
+use std::{error::Error, future::pending};
 
 /// A marker struct to represent an asset dependency relationship.
 pub struct AssetDependency;
@@ -144,6 +144,9 @@ impl AssetHandle {
     }
 
     /// Checks if the asset is ready for use (all dependencies are resolved).
+    ///
+    /// # Arguments
+    /// - `database`: A reference to the asset database.
     pub fn is_ready_to_use(self, database: &AssetDatabase) -> bool {
         let mut lookup = database.storage.lookup_access::<true, (
             Entity,
@@ -158,17 +161,13 @@ impl AssetHandle {
     }
 
     /// Waits asynchronously until the asset is ready to use.
+    ///
+    /// # Arguments
+    /// - `database`: A reference to the asset database.
     pub async fn wait_for_ready_to_use(&self, database: &AssetDatabase) {
-        poll_fn(|ctx| {
-            if self.is_ready_to_use(database) {
-                ctx.waker().wake_by_ref();
-                Poll::Ready(())
-            } else {
-                ctx.waker().wake_by_ref();
-                Poll::Pending
-            }
-        })
-        .await
+        while !self.is_ready_to_use(database) {
+            pending::<()>().await;
+        }
     }
 
     /// Adds a bundle of components to the asset.

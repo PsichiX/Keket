@@ -1,5 +1,5 @@
 use crate::database::{
-    AssetDatabase, AssetDatabaseCommand, AssetReferenceCounter, handle::AssetHandle,
+    AssetDatabase, AssetDatabaseCommandsSender, AssetReferenceCounter, handle::AssetHandle,
     path::AssetPathStatic,
 };
 use anput::{entity::Entity, query::TypedLookupFetch};
@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::{
     error::Error,
     ops::{Deref, DerefMut},
-    sync::{RwLock, mpsc::Sender},
+    sync::RwLock,
 };
 
 /// A reference to an asset in the asset database.
@@ -283,13 +283,13 @@ impl<'a> AssetResolved<'a> {
 /// Uses asset reference counting to ensure asset lifetime.
 pub struct SmartAssetRef {
     inner: AssetRef,
-    sender: Sender<AssetDatabaseCommand>,
+    sender: AssetDatabaseCommandsSender,
 }
 
 impl Drop for SmartAssetRef {
     fn drop(&mut self) {
         if let Ok(handle) = self.inner.handle() {
-            let _ = self.sender.send(Box::new(move |storage| {
+            self.sender.send(Box::new(move |storage| {
                 if let Ok(mut counter) =
                     storage.component_mut::<true, AssetReferenceCounter>(handle.entity())
                 {
@@ -349,7 +349,7 @@ impl SmartAssetRef {
 impl Clone for SmartAssetRef {
     fn clone(&self) -> Self {
         if let Ok(handle) = self.inner.handle() {
-            let _ = self.sender.send(Box::new(move |storage| {
+            self.sender.send(Box::new(move |storage| {
                 if let Ok(mut counter) =
                     storage.component_mut::<true, AssetReferenceCounter>(handle.entity())
                 {

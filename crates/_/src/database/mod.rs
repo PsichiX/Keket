@@ -29,13 +29,32 @@ use anput::{
     world::World,
 };
 use std::{
+    collections::VecDeque,
     error::Error,
-    sync::mpsc::{Receiver, Sender, channel},
+    sync::{Arc, Mutex},
 };
 
 pub type AssetDatabaseCommand = Box<dyn FnOnce(&mut World) + Send + Sync>;
 
+#[derive(Clone)]
+pub struct AssetDatabaseCommandsSender {
+    queue: Arc<Mutex<VecDeque<AssetDatabaseCommand>>>,
+}
+
+impl AssetDatabaseCommandsSender {
+    /// Sends a command to the asset database.
+    ///
+    /// # Arguments
+    /// - `command`: The command to send.
+    pub fn send(&self, command: AssetDatabaseCommand) {
+        if let Ok(mut queue) = self.queue.lock() {
+            queue.push_back(command);
+        }
+    }
+}
+
 /// Asset database for managing assets and their states.
+#[derive(Default)]
 pub struct AssetDatabase {
     pub storage: World,
     pub events: AssetEventBindings,
@@ -43,26 +62,7 @@ pub struct AssetDatabase {
     fetch_stack: Vec<AssetFetchEngine>,
     store_stack: Vec<AssetStoreEngine>,
     protocols: Vec<Box<dyn AssetProtocol>>,
-    #[allow(clippy::type_complexity)]
-    sender: Sender<AssetDatabaseCommand>,
-    #[allow(clippy::type_complexity)]
-    receiver: Receiver<AssetDatabaseCommand>,
-}
-
-impl Default for AssetDatabase {
-    fn default() -> Self {
-        let (sender, receiver) = channel();
-        Self {
-            storage: Default::default(),
-            events: Default::default(),
-            allow_asset_progression_failures: false,
-            fetch_stack: Default::default(),
-            store_stack: Default::default(),
-            protocols: Default::default(),
-            sender,
-            receiver,
-        }
-    }
+    commands: Arc<Mutex<VecDeque<AssetDatabaseCommand>>>,
 }
 
 impl AssetDatabase {
@@ -541,9 +541,10 @@ impl AssetDatabase {
 
     /// Returns the sender for asset database commands.
     /// This can be used to send commands to the asset database from external places.
-    #[allow(clippy::type_complexity)]
-    pub fn commands_sender(&self) -> Sender<AssetDatabaseCommand> {
-        self.sender.clone()
+    pub fn commands_sender(&self) -> AssetDatabaseCommandsSender {
+        AssetDatabaseCommandsSender {
+            queue: self.commands.clone(),
+        }
     }
 
     /// Performs maintenance on the asset database, processing events and managing states.
@@ -556,8 +557,10 @@ impl AssetDatabase {
     /// # Returns
     /// `Ok(())` if successful, or an error if any step fails.
     pub fn maintain(&mut self) -> Result<(), Box<dyn Error>> {
-        while let Ok(command) = self.receiver.try_recv() {
-            command(&mut self.storage);
+        if let Ok(mut queue) = self.commands.lock() {
+            while let Some(command) = queue.pop_front() {
+                command(&mut self.storage);
+            }
         }
         let despawn = if let Some(changes) = self.storage.updated() {
             if changes.has_component::<AssetReferenceCounter>() {

@@ -1,6 +1,6 @@
 [package]
 name = "keket-http"
-version = "0.14.2"
+version = "0.14.3"
 edition = "2024"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 description = "HTTP asset fetch engine for Keket toolkit"

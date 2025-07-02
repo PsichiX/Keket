@@ -52,7 +52,7 @@ impl<Fetch: AssetFetch> AssetFetch for DeferredAssetFetch<Fetch> {
         let path = path.into_static();
         let path2 = path.clone();
         let fetch = self.fetch.clone();
-        let handle = self.jobs.spawn_on(JobLocation::Unknown, JobPriority::Normal,async move {
+        let job = async move {
             fetch.read().map_err(|error|{
                 format!(
                     "Failed to get read access to inner fetch engine in deferred job for asset: `{}`. Error: {}",
@@ -64,7 +64,12 @@ impl<Fetch: AssetFetch> AssetFetch for DeferredAssetFetch<Fetch> {
                     path, error
                 )
             })
-        })?;
+        };
+        let handle = self.jobs.spawn_on(
+            JobLocation::other_than_current_thread(),
+            JobPriority::Normal,
+            job,
+        )?;
         self.job_handles
             .write()
             .map_err(|error| format!("{}", error))?
@@ -75,6 +80,8 @@ impl<Fetch: AssetFetch> AssetFetch for DeferredAssetFetch<Fetch> {
     }
 
     fn maintain(&mut self, storage: &mut World) -> Result<(), Box<dyn Error>> {
+        self.jobs.run_local();
+
         self.fetch
             .write()
             .map_err(|error| {
@@ -102,11 +109,16 @@ impl<Fetch: AssetFetch> AssetFetch for DeferredAssetFetch<Fetch> {
                 .unwrap();
             match handle.try_take() {
                 Some(Some(result)) => {
-                    let result = result.map_err(|_| {
-                        format!("Deferred job execution of `{}` asset panicked!", path)
-                    })?;
                     if let Some(entity) = storage.find_by::<true, _>(&path) {
                         storage.remove::<(AssetAwaitsDeferredJob,)>(entity)?;
+                    }
+                    let result = result.map_err(|error| {
+                        format!(
+                            "Deferred job execution of `{}` asset panicked! Error: {}",
+                            path, error
+                        )
+                    })?;
+                    if let Some(entity) = storage.find_by::<true, _>(&path) {
                         storage.insert(entity, result)?;
                     }
                 }
