@@ -4,6 +4,7 @@ pub mod deferred;
 pub mod extract;
 pub mod fallback;
 pub mod file;
+pub mod future;
 #[cfg(feature = "hotreload")]
 pub mod hotreload;
 pub mod rewrite;

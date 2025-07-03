@@ -12,6 +12,7 @@
   - [In-memory collections](./fetch/collections.md)
   - [Hot-reloading wrapper for file system](./fetch/hot_reload.md)
   - [Deferred loading wrapper](./fetch/deferred.md)
+  - [Async loading wrapper](./fetch/async.md)
   - [Assets container wrapper](./fetch/container.md)
   - [Fallback assets wrapper](./fetch/fallback.md)
   - [Router fetch wrapper](./fetch/router.md)

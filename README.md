@@ -11,7 +11,7 @@
 
 This crate provides a robust framework for managing assets in Rust, from loading and fetching assets
 from various sources (HTTP, local file system, databases, etc.) to advanced features like asset
-hot-reloading, deferred loading, and integration with game engines or other large projects.
+hot-reloading, deferred and async loading, and integration with game engines or other large projects.
 It leverages dynamic component-based bundles to easily manage and interact with assets on demand.
 
 ## Key Features
@@ -20,6 +20,7 @@ It leverages dynamic component-based bundles to easily manage and interact with 
 - **Dynamic Bundling**: Combine different pieces of asset data in a flexible way using the `DynamicBundle` container.
 - **Hot Reloading**: Supports automatic hot reloading of assets, allowing you to dynamically update content without restarting the application.
 - **Deferred Loading**: Perform heavy asset loading tasks asynchronously using background jobs to prevent blocking the main application thread.
+- **Async Loading**: Perform heavy asset loading tasks asynchronously using custom async/await futures.
 - **Multi-Source Support**: Load assets from a range of containers (e.g., file system, in-memory collections, or databases), and even support custom ones with the flexible `ContainerPartialFetch` trait.
 - **Error Handling**: Rich error handling mechanism that makes debugging asset loading problems quick and easy.
 
@@ -72,7 +73,7 @@ More examples:
 - [ZIP archive](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/02_zip.rs)
 - [Dependencies](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/03_dependencies.rs)
 - [Events](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/04_events.rs)
-- [Async loading](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/05_deferred_fetch.rs)
+- [Deferred loading](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/05_deferred_fetch.rs)
 - [Routing](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/06_router_fetch.rs)
 - [Fallback assets](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/07_fallback.rs)
 - [DLC asset packs](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/08_dlcs_asset_packs.rs)
@@ -91,6 +92,7 @@ More examples:
 - [Store asset](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/21_store_asset.rs)
 - [Store custom asset](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/22_store_custom_asset.rs)
 - [Tokio + Axum web server asset provider](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/23_tokio_axum.rs)
+- [Async loading](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/24_future_fetch.rs)
 - [HTTP fetch engine](https://github.com/PsichiX/Keket/tree/master/crates/http/examples/hello_http.rs)
 - [REDB fetch engine](https://github.com/PsichiX/Keket/tree/master/crates/redb/examples/hello_redb.rs)
 - [Asset server fetch engine](https://github.com/PsichiX/Keket/tree/master/crates/client/examples/hello_client.rs)
