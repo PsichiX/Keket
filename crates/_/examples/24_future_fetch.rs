@@ -34,6 +34,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Run maintain passes to load and process loaded bytes.
     while !package.is_ready_to_use(&database) {
         database.maintain()?;
+        tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
     }
 
     println!(
