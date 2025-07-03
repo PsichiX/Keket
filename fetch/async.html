@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Assets container wrapper - Keket - Asset Database on top of ECS</title>
+        <title>Async loading wrapper - Keket - Asset Database on top of ECS</title>
 
 
         <!-- Custom HTML head -->
@@ -166,112 +166,106 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="assets-container-wrapper"><a class="header" href="#assets-container-wrapper">Assets container wrapper</a></h1>
-<p><code>ContainerAssetFetch</code> allows for partial loading from sources that are considered
-containers that store other assets. Typical container example would be ZIP archives,
-databases, etc.</p>
-<pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{AssetDatabase, path::AssetPath},
-</span><span class="boring">    fetch::container::{ContainerAssetFetch, ContainerPartialFetch},
-</span><span class="boring">    protocol::text::TextAssetProtocol,
+                        <h1 id="async-loading-wrapper"><a class="header" href="#async-loading-wrapper">Async loading wrapper</a></h1>
+<p><code>FutureAssetFetch</code> allows to asynchronously load requested bytes in async/await
+futures. It's similar to <code>DeferredAssetFetch</code>, although it expects provided
+custom async function that will handle loading asset bytes with custom
+async/await compatible libraries like <code>tokio</code>.</p>
+<pre><code class="language-rust ignore"><span class="boring">use anput::bundle::DynamicBundle;
+</span><span class="boring">use keket::{
+</span><span class="boring">    database::{AssetDatabase, path::AssetPathStatic},
+</span><span class="boring">    fetch::{AssetBytesAreReadyToProcess, future::FutureAssetFetch},
+</span><span class="boring">    protocol::bytes::BytesAssetProtocol,
 </span><span class="boring">};
-</span><span class="boring">use std::{error::Error, fs::File, io::Read};
-</span><span class="boring">use zip::ZipArchive;
+</span><span class="boring">use std::{error::Error, path::PathBuf};
 </span><span class="boring">
-</span><span class="boring">fn main() -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
-</span><span class="boring">    let mut database = AssetDatabase::default()
-</span><span class="boring">        .with_protocol(TextAssetProtocol)
-</span><span class="boring">        // Container asset fetch allows to use partial asset fetch object
-</span><span class="boring">        // that can take asset path and returns bytes from some container.
-</span><span class="boring">        .with_fetch(ContainerAssetFetch::new(ZipContainerPartialFetch::new(
-</span><span class="boring">            ZipArchive::new(File::open("./resources/package.zip")?)?,
-</span><span class="boring">        )));
+</span><span class="boring">async fn tokio_load_file_bundle(path: AssetPathStatic) -&gt; Result&lt;DynamicBundle, Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">    let file_path = PathBuf::from("resources").join(path.path());
 </span><span class="boring">
-</span><span class="boring">    let lorem = database.ensure("text://lorem.txt")?;
-</span><span class="boring">    println!("Lorem Ipsum: {}", lorem.access::&lt;&amp;String&gt;(&amp;database));
+</span><span class="boring">    let bytes = tokio::fs::read(&amp;file_path).await?;
 </span><span class="boring">
-</span><span class="boring">    Ok(())
+</span><span class="boring">    let mut bundle = DynamicBundle::default();
+</span><span class="boring">    bundle
+</span><span class="boring">        .add_component(AssetBytesAreReadyToProcess(bytes))
+</span><span class="boring">        .map_err(|_| format!("Failed to add bytes to bundle for asset: {}", path))?;
+</span><span class="boring">    Ok(bundle)
 </span><span class="boring">}
 </span><span class="boring">
-</span>// Here we show how to make ZIP archive file reader.
-struct ZipContainerPartialFetch {
-    archive: ZipArchive&lt;File&gt;,
-}
-
-impl ZipContainerPartialFetch {
-    pub fn new(archive: ZipArchive&lt;File&gt;) -&gt; Self {
-        Self { archive }
-    }
-}
-
-impl ContainerPartialFetch for ZipContainerPartialFetch {
-    // We use input path and try to unpack file under that path from ZIP archive.
-    fn load_bytes(&amp;mut self, path: AssetPath) -&gt; Result&lt;Vec&lt;u8&gt;, Box&lt;dyn Error&gt;&gt; {
-        let mut file = self
-            .archive
-            .by_name(path.path())
-            .map_err(|error| format!("Could not read zip file: `{}` - {}", path.path(), error))?;
-        let mut bytes = vec![];
-        file.read_to_end(&amp;mut bytes)?;
-        Ok(bytes)
-    }
-}</code></pre>
-<pre><code class="language-rust ignore"><span class="boring">use keket::{
-</span><span class="boring">    database::{AssetDatabase, path::AssetPath},
-</span><span class="boring">    fetch::container::{ContainerAssetFetch, ContainerPartialFetch},
-</span><span class="boring">    protocol::text::TextAssetProtocol,
-</span><span class="boring">};
-</span><span class="boring">use std::{error::Error, fs::File, io::Read};
-</span><span class="boring">use zip::ZipArchive;
-</span><span class="boring">
-</span><span class="boring">fn main() -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">#[tokio::main]
+</span><span class="boring">async fn main() -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
 </span>    let mut database = AssetDatabase::default()
-        .with_protocol(TextAssetProtocol)
-        // Container asset fetch allows to use partial asset fetch object
-        // that can take asset path and returns bytes from some container.
-        .with_fetch(ContainerAssetFetch::new(ZipContainerPartialFetch::new(
-            ZipArchive::new(File::open("./resources/package.zip")?)?,
-        )));
+        .with_protocol(BytesAssetProtocol)
+        // Future asset fetch uses async function to handle providing
+        // asset bytes asynchronously with async/await.
+        .with_fetch(FutureAssetFetch::new(tokio_load_file_bundle));
 
-    let lorem = database.ensure("text://lorem.txt")?;
-    println!("Lorem Ipsum: {}", lorem.access::&lt;&amp;String&gt;(&amp;database));
+    let package = database.ensure("bytes://package.zip")?;
+
+    // Run maintain passes to load and process loaded bytes.
+    while !package.is_ready_to_use(&amp;database) {
+        database.maintain()?;
+    }
+
+    println!(
+        "Package byte size: {}",
+        package.access::&lt;&amp;Vec&lt;u8&gt;&gt;(&amp;database).len()
+    );
 <span class="boring">
 </span><span class="boring">    Ok(())
-</span><span class="boring">}
+</span><span class="boring">}</span></code></pre>
+<p>And here is async function that handles loading bytes with <code>tokio</code>:</p>
+<pre><code class="language-rust ignore"><span class="boring">use anput::bundle::DynamicBundle;
+</span><span class="boring">use keket::{
+</span><span class="boring">    database::{AssetDatabase, path::AssetPathStatic},
+</span><span class="boring">    fetch::{AssetBytesAreReadyToProcess, future::FutureAssetFetch},
+</span><span class="boring">    protocol::bytes::BytesAssetProtocol,
+</span><span class="boring">};
+</span><span class="boring">use std::{error::Error, path::PathBuf};
 </span><span class="boring">
-</span><span class="boring">// Here we show how to make ZIP archive file reader.
-</span><span class="boring">struct ZipContainerPartialFetch {
-</span><span class="boring">    archive: ZipArchive&lt;File&gt;,
-</span><span class="boring">}
+</span>async fn tokio_load_file_bundle(path: AssetPathStatic) -&gt; Result&lt;DynamicBundle, Box&lt;dyn Error&gt;&gt; {
+    let file_path = PathBuf::from("resources").join(path.path());
+
+    let bytes = tokio::fs::read(&amp;file_path).await?;
+
+    let mut bundle = DynamicBundle::default();
+    bundle
+        .add_component(AssetBytesAreReadyToProcess(bytes))
+        .map_err(|_| format!("Failed to add bytes to bundle for asset: {}", path))?;
+    Ok(bundle)
+}
+<span class="boring">
+</span><span class="boring">#[tokio::main]
+</span><span class="boring">async fn main() -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">    let mut database = AssetDatabase::default()
+</span><span class="boring">        .with_protocol(BytesAssetProtocol)
+</span><span class="boring">        // Future asset fetch uses async function to handle providing
+</span><span class="boring">        // asset bytes asynchronously with async/await.
+</span><span class="boring">        .with_fetch(FutureAssetFetch::new(tokio_load_file_bundle));
 </span><span class="boring">
-</span><span class="boring">impl ZipContainerPartialFetch {
-</span><span class="boring">    pub fn new(archive: ZipArchive&lt;File&gt;) -&gt; Self {
-</span><span class="boring">        Self { archive }
+</span><span class="boring">    let package = database.ensure("bytes://package.zip")?;
+</span><span class="boring">
+</span><span class="boring">    // Run maintain passes to load and process loaded bytes.
+</span><span class="boring">    while !package.is_ready_to_use(&amp;database) {
+</span><span class="boring">        database.maintain()?;
 </span><span class="boring">    }
-</span><span class="boring">}
 </span><span class="boring">
-</span><span class="boring">impl ContainerPartialFetch for ZipContainerPartialFetch {
-</span><span class="boring">    // We use input path and try to unpack file under that path from ZIP archive.
-</span><span class="boring">    fn load_bytes(&amp;mut self, path: AssetPath) -&gt; Result&lt;Vec&lt;u8&gt;, Box&lt;dyn Error&gt;&gt; {
-</span><span class="boring">        let mut file = self
-</span><span class="boring">            .archive
-</span><span class="boring">            .by_name(path.path())
-</span><span class="boring">            .map_err(|error| format!("Could not read zip file: `{}` - {}", path.path(), error))?;
-</span><span class="boring">        let mut bytes = vec![];
-</span><span class="boring">        file.read_to_end(&amp;mut bytes)?;
-</span><span class="boring">        Ok(bytes)
-</span><span class="boring">    }
+</span><span class="boring">    println!(
+</span><span class="boring">        "Package byte size: {}",
+</span><span class="boring">        package.access::&lt;&amp;Vec&lt;u8&gt;&gt;(&amp;database).len()
+</span><span class="boring">    );
+</span><span class="boring">
+</span><span class="boring">    Ok(())
 </span><span class="boring">}</span></code></pre>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../fetch/async.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../fetch/deferred.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../fetch/fallback.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../fetch/container.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -281,11 +275,11 @@ impl ContainerPartialFetch for ZipContainerPartialFetch {
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../fetch/async.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../fetch/deferred.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../fetch/fallback.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../fetch/container.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
