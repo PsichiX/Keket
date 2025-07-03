@@ -1139,6 +1139,7 @@ async/await compatible libraries like <code>tokio</code>.</p>
     // Run maintain passes to load and process loaded bytes.
     while !package.is_ready_to_use(&amp;database) {
         database.maintain()?;
+        tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
     }
 
     println!(
@@ -1182,6 +1183,7 @@ async/await compatible libraries like <code>tokio</code>.</p>
 </span><span class="boring">    // Run maintain passes to load and process loaded bytes.
 </span><span class="boring">    while !package.is_ready_to_use(&amp;database) {
 </span><span class="boring">        database.maintain()?;
+</span><span class="boring">        tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
 </span><span class="boring">    }
 </span><span class="boring">
 </span><span class="boring">    println!(
