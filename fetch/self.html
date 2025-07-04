@@ -300,7 +300,7 @@ so database can detect these assets and trigger asset decoding with their protoc
 <li><code>std::fs::Metadata</code> - file metadata that can be used for example for size stats.</li>
 <li><code>PathBuf</code> - file system path that can be used for stuff like hot reloading.</li>
 </ul>
-<p>Asset fetch engines other than <code>FileassetFetch</code> also do add their own custom
+<p>Asset fetch engines other than <code>FileAssetFetch</code> also do add their own custom
 metadata to asset.</p>
 <p>It's worth also to know that asset database uses stack of asset fetch engines,
 to allow changing source of assets for particular code paths - we can push, pop,

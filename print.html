@@ -904,7 +904,7 @@ so database can detect these assets and trigger asset decoding with their protoc
 <li><code>std::fs::Metadata</code> - file metadata that can be used for example for size stats.</li>
 <li><code>PathBuf</code> - file system path that can be used for stuff like hot reloading.</li>
 </ul>
-<p>Asset fetch engines other than <code>FileassetFetch</code> also do add their own custom
+<p>Asset fetch engines other than <code>FileAssetFetch</code> also do add their own custom
 metadata to asset.</p>
 <p>It's worth also to know that asset database uses stack of asset fetch engines,
 to allow changing source of assets for particular code paths - we can push, pop,
@@ -1086,8 +1086,8 @@ system or network fetch engines.</p>
     let package = database.ensure("bytes://package.zip")?;
 
     // Simulate waiting for asset bytes loading to complete.
-    while package.awaits_deferred_job(&amp;database) {
-        println!("Package awaits deferred job done");
+    while package.awaits_async_fetch(&amp;database) {
+        println!("Package awaits async fetch done");
         database.maintain()?;
     }
 
@@ -1514,14 +1514,14 @@ specialize extraction with specific asset as source.</p>
     let json = database.ensure("json://person.json")?;
     let trash = database.ensure("bytes://trash.bin")?;
 
-    // Wait till database is busy.
+    // Wait while database is busy.
     while database.is_busy() {
         println!("Waiting for database to be free");
         println!(
             "Loading:\n- Lorem Ipsum: {}\n- JSON: {}\n- Bytes: {}",
-            lorem.awaits_deferred_job(&amp;database),
-            json.awaits_deferred_job(&amp;database),
-            trash.awaits_deferred_job(&amp;database)
+            lorem.awaits_async_fetch(&amp;database),
+            json.awaits_async_fetch(&amp;database),
+            trash.awaits_async_fetch(&amp;database)
         );
         database.maintain()?;
     }
@@ -1616,8 +1616,8 @@ binary crate) - a humble beginnings to DDC infrastructure for live development.<
         println!("Waiting for database to be free");
         println!(
             "Loading:\n- Lorem Ipsum: {}\n- Bytes: {}",
-            lorem.awaits_deferred_job(&amp;database),
-            trash.awaits_deferred_job(&amp;database)
+            lorem.awaits_async_fetch(&amp;database),
+            trash.awaits_async_fetch(&amp;database)
         );
         database.maintain()?;
     }

@@ -199,8 +199,8 @@ binary crate) - a humble beginnings to DDC infrastructure for live development.<
         println!("Waiting for database to be free");
         println!(
             "Loading:\n- Lorem Ipsum: {}\n- Bytes: {}",
-            lorem.awaits_deferred_job(&amp;database),
-            trash.awaits_deferred_job(&amp;database)
+            lorem.awaits_async_fetch(&amp;database),
+            trash.awaits_async_fetch(&amp;database)
         );
         database.maintain()?;
     }
