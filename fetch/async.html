@@ -179,18 +179,6 @@ async/await compatible libraries like <code>tokio</code>.</p>
 </span><span class="boring">};
 </span><span class="boring">use std::{error::Error, path::PathBuf};
 </span><span class="boring">
-</span><span class="boring">async fn tokio_load_file_bundle(path: AssetPathStatic) -&gt; Result&lt;DynamicBundle, Box&lt;dyn Error&gt;&gt; {
-</span><span class="boring">    let file_path = PathBuf::from("resources").join(path.path());
-</span><span class="boring">
-</span><span class="boring">    let bytes = tokio::fs::read(&amp;file_path).await?;
-</span><span class="boring">
-</span><span class="boring">    let mut bundle = DynamicBundle::default();
-</span><span class="boring">    bundle
-</span><span class="boring">        .add_component(AssetBytesAreReadyToProcess(bytes))
-</span><span class="boring">        .map_err(|_| format!("Failed to add bytes to bundle for asset: {}", path))?;
-</span><span class="boring">    Ok(bundle)
-</span><span class="boring">}
-</span><span class="boring">
 </span><span class="boring">#[tokio::main]
 </span><span class="boring">async fn main() -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
 </span>    let mut database = AssetDatabase::default()
@@ -213,6 +201,18 @@ async/await compatible libraries like <code>tokio</code>.</p>
     );
 <span class="boring">
 </span><span class="boring">    Ok(())
+</span><span class="boring">}
+</span><span class="boring">
+</span><span class="boring">async fn tokio_load_file_bundle(path: AssetPathStatic) -&gt; Result&lt;DynamicBundle, Box&lt;dyn Error&gt;&gt; {
+</span><span class="boring">    let file_path = PathBuf::from("resources").join(path.path());
+</span><span class="boring">
+</span><span class="boring">    let bytes = tokio::fs::read(&amp;file_path).await?;
+</span><span class="boring">
+</span><span class="boring">    let mut bundle = DynamicBundle::default();
+</span><span class="boring">    bundle
+</span><span class="boring">        .add_component(AssetBytesAreReadyToProcess(bytes))
+</span><span class="boring">        .map_err(|_| format!("Failed to add bytes to bundle for asset: {}", path))?;
+</span><span class="boring">    Ok(bundle)
 </span><span class="boring">}</span></code></pre>
 <p>And here is async function that handles loading bytes with <code>tokio</code>:</p>
 <pre><code class="language-rust ignore"><span class="boring">use anput::bundle::DynamicBundle;
@@ -223,18 +223,6 @@ async/await compatible libraries like <code>tokio</code>.</p>
 </span><span class="boring">};
 </span><span class="boring">use std::{error::Error, path::PathBuf};
 </span><span class="boring">
-</span>async fn tokio_load_file_bundle(path: AssetPathStatic) -&gt; Result&lt;DynamicBundle, Box&lt;dyn Error&gt;&gt; {
-    let file_path = PathBuf::from("resources").join(path.path());
-
-    let bytes = tokio::fs::read(&amp;file_path).await?;
-
-    let mut bundle = DynamicBundle::default();
-    bundle
-        .add_component(AssetBytesAreReadyToProcess(bytes))
-        .map_err(|_| format!("Failed to add bytes to bundle for asset: {}", path))?;
-    Ok(bundle)
-}
-<span class="boring">
 </span><span class="boring">#[tokio::main]
 </span><span class="boring">async fn main() -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt; {
 </span><span class="boring">    let mut database = AssetDatabase::default()
@@ -257,7 +245,19 @@ async/await compatible libraries like <code>tokio</code>.</p>
 </span><span class="boring">    );
 </span><span class="boring">
 </span><span class="boring">    Ok(())
-</span><span class="boring">}</span></code></pre>
+</span><span class="boring">}
+</span><span class="boring">
+</span>async fn tokio_load_file_bundle(path: AssetPathStatic) -&gt; Result&lt;DynamicBundle, Box&lt;dyn Error&gt;&gt; {
+    let file_path = PathBuf::from("resources").join(path.path());
+
+    let bytes = tokio::fs::read(&amp;file_path).await?;
+
+    let mut bundle = DynamicBundle::default();
+    bundle
+        .add_component(AssetBytesAreReadyToProcess(bytes))
+        .map_err(|_| format!("Failed to add bytes to bundle for asset: {}", path))?;
+    Ok(bundle)
+}</code></pre>
 
                     </main>
 
