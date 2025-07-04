@@ -1,3 +1,4 @@
+use anput::bundle::DynamicBundle;
 use axum::{
     Router,
     body::Body,
@@ -9,25 +10,35 @@ use axum::{
 };
 use keket::{
     database::{AssetDatabase, path::AssetPathStatic},
-    fetch::{deferred::DeferredAssetFetch, file::FileAssetFetch},
+    fetch::{AssetBytesAreReadyToProcess, future::FutureAssetFetch},
     protocol::{bytes::BytesAssetProtocol, text::TextAssetProtocol},
     third_party::anput::component::Component,
 };
-use std::{error::Error, sync::Arc};
+use std::{error::Error, path::PathBuf, sync::Arc};
 use tokio::{
     net::TcpListener,
     sync::RwLock,
     time::{Duration, sleep},
 };
 
+async fn tokio_load_file_bundle(path: AssetPathStatic) -> Result<DynamicBundle, Box<dyn Error>> {
+    let file_path = PathBuf::from("resources").join(path.path());
+
+    let bytes = tokio::fs::read(&file_path).await?;
+
+    let mut bundle = DynamicBundle::default();
+    bundle
+        .add_component(AssetBytesAreReadyToProcess(bytes))
+        .map_err(|_| format!("Failed to add bytes to bundle for asset: {}", path))?;
+    Ok(bundle)
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let database = AssetDatabase::default()
         .with_protocol(TextAssetProtocol)
         .with_protocol(BytesAssetProtocol)
-        .with_fetch(DeferredAssetFetch::new(
-            FileAssetFetch::default().with_root("resources"),
-        ));
+        .with_fetch(FutureAssetFetch::new(tokio_load_file_bundle));
     let database = Arc::new(RwLock::new(database));
     let database2 = database.clone();
 
@@ -105,7 +116,6 @@ async fn get_asset<T: Component + Clone>(
         .map_err(|e| e.to_string())?;
 
     while !handle.is_ready_to_use(&*database.read().await) {
-        println!("Waiting for asset to be ready: {}", path);
         sleep(Duration::from_millis(10)).await;
     }
 
