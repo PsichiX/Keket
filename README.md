@@ -124,9 +124,3 @@ Key concepts:
 
 Whether you're building games, web apps, or anything else that requires managing and fetching assets, this crate has you covered with ease and flexibility.
 Enjoy on-the-fly reloading, asynchronous fetching, and a simple, intuitive API designed with efficiency in mind.
-
-## Roadmap
-
-- Assets versioning
-- Localized assets
-- Performance tools and usage stats
