@@ -25,6 +25,10 @@ pub struct AssetAwaitsResolution;
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct AssetBytesAreReadyToProcess(pub Vec<u8>);
 
+/// Marker component used to signify that the asset fetch for an asset is
+/// asynchronous and it's pending completion.
+pub struct AssetAwaitsAsyncFetch;
+
 /// Defines the interface for fetching asset data from an external source.
 pub trait AssetFetch: Send + Sync + 'static {
     /// Loads the raw bytes of an asset given its path.

@@ -94,8 +94,8 @@ impl AssetsLoadingTracker {
                     out_status.awaiting_resolution.add(*handle);
                 } else if handle.bytes_are_ready_to_process(database) {
                     out_status.with_bytes_ready_to_process.add(*handle);
-                } else if handle.awaits_deferred_job(database) {
-                    out_status.awaiting_deferred_job.add(*handle);
+                } else if handle.awaits_async_fetch(database) {
+                    out_status.awaiting_async_fetch.add(*handle);
                 } else {
                     out_status.ready_to_use.add(*handle);
                 }
@@ -165,7 +165,7 @@ impl AssetsLoadingStatusCategory {
 pub struct AssetsLoadingStatus {
     pub awaiting_resolution: AssetsLoadingStatusCategory,
     pub with_bytes_ready_to_process: AssetsLoadingStatusCategory,
-    pub awaiting_deferred_job: AssetsLoadingStatusCategory,
+    pub awaiting_async_fetch: AssetsLoadingStatusCategory,
     pub ready_to_use: AssetsLoadingStatusCategory,
 }
 
@@ -175,7 +175,7 @@ impl AssetsLoadingStatus {
         AssetsLoadingStatus {
             awaiting_resolution: AssetsLoadingStatusCategory::amount(),
             with_bytes_ready_to_process: AssetsLoadingStatusCategory::amount(),
-            awaiting_deferred_job: AssetsLoadingStatusCategory::amount(),
+            awaiting_async_fetch: AssetsLoadingStatusCategory::amount(),
             ready_to_use: AssetsLoadingStatusCategory::amount(),
         }
     }
@@ -185,7 +185,7 @@ impl AssetsLoadingStatus {
         AssetsLoadingStatus {
             awaiting_resolution: AssetsLoadingStatusCategory::list(),
             with_bytes_ready_to_process: AssetsLoadingStatusCategory::list(),
-            awaiting_deferred_job: AssetsLoadingStatusCategory::list(),
+            awaiting_async_fetch: AssetsLoadingStatusCategory::list(),
             ready_to_use: AssetsLoadingStatusCategory::list(),
         }
     }
@@ -194,7 +194,7 @@ impl AssetsLoadingStatus {
     pub fn clear(&mut self) {
         self.awaiting_resolution.clear();
         self.with_bytes_ready_to_process.clear();
-        self.awaiting_deferred_job.clear();
+        self.awaiting_async_fetch.clear();
         self.ready_to_use.clear();
     }
 
@@ -206,7 +206,7 @@ impl AssetsLoadingStatus {
         AssetsLoadingProgress {
             awaiting_resolution: self.awaiting_resolution.len(),
             with_bytes_ready_to_process: self.with_bytes_ready_to_process.len(),
-            awaiting_deferred_job: self.awaiting_deferred_job.len(),
+            awaiting_async_fetch: self.awaiting_async_fetch.len(),
             ready_to_use: self.ready_to_use.len(),
         }
     }
@@ -217,7 +217,7 @@ impl AssetsLoadingStatus {
 pub struct AssetsLoadingProgress {
     pub awaiting_resolution: usize,
     pub with_bytes_ready_to_process: usize,
-    pub awaiting_deferred_job: usize,
+    pub awaiting_async_fetch: usize,
     pub ready_to_use: usize,
 }
 
@@ -226,7 +226,7 @@ impl AssetsLoadingProgress {
     pub fn total(&self) -> usize {
         self.awaiting_resolution
             + self.with_bytes_ready_to_process
-            + self.awaiting_deferred_job
+            + self.awaiting_async_fetch
             + self.ready_to_use
     }
 
@@ -234,7 +234,7 @@ impl AssetsLoadingProgress {
     pub fn is_complete(&self) -> bool {
         self.awaiting_resolution == 0
             && self.with_bytes_ready_to_process == 0
-            && self.awaiting_deferred_job == 0
+            && self.awaiting_async_fetch == 0
     }
 
     /// Tells if the loading progress is in progress.

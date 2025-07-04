@@ -1,7 +1,7 @@
 use crate::{
     database::{AssetDatabase, inspector::AssetInspector, path::AssetPathStatic},
-    fetch::{AssetAwaitsResolution, AssetBytesAreReadyToProcess, deferred::AssetAwaitsDeferredJob},
-    store::{AssetAwaitsStoring, AssetBytesAreReadyToStore},
+    fetch::{AssetAwaitsAsyncFetch, AssetAwaitsResolution, AssetBytesAreReadyToProcess},
+    store::{AssetAwaitsAsyncStore, AssetAwaitsStoring, AssetBytesAreReadyToStore},
 };
 use anput::{
     archetype::Archetype,
@@ -125,6 +125,12 @@ impl AssetHandle {
             .is_some()
     }
 
+    /// Checks if the asset is awaiting an async store.
+    pub fn awaits_async_store(self, database: &AssetDatabase) -> bool {
+        self.access_checked::<(Entity, Include<AssetAwaitsAsyncStore>)>(database)
+            .is_some()
+    }
+
     /// Checks if the asset is awaiting resolution.
     pub fn awaits_resolution(self, database: &AssetDatabase) -> bool {
         self.access_checked::<(Entity, Include<AssetAwaitsResolution>)>(database)
@@ -137,9 +143,9 @@ impl AssetHandle {
             .is_some()
     }
 
-    /// Checks if the asset is awaiting a deferred job.
-    pub fn awaits_deferred_job(self, database: &AssetDatabase) -> bool {
-        self.access_checked::<(Entity, Include<AssetAwaitsDeferredJob>)>(database)
+    /// Checks if the asset is awaiting an async fetch.
+    pub fn awaits_async_fetch(self, database: &AssetDatabase) -> bool {
+        self.access_checked::<(Entity, Include<AssetAwaitsAsyncFetch>)>(database)
             .is_some()
     }
 
@@ -152,7 +158,7 @@ impl AssetHandle {
             Entity,
             Exclude<AssetAwaitsResolution>,
             Exclude<AssetBytesAreReadyToProcess>,
-            Exclude<AssetAwaitsDeferredJob>,
+            Exclude<AssetAwaitsAsyncFetch>,
         )>();
         database
             .storage

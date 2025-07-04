@@ -93,6 +93,7 @@ More examples:
 - [Store custom asset](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/22_store_custom_asset.rs)
 - [Tokio + Axum web server asset provider](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/23_tokio_axum.rs)
 - [Async loading](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/24_future_fetch.rs)
+- [Async saving](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/25_future_store.rs)
 - [HTTP fetch engine](https://github.com/PsichiX/Keket/tree/master/crates/http/examples/hello_http.rs)
 - [REDB fetch engine](https://github.com/PsichiX/Keket/tree/master/crates/redb/examples/hello_redb.rs)
 - [Asset server fetch engine](https://github.com/PsichiX/Keket/tree/master/crates/client/examples/hello_client.rs)

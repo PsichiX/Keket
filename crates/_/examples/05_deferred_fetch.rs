@@ -17,8 +17,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let package = database.ensure("bytes://package.zip")?;
 
     // Simulate waiting for asset bytes loading to complete.
-    while package.awaits_deferred_job(&database) {
-        println!("Package awaits deferred job done");
+    while package.awaits_async_fetch(&database) {
+        println!("Package awaits async fetch done");
         database.maintain()?;
     }
 

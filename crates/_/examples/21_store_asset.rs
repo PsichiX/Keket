@@ -13,13 +13,15 @@ fn main() -> Result<(), Box<dyn Error>> {
         // This one stores assets to the file system.
         .with_store(FileAssetStore::default().with_root("resources"));
 
+    let _ = std::fs::remove_file("./resources/saved.txt");
+
     // Spawn a new asset.
     let before = database.spawn("text://saved.txt", ("Abra cadabra!".to_owned(),))?;
     println!("Before: {}", before.access::<&String>(&database));
     // Request the asset to be stored using active asset store engine.
     before.store(&mut database)?;
 
-    // Wait until the asset is stored, since this operation is asynchronous.
+    // Wait until the asset is stored.
     while database.is_busy() {
         database.maintain()?;
     }

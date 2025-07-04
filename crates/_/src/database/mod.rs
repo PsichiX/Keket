@@ -14,11 +14,14 @@ use crate::{
         path::{AssetPath, AssetPathStatic},
     },
     fetch::{
-        AssetAwaitsResolution, AssetBytesAreReadyToProcess, AssetFetch, AssetFetchEngine,
-        deferred::AssetAwaitsDeferredJob,
+        AssetAwaitsAsyncFetch, AssetAwaitsResolution, AssetBytesAreReadyToProcess, AssetFetch,
+        AssetFetchEngine,
     },
     protocol::AssetProtocol,
-    store::{AssetAwaitsStoring, AssetBytesAreReadyToStore, AssetStore, AssetStoreEngine},
+    store::{
+        AssetAwaitsAsyncStore, AssetAwaitsStoring, AssetBytesAreReadyToStore, AssetStore,
+        AssetStoreEngine,
+    },
 };
 use anput::{
     bundle::{Bundle, BundleChain},
@@ -448,13 +451,13 @@ impl AssetDatabase {
             .map(|(entity, _)| AssetHandle::new(entity))
     }
 
-    /// Returns an iterator over all assets awaiting deferred jobs.
+    /// Returns an iterator over all assets awaiting async fetch.
     ///
     /// # Returns
     /// An iterator that yields `AssetHandle` instances.
-    pub fn assets_awaiting_deferred_job(&self) -> impl Iterator<Item = AssetHandle> + '_ {
+    pub fn assets_awaiting_async_fetch(&self) -> impl Iterator<Item = AssetHandle> + '_ {
         self.storage
-            .query::<true, (Entity, Include<AssetAwaitsDeferredJob>)>()
+            .query::<true, (Entity, Include<AssetAwaitsAsyncFetch>)>()
             .map(|(entity, _)| AssetHandle::new(entity))
     }
 
@@ -474,6 +477,14 @@ impl AssetDatabase {
         self.storage.has_component::<AssetBytesAreReadyToStore>()
     }
 
+    /// Checks if there are assets awaiting async store.
+    ///
+    /// # Returns
+    /// `true` if async stores are awaiting completion, otherwise `false`.
+    pub fn does_await_async_store(&self) -> bool {
+        self.storage.has_component::<AssetAwaitsAsyncStore>()
+    }
+
     /// Checks if there are any assets awaiting resolution.
     ///
     /// # Returns
@@ -490,12 +501,12 @@ impl AssetDatabase {
         self.storage.has_component::<AssetBytesAreReadyToProcess>()
     }
 
-    /// Checks if there are assets awaiting deferred jobs.
+    /// Checks if there are assets awaiting async fetch.
     ///
     /// # Returns
-    /// `true` if deferred jobs are awaiting, otherwise `false`.
-    pub fn does_await_deferred_job(&self) -> bool {
-        self.storage.has_component::<AssetAwaitsDeferredJob>()
+    /// `true` if async fetches are awaiting completion, otherwise `false`.
+    pub fn does_await_async_fetch(&self) -> bool {
+        self.storage.has_component::<AssetAwaitsAsyncFetch>()
     }
 
     /// Determines if the asset database is currently busy with tasks.
@@ -505,9 +516,10 @@ impl AssetDatabase {
     pub fn is_busy(&self) -> bool {
         self.storage.has_component::<AssetAwaitsResolution>()
             || self.storage.has_component::<AssetBytesAreReadyToProcess>()
-            || self.storage.has_component::<AssetAwaitsDeferredJob>()
+            || self.storage.has_component::<AssetAwaitsAsyncFetch>()
             || self.storage.has_component::<AssetAwaitsStoring>()
             || self.storage.has_component::<AssetBytesAreReadyToStore>()
+            || self.storage.has_component::<AssetAwaitsAsyncStore>()
     }
 
     /// Reports the status of assets in the database.
@@ -520,19 +532,19 @@ impl AssetDatabase {
             handle,
             asset_awaits_resolution,
             asset_bytes_ready_to_process,
-            asset_awaits_deferred_job,
+            asset_awaits_async_fetch,
         ) in self.storage.query::<true, (
             AssetHandle,
             Option<&AssetAwaitsResolution>,
             Option<&AssetBytesAreReadyToProcess>,
-            Option<&AssetAwaitsDeferredJob>,
+            Option<&AssetAwaitsAsyncFetch>,
         )>() {
             if asset_awaits_resolution.is_some() {
                 out_status.awaiting_resolution.add(handle);
             } else if asset_bytes_ready_to_process.is_some() {
                 out_status.with_bytes_ready_to_process.add(handle);
-            } else if asset_awaits_deferred_job.is_some() {
-                out_status.awaiting_deferred_job.add(handle);
+            } else if asset_awaits_async_fetch.is_some() {
+                out_status.awaiting_async_fetch.add(handle);
             } else {
                 out_status.ready_to_use.add(handle);
             }
@@ -604,11 +616,11 @@ impl AssetDatabase {
                     bindings.dispatch(event)?;
                 }
             }
-            for entity in self.storage.added().iter_of::<AssetAwaitsDeferredJob>() {
+            for entity in self.storage.added().iter_of::<AssetAwaitsAsyncFetch>() {
                 if let Some((path, bindings)) = lookup.access(entity) {
                     let event = AssetEvent {
                         handle: AssetHandle::new(entity),
-                        kind: AssetEventKind::AwaitsDeferredJob,
+                        kind: AssetEventKind::AwaitsAsyncFetch,
                         path: path.clone(),
                     };
                     self.events.dispatch(event.clone())?;
@@ -665,6 +677,17 @@ impl AssetDatabase {
                     let event = AssetEvent {
                         handle: AssetHandle::new(entity),
                         kind: AssetEventKind::AwaitsStoring,
+                        path: path.clone(),
+                    };
+                    self.events.dispatch(event.clone())?;
+                    bindings.dispatch(event)?;
+                }
+            }
+            for entity in self.storage.added().iter_of::<AssetAwaitsAsyncStore>() {
+                if let Some((path, bindings)) = lookup.access(entity) {
+                    let event = AssetEvent {
+                        handle: AssetHandle::new(entity),
+                        kind: AssetEventKind::AwaitsAsyncStore,
                         path: path.clone(),
                     };
                     self.events.dispatch(event.clone())?;

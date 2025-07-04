@@ -72,7 +72,7 @@ File asset fetch also adds other components such as:
 - `std::fs::Metadata` - file metadata that can be used for example for size stats.
 - `PathBuf` - file system path that can be used for stuff like hot reloading.
 
-Asset fetch engines other than `FileassetFetch` also do add their own custom
+Asset fetch engines other than `FileAssetFetch` also do add their own custom
 metadata to asset.
 
 It's worth also to know that asset database uses stack of asset fetch engines,

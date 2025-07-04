@@ -1,6 +1,6 @@
 use crate::{
     database::path::{AssetPath, AssetPathStatic},
-    fetch::AssetFetch,
+    fetch::{AssetAwaitsAsyncFetch, AssetFetch},
 };
 use anput::{
     bundle::DynamicBundle,
@@ -12,10 +12,6 @@ use std::{
     error::Error,
     sync::{Arc, RwLock},
 };
-
-/// Marker component used to signify that the asset fetch job for an asset
-/// is deferred and is pending execution.
-pub struct AssetAwaitsDeferredJob;
 
 /// A deferred asset fetcher that queues tasks for loading asset bytes asynchronously
 /// on separate jobs and defers processing until the tasks are completed.
@@ -55,12 +51,12 @@ impl<Fetch: AssetFetch> AssetFetch for DeferredAssetFetch<Fetch> {
         let job = async move {
             fetch.read().map_err(|error|{
                 format!(
-                    "Failed to get read access to inner fetch engine in deferred job for asset: `{}`. Error: {}",
+                    "Failed to get read access to inner fetch engine in async fetch for asset: `{}`. Error: {}",
                     path, error
                 )
             })?.load_bytes(path.clone()).map_err(|error| {
                 format!(
-                    "Failed deferred job for asset: `{}`. Error: {}",
+                    "Failed async fetch for asset: `{}`. Error: {}",
                     path, error
                 )
             })
@@ -75,7 +71,7 @@ impl<Fetch: AssetFetch> AssetFetch for DeferredAssetFetch<Fetch> {
             .map_err(|error| format!("{}", error))?
             .insert(path2, handle);
         let mut bundle = DynamicBundle::default();
-        let _ = bundle.add_component(AssetAwaitsDeferredJob);
+        let _ = bundle.add_component(AssetAwaitsAsyncFetch);
         Ok(bundle)
     }
 
@@ -110,11 +106,11 @@ impl<Fetch: AssetFetch> AssetFetch for DeferredAssetFetch<Fetch> {
             match handle.try_take() {
                 Some(Some(result)) => {
                     if let Some(entity) = storage.find_by::<true, _>(&path) {
-                        storage.remove::<(AssetAwaitsDeferredJob,)>(entity)?;
+                        storage.remove::<(AssetAwaitsAsyncFetch,)>(entity)?;
                     }
                     let result = result.map_err(|error| {
                         format!(
-                            "Deferred job execution of `{}` asset panicked! Error: {}",
+                            "Async fetch execution of `{}` asset panicked! Error: {}",
                             path, error
                         )
                     })?;
@@ -124,10 +120,10 @@ impl<Fetch: AssetFetch> AssetFetch for DeferredAssetFetch<Fetch> {
                 }
                 Some(None) => {
                     if let Some(entity) = storage.find_by::<true, _>(&path) {
-                        storage.remove::<(AssetAwaitsDeferredJob,)>(entity)?;
+                        storage.remove::<(AssetAwaitsAsyncFetch,)>(entity)?;
                     }
                     return Err(format!(
-                        "Deferred job execution of `{}` asset failed with undefined error!",
+                        "Async fetch execution of `{}` asset failed with undefined error!",
                         path
                     )
                     .into());

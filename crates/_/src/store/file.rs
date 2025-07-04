@@ -1,10 +1,11 @@
 use crate::{database::path::AssetPath, store::AssetStore};
+use anput::bundle::DynamicBundle;
 use std::{error::Error, path::PathBuf};
 
-fn save_file_bytes(file_path: PathBuf, bytes: Vec<u8>) -> Result<(), Box<dyn Error>> {
+fn save_file_bytes(file_path: PathBuf, bytes: Vec<u8>) -> Result<DynamicBundle, Box<dyn Error>> {
     std::fs::create_dir_all(file_path.parent().unwrap())?;
     std::fs::write(&file_path, bytes)?;
-    Ok(())
+    Ok(DynamicBundle::default())
 }
 
 /// Implementation of the `AssetStore` trait that saves assets to the file
@@ -13,7 +14,7 @@ fn save_file_bytes(file_path: PathBuf, bytes: Vec<u8>) -> Result<(), Box<dyn Err
 pub struct AbsoluteFileAssetStore;
 
 impl AssetStore for AbsoluteFileAssetStore {
-    fn save_bytes(&self, path: AssetPath, bytes: Vec<u8>) -> Result<(), Box<dyn Error>> {
+    fn save_bytes(&self, path: AssetPath, bytes: Vec<u8>) -> Result<DynamicBundle, Box<dyn Error>> {
         save_file_bytes(PathBuf::from(path.path()), bytes)
     }
 }
@@ -40,7 +41,7 @@ impl FileAssetStore {
 }
 
 impl AssetStore for FileAssetStore {
-    fn save_bytes(&self, path: AssetPath, bytes: Vec<u8>) -> Result<(), Box<dyn Error>> {
+    fn save_bytes(&self, path: AssetPath, bytes: Vec<u8>) -> Result<DynamicBundle, Box<dyn Error>> {
         let path = self.root.join(path.path());
         save_file_bytes(path, bytes)
     }

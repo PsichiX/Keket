@@ -197,6 +197,21 @@ impl<'a> AssetResolved<'a> {
         self.handle.does_exists(self.database)
     }
 
+    /// Checks if the asset is marked for storing its bytes.
+    pub fn awaits_storing(self) -> bool {
+        self.handle.awaits_storing(self.database)
+    }
+
+    /// Checks if the asset is marked for storing its bytes and is not already stored.
+    pub fn bytes_are_ready_to_store(self) -> bool {
+        self.handle.bytes_are_ready_to_store(self.database)
+    }
+
+    /// Checks if the asset is awaiting an async store.
+    pub fn awaits_async_store(self) -> bool {
+        self.handle.awaits_async_store(self.database)
+    }
+
     /// Checks if the asset is awaiting resolution.
     pub fn awaits_resolution(&self) -> bool {
         self.handle.awaits_resolution(self.database)
@@ -207,9 +222,9 @@ impl<'a> AssetResolved<'a> {
         self.handle.bytes_are_ready_to_process(self.database)
     }
 
-    /// Checks if the asset is awaiting a deferred job.
-    pub fn awaits_deferred_job(&self) -> bool {
-        self.handle.awaits_deferred_job(self.database)
+    /// Checks if the asset is awaiting an async fetch.
+    pub fn awaits_async_fetch(&self) -> bool {
+        self.handle.awaits_async_fetch(self.database)
     }
 
     /// Checks if the asset is ready to use.

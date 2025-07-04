@@ -5,13 +5,14 @@ use std::{error::Error, sync::mpsc::Sender};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AssetEventKind {
     AwaitsResolution,
-    AwaitsDeferredJob,
+    AwaitsAsyncFetch,
     BytesReadyToProcess,
     BytesProcessed,
     Unloaded,
     BytesFetchingFailed,
     BytesProcessingFailed,
     AwaitsStoring,
+    AwaitsAsyncStore,
     BytesReadyToStore,
     BytesStored,
     BytesStoringFailed,

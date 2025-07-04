@@ -1,6 +1,6 @@
 use crate::{
     database::path::{AssetPath, AssetPathStatic},
-    fetch::{AssetFetch, deferred::AssetAwaitsDeferredJob},
+    fetch::{AssetAwaitsAsyncFetch, AssetFetch},
 };
 use anput::{bundle::DynamicBundle, world::World};
 use std::{
@@ -54,23 +54,19 @@ impl AssetFetch for FutureAssetFetch {
             .map_err(|error| format!("{}", error))?
             .insert(path.clone(), Some((self.future_spawner)(path)));
         let mut bundle = DynamicBundle::default();
-        let _ = bundle.add_component(AssetAwaitsDeferredJob);
+        let _ = bundle.add_component(AssetAwaitsAsyncFetch);
         Ok(bundle)
     }
 
     fn maintain(&mut self, storage: &mut World) -> Result<(), Box<dyn Error>> {
         let mut cx = Context::from_waker(Waker::noop());
-        for (path, future) in self
-            .futures
-            .write()
-            .map_err(|error| format!("{}", error))?
-            .iter_mut()
-        {
+        let mut futures = self.futures.write().map_err(|error| format!("{}", error))?;
+        for (path, future) in futures.iter_mut() {
             if let Some(mut f) = future.take() {
                 match f.as_mut().poll(&mut cx) {
                     Poll::Ready(Ok(result)) => {
                         if let Some(entity) = storage.find_by::<true, _>(path) {
-                            storage.remove::<(AssetAwaitsDeferredJob,)>(entity)?;
+                            storage.remove::<(AssetAwaitsAsyncFetch,)>(entity)?;
                             storage.insert(entity, result)?;
                         }
                     }
@@ -83,6 +79,7 @@ impl AssetFetch for FutureAssetFetch {
                 }
             }
         }
+        futures.retain(|_, v| v.is_some());
         Ok(())
     }
 }

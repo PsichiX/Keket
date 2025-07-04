@@ -26,8 +26,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("Waiting for database to be free");
         println!(
             "Loading:\n- Lorem Ipsum: {}\n- Bytes: {}",
-            lorem.awaits_deferred_job(&database),
-            trash.awaits_deferred_job(&database)
+            lorem.awaits_async_fetch(&database),
+            trash.awaits_async_fetch(&database)
         );
         database.maintain()?;
     }

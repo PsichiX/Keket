@@ -36,6 +36,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         .with_fetch(FileAssetFetch::default().with_root("resources"))
         .with_store(FileAssetStore::default().with_root("resources"));
 
+    let _ = std::fs::remove_file("./resources/saved.json");
+
     let before = database.spawn(
         "json://saved.json",
         (Person {

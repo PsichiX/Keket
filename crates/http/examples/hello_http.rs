@@ -25,14 +25,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     let json = database.ensure("json://person.json")?;
     let trash = database.ensure("bytes://trash.bin")?;
 
-    // Wait till database is busy.
+    // Wait while database is busy.
     while database.is_busy() {
         println!("Waiting for database to be free");
         println!(
             "Loading:\n- Lorem Ipsum: {}\n- JSON: {}\n- Bytes: {}",
-            lorem.awaits_deferred_job(&database),
-            json.awaits_deferred_job(&database),
-            trash.awaits_deferred_job(&database)
+            lorem.awaits_async_fetch(&database),
+            json.awaits_async_fetch(&database),
+            trash.awaits_async_fetch(&database)
         );
         database.maintain()?;
     }
