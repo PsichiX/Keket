@@ -6,20 +6,6 @@ use keket::{
 };
 use std::{error::Error, path::PathBuf};
 
-/* ANCHOR: async_read_file */
-async fn tokio_load_file_bundle(path: AssetPathStatic) -> Result<DynamicBundle, Box<dyn Error>> {
-    let file_path = PathBuf::from("resources").join(path.path());
-
-    let bytes = tokio::fs::read(&file_path).await?;
-
-    let mut bundle = DynamicBundle::default();
-    bundle
-        .add_component(AssetBytesAreReadyToProcess(bytes))
-        .map_err(|_| format!("Failed to add bytes to bundle for asset: {}", path))?;
-    Ok(bundle)
-}
-/* ANCHOR_END: async_read_file */
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     /* ANCHOR: main */
@@ -45,3 +31,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     Ok(())
 }
+
+/* ANCHOR: async_read_file */
+async fn tokio_load_file_bundle(path: AssetPathStatic) -> Result<DynamicBundle, Box<dyn Error>> {
+    let file_path = PathBuf::from("resources").join(path.path());
+
+    let bytes = tokio::fs::read(&file_path).await?;
+
+    let mut bundle = DynamicBundle::default();
+    bundle
+        .add_component(AssetBytesAreReadyToProcess(bytes))
+        .map_err(|_| format!("Failed to add bytes to bundle for asset: {}", path))?;
+    Ok(bundle)
+}
+/* ANCHOR_END: async_read_file */

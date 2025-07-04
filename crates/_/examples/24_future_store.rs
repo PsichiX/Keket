@@ -6,17 +6,6 @@ use keket::{
 };
 use std::{error::Error, path::PathBuf};
 
-/* ANCHOR: async_save_file */
-async fn tokio_save_file(path: AssetPathStatic, bytes: Vec<u8>) -> Result<(), Box<dyn Error>> {
-    let file_path = PathBuf::from("resources").join(path.path());
-
-    tokio::fs::create_dir_all(file_path.parent().unwrap()).await?;
-    tokio::fs::write(&file_path, bytes).await?;
-
-    Ok(())
-}
-/* ANCHOR_END: async_save_file */
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     /* ANCHOR: main */
@@ -50,3 +39,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     Ok(())
 }
+
+/* ANCHOR: async_save_file */
+async fn tokio_save_file(path: AssetPathStatic, bytes: Vec<u8>) -> Result<(), Box<dyn Error>> {
+    let file_path = PathBuf::from("resources").join(path.path());
+
+    tokio::fs::create_dir_all(file_path.parent().unwrap()).await?;
+    tokio::fs::write(&file_path, bytes).await?;
+
+    Ok(())
+}
+/* ANCHOR_END: async_save_file */

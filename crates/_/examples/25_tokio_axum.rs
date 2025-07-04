@@ -21,18 +21,6 @@ use tokio::{
     time::{Duration, sleep},
 };
 
-async fn tokio_load_file_bundle(path: AssetPathStatic) -> Result<DynamicBundle, Box<dyn Error>> {
-    let file_path = PathBuf::from("resources").join(path.path());
-
-    let bytes = tokio::fs::read(&file_path).await?;
-
-    let mut bundle = DynamicBundle::default();
-    bundle
-        .add_component(AssetBytesAreReadyToProcess(bytes))
-        .map_err(|_| format!("Failed to add bytes to bundle for asset: {}", path))?;
-    Ok(bundle)
-}
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let database = AssetDatabase::default()
@@ -63,6 +51,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
     serve(listener, app).await?;
 
     Ok(())
+}
+
+async fn tokio_load_file_bundle(path: AssetPathStatic) -> Result<DynamicBundle, Box<dyn Error>> {
+    let file_path = PathBuf::from("resources").join(path.path());
+
+    let bytes = tokio::fs::read(&file_path).await?;
+
+    let mut bundle = DynamicBundle::default();
+    bundle
+        .add_component(AssetBytesAreReadyToProcess(bytes))
+        .map_err(|_| format!("Failed to add bytes to bundle for asset: {}", path))?;
+    Ok(bundle)
 }
 
 async fn serve_asset_bytes_handler(
