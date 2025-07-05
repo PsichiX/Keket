@@ -231,10 +231,7 @@
         .storage
         .query::&lt;true, (&amp;AssetPath, &amp;PathBuf, &amp;Metadata)&gt;()
     {
-        println!(
-            "Asset: `{}` at location: {:?} has metadata: {:#?}",
-            asset_path, file_path, metadata
-        );
+        println!("Asset: `{asset_path}` at location: {file_path:?} has metadata: {metadata:#?}");
     }
 <span class="boring">
 </span><span class="boring">    Ok(())
@@ -267,7 +264,7 @@ components bundle and optional list of dependencies to schedule after decoding.<
 </span><span class="boring">    }
 </span><span class="boring">
 </span><span class="boring">    let contents = handle.access::&lt;&amp;CustomAsset&gt;(&amp;database).contents(&amp;database);
-</span><span class="boring">    println!("Custom chain contents: {:?}", contents);
+</span><span class="boring">    println!("Custom chain contents: {contents:?}");
 </span><span class="boring">
 </span><span class="boring">    Ok(())
 </span><span class="boring">}
@@ -343,7 +340,7 @@ struct CustomAsset {
 </span><span class="boring">    }
 </span><span class="boring">
 </span><span class="boring">    let contents = handle.access::&lt;&amp;CustomAsset&gt;(&amp;database).contents(&amp;database);
-</span><span class="boring">    println!("Custom chain contents: {:?}", contents);
+</span><span class="boring">    println!("Custom chain contents: {contents:?}");
 </span><span class="boring">
 </span><span class="boring">    Ok(())
 </span><span class="boring">}

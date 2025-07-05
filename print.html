@@ -234,10 +234,7 @@ storage.</p>
         .storage
         .query::&lt;true, (&amp;AssetPath, &amp;PathBuf, &amp;Metadata)&gt;()
     {
-        println!(
-            "Asset: `{}` at location: {:?} has metadata: {:#?}",
-            asset_path, file_path, metadata
-        );
+        println!("Asset: `{asset_path}` at location: {file_path:?} has metadata: {metadata:#?}");
     }
 <span class="boring">
 </span><span class="boring">    Ok(())
@@ -331,10 +328,7 @@ use that fast query for asset statistics report.</p>
         .storage
         .query::&lt;true, (&amp;AssetPath, &amp;PathBuf, &amp;Metadata)&gt;()
     {
-        println!(
-            "Asset: `{}` at location: {:?} has metadata: {:#?}",
-            asset_path, file_path, metadata
-        );
+        println!("Asset: `{asset_path}` at location: {file_path:?} has metadata: {metadata:#?}");
     }
 <span class="boring">
 </span><span class="boring">    Ok(())
@@ -437,10 +431,7 @@ unloaded/deleted).</p>
 </span><span class="boring">        .storage
 </span><span class="boring">        .query::&lt;true, (&amp;AssetPath, &amp;PathBuf, &amp;Metadata)&gt;()
 </span><span class="boring">    {
-</span><span class="boring">        println!(
-</span><span class="boring">            "Asset: `{}` at location: {:?} has metadata: {:#?}",
-</span><span class="boring">            asset_path, file_path, metadata
-</span><span class="boring">        );
+</span><span class="boring">        println!("Asset: `{asset_path}` at location: {file_path:?} has metadata: {metadata:#?}");
 </span><span class="boring">    }
 </span><span class="boring">
 </span><span class="boring">    Ok(())
@@ -509,7 +500,7 @@ into typed data, asset handle resolution will happen only at first time.</p>
 </span><span class="boring">    }
 </span><span class="boring">
 </span><span class="boring">    let contents = handle.access::&lt;&amp;CustomAsset&gt;(&amp;database).contents(&amp;database);
-</span><span class="boring">    println!("Custom chain contents: {:?}", contents);
+</span><span class="boring">    println!("Custom chain contents: {contents:?}");
 </span><span class="boring">
 </span><span class="boring">    Ok(())
 </span><span class="boring">}
@@ -576,7 +567,7 @@ impl CustomAsset {
     }
 
     let contents = handle.access::&lt;&amp;CustomAsset&gt;(&amp;database).contents(&amp;database);
-    println!("Custom chain contents: {:?}", contents);
+    println!("Custom chain contents: {contents:?}");
 <span class="boring">
 </span><span class="boring">    Ok(())
 </span><span class="boring">}
@@ -739,7 +730,7 @@ to event bindings in asset database.</p>
 </span><span class="boring">
 </span>    // We can bind closures to asset event bindings for any asset progression tracking.
     database.events.bind(|event| {
-        println!("Asset closure event: {:#?}", event);
+        println!("Asset closure event: {event:#?}");
         Ok(())
     });
 
@@ -757,7 +748,7 @@ to event bindings in asset database.</p>
 
     // Read sent events from receiver.
     while let Ok(event) = rx.try_recv() {
-        println!("Group channel event: {:#?}", event);
+        println!("Group channel event: {event:#?}");
     }
 <span class="boring">
 </span><span class="boring">    println!(
@@ -845,10 +836,7 @@ platform, without having to bytes decoding to care about where bytes come from.<
 </span><span class="boring">        .storage
 </span><span class="boring">        .query::&lt;true, (&amp;AssetPath, &amp;PathBuf, &amp;Metadata)&gt;()
 </span><span class="boring">    {
-</span><span class="boring">        println!(
-</span><span class="boring">            "Asset: `{}` at location: {:?} has metadata: {:#?}",
-</span><span class="boring">            asset_path, file_path, metadata
-</span><span class="boring">        );
+</span><span class="boring">        println!("Asset: `{asset_path}` at location: {file_path:?} has metadata: {metadata:#?}");
 </span><span class="boring">    }
 </span><span class="boring">
 </span><span class="boring">    Ok(())
@@ -977,10 +965,7 @@ file synchronously.</p>
         .storage
         .query::&lt;true, (&amp;AssetPath, &amp;PathBuf, &amp;Metadata)&gt;()
     {
-        println!(
-            "Asset: `{}` at location: {:?} has metadata: {:#?}",
-            asset_path, file_path, metadata
-        );
+        println!("Asset: `{asset_path}` at location: {file_path:?} has metadata: {metadata:#?}");
     }
 <span class="boring">
 </span><span class="boring">    Ok(())
@@ -1146,7 +1131,7 @@ async/await compatible libraries like <code>tokio</code>.</p>
 </span><span class="boring">    let mut bundle = DynamicBundle::default();
 </span><span class="boring">    bundle
 </span><span class="boring">        .add_component(AssetBytesAreReadyToProcess(bytes))
-</span><span class="boring">        .map_err(|_| format!("Failed to add bytes to bundle for asset: {}", path))?;
+</span><span class="boring">        .map_err(|_| format!("Failed to add bytes to bundle for asset: {path}"))?;
 </span><span class="boring">    Ok(bundle)
 </span><span class="boring">}</span></code></pre>
 <p>And here is async function that handles loading bytes with <code>tokio</code>:</p>
@@ -1190,7 +1175,7 @@ async/await compatible libraries like <code>tokio</code>.</p>
     let mut bundle = DynamicBundle::default();
     bundle
         .add_component(AssetBytesAreReadyToProcess(bytes))
-        .map_err(|_| format!("Failed to add bytes to bundle for asset: {}", path))?;
+        .map_err(|_| format!("Failed to add bytes to bundle for asset: {path}"))?;
     Ok(bundle)
 }</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="assets-container-wrapper"><a class="header" href="#assets-container-wrapper">Assets container wrapper</a></h1>
@@ -1532,7 +1517,7 @@ specialize extraction with specific asset as source.</p>
 
     // List all assets from HTTP.
     for (asset_path, url) in database.storage.query::&lt;true, (&amp;AssetPath, &amp;Url)&gt;() {
-        println!("Asset: `{}` at url: `{}`", asset_path, url);
+        println!("Asset: `{asset_path}` at url: `{url}`");
     }
 <span class="boring">
 </span><span class="boring">    Ok(())
@@ -1627,7 +1612,7 @@ binary crate) - a humble beginnings to DDC infrastructure for live development.<
 
     // List all assets from client.
     for (asset_path, url) in database.storage.query::&lt;true, (&amp;AssetPath, &amp;Url)&gt;() {
-        println!("Asset: `{}` at url: `{}`", asset_path, url);
+        println!("Asset: `{asset_path}` at url: `{url}`");
     }
 
     println!("Listening for file changes...");
@@ -1735,10 +1720,7 @@ to implement with all possible asset sources, which is cumbersome to deal with.<
         .storage
         .query::&lt;true, (&amp;AssetPath, &amp;PathBuf, &amp;Metadata)&gt;()
     {
-        println!(
-            "Asset: `{}` at location: {:?} has metadata: {:#?}",
-            asset_path, file_path, metadata
-        );
+        println!("Asset: `{asset_path}` at location: {file_path:?} has metadata: {metadata:#?}");
     }
 <span class="boring">
 </span><span class="boring">    Ok(())
@@ -1770,7 +1752,7 @@ that has methods for processing asset bytes:</p>
 </span><span class="boring">    }
 </span><span class="boring">
 </span><span class="boring">    let contents = handle.access::&lt;&amp;CustomAsset&gt;(&amp;database).contents(&amp;database);
-</span><span class="boring">    println!("Custom chain contents: {:?}", contents);
+</span><span class="boring">    println!("Custom chain contents: {contents:?}");
 </span><span class="boring">
 </span><span class="boring">    Ok(())
 </span><span class="boring">}
@@ -1842,7 +1824,7 @@ you only care about bytes or even only processed asset:</p>
 </span><span class="boring">        .with_protocol(CustomAssetProtocol)
 </span><span class="boring">        .with_fetch(FileAssetFetch::default().with_root("resources"))
 </span><span class="boring">        .with_event(|event| {
-</span><span class="boring">            println!("Asset closure event: {:#?}", event);
+</span><span class="boring">            println!("Asset closure event: {event:#?}");
 </span><span class="boring">            Ok(())
 </span><span class="boring">        });
 </span><span class="boring">
@@ -1853,7 +1835,7 @@ you only care about bytes or even only processed asset:</p>
 </span><span class="boring">    }
 </span><span class="boring">
 </span><span class="boring">    let contents = handle.access::&lt;&amp;CustomAsset&gt;(&amp;database).contents(&amp;database);
-</span><span class="boring">    println!("Custom chain contents: {:?}", contents);
+</span><span class="boring">    println!("Custom chain contents: {contents:?}");
 </span><span class="boring">
 </span><span class="boring">    Ok(())
 </span><span class="boring">}
@@ -1990,10 +1972,7 @@ impl AssetProtocol for CustomAssetProtocol {
         .storage
         .query::&lt;true, (&amp;AssetPath, &amp;PathBuf, &amp;Metadata)&gt;()
     {
-        println!(
-            "Asset: `{}` at location: {:?} has metadata: {:#?}",
-            asset_path, file_path, metadata
-        );
+        println!("Asset: `{asset_path}` at location: {file_path:?} has metadata: {metadata:#?}");
     }
 <span class="boring">
 </span><span class="boring">    Ok(())
@@ -2063,10 +2042,7 @@ impl AssetProtocol for CustomAssetProtocol {
         .storage
         .query::&lt;true, (&amp;AssetPath, &amp;PathBuf, &amp;Metadata)&gt;()
     {
-        println!(
-            "Asset: `{}` at location: {:?} has metadata: {:#?}",
-            asset_path, file_path, metadata
-        );
+        println!("Asset: `{asset_path}` at location: {file_path:?} has metadata: {metadata:#?}");
     }
 <span class="boring">
 </span><span class="boring">    Ok(())
@@ -2136,10 +2112,7 @@ impl AssetProtocol for CustomAssetProtocol {
         .storage
         .query::&lt;true, (&amp;AssetPath, &amp;PathBuf, &amp;Metadata)&gt;()
     {
-        println!(
-            "Asset: `{}` at location: {:?} has metadata: {:#?}",
-            asset_path, file_path, metadata
-        );
+        println!("Asset: `{asset_path}` at location: {file_path:?} has metadata: {metadata:#?}");
     }
 <span class="boring">
 </span><span class="boring">    Ok(())
@@ -2172,7 +2145,7 @@ components bundle and optional list of dependencies to schedule after decoding.<
 </span><span class="boring">    }
 </span><span class="boring">
 </span><span class="boring">    let contents = handle.access::&lt;&amp;CustomAsset&gt;(&amp;database).contents(&amp;database);
-</span><span class="boring">    println!("Custom chain contents: {:?}", contents);
+</span><span class="boring">    println!("Custom chain contents: {contents:?}");
 </span><span class="boring">
 </span><span class="boring">    Ok(())
 </span><span class="boring">}
@@ -2248,7 +2221,7 @@ struct CustomAsset {
 </span><span class="boring">    }
 </span><span class="boring">
 </span><span class="boring">    let contents = handle.access::&lt;&amp;CustomAsset&gt;(&amp;database).contents(&amp;database);
-</span><span class="boring">    println!("Custom chain contents: {:?}", contents);
+</span><span class="boring">    println!("Custom chain contents: {contents:?}");
 </span><span class="boring">
 </span><span class="boring">    Ok(())
 </span><span class="boring">}
@@ -2490,7 +2463,7 @@ use std::{
 </span><span class="boring">                .component::&lt;true, ShaderAsset&gt;(entity)
 </span><span class="boring">                .unwrap();
 </span><span class="boring">            let shader = graphics.shader(&amp;asset.vertex, &amp;asset.fragment).unwrap();
-</span><span class="boring">            println!("* Shader asset turned into shader: {}", entity);
+</span><span class="boring">            println!("* Shader asset turned into shader: {entity}");
 </span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(shader),)));
 </span><span class="boring">        }
 </span><span class="boring">
@@ -2510,7 +2483,7 @@ use std::{
 </span><span class="boring">                    Some(&amp;asset.bytes),
 </span><span class="boring">                )
 </span><span class="boring">                .unwrap();
-</span><span class="boring">            println!("* Texture asset turned into texture: {}", entity);
+</span><span class="boring">            println!("* Texture asset turned into texture: {entity}");
 </span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(texture),)));
 </span><span class="boring">        }
 </span><span class="boring">
@@ -2567,7 +2540,7 @@ use std::{
 </span><span class="boring">        let vertex = asset.vertex.path().clone();
 </span><span class="boring">        let fragment = asset.fragment.path().clone();
 </span><span class="boring">
-</span><span class="boring">        println!("* Shader asset processed: {:#?}", asset);
+</span><span class="boring">        println!("* Shader asset processed: {asset:#?}");
 </span><span class="boring">        Ok(BundleWithDependencies::new((asset,))
 </span><span class="boring">            .dependency(vertex)
 </span><span class="boring">            .dependency(fragment))
@@ -2631,7 +2604,7 @@ use std::{
 </span><span class="boring">        let info = reader.next_frame(&amp;mut buf)?;
 </span><span class="boring">        let bytes = buf[..info.buffer_size()].to_vec();
 </span><span class="boring">
-</span><span class="boring">        println!("* Texture asset processed: {:#?}", info);
+</span><span class="boring">        println!("* Texture asset processed: {info:#?}");
 </span><span class="boring">        Ok(BundleWithDependencies::new((TextureAsset {
 </span><span class="boring">            width: info.width,
 </span><span class="boring">            height: info.height,
@@ -2774,7 +2747,7 @@ use std::{
 </span><span class="boring">                .component::&lt;true, ShaderAsset&gt;(entity)
 </span><span class="boring">                .unwrap();
 </span><span class="boring">            let shader = graphics.shader(&amp;asset.vertex, &amp;asset.fragment).unwrap();
-</span><span class="boring">            println!("* Shader asset turned into shader: {}", entity);
+</span><span class="boring">            println!("* Shader asset turned into shader: {entity}");
 </span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(shader),)));
 </span><span class="boring">        }
 </span><span class="boring">
@@ -2794,7 +2767,7 @@ use std::{
 </span><span class="boring">                    Some(&amp;asset.bytes),
 </span><span class="boring">                )
 </span><span class="boring">                .unwrap();
-</span><span class="boring">            println!("* Texture asset turned into texture: {}", entity);
+</span><span class="boring">            println!("* Texture asset turned into texture: {entity}");
 </span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(texture),)));
 </span><span class="boring">        }
 </span><span class="boring">
@@ -2851,7 +2824,7 @@ use std::{
 </span><span class="boring">        let vertex = asset.vertex.path().clone();
 </span><span class="boring">        let fragment = asset.fragment.path().clone();
 </span><span class="boring">
-</span><span class="boring">        println!("* Shader asset processed: {:#?}", asset);
+</span><span class="boring">        println!("* Shader asset processed: {asset:#?}");
 </span><span class="boring">        Ok(BundleWithDependencies::new((asset,))
 </span><span class="boring">            .dependency(vertex)
 </span><span class="boring">            .dependency(fragment))
@@ -2915,7 +2888,7 @@ use std::{
 </span><span class="boring">        let info = reader.next_frame(&amp;mut buf)?;
 </span><span class="boring">        let bytes = buf[..info.buffer_size()].to_vec();
 </span><span class="boring">
-</span><span class="boring">        println!("* Texture asset processed: {:#?}", info);
+</span><span class="boring">        println!("* Texture asset processed: {info:#?}");
 </span><span class="boring">        Ok(BundleWithDependencies::new((TextureAsset {
 </span><span class="boring">            width: info.width,
 </span><span class="boring">            height: info.height,
@@ -3058,7 +3031,7 @@ fixed time step mechanism and referencing assets.</p>
 </span><span class="boring">                .component::&lt;true, ShaderAsset&gt;(entity)
 </span><span class="boring">                .unwrap();
 </span><span class="boring">            let shader = graphics.shader(&amp;asset.vertex, &amp;asset.fragment).unwrap();
-</span><span class="boring">            println!("* Shader asset turned into shader: {}", entity);
+</span><span class="boring">            println!("* Shader asset turned into shader: {entity}");
 </span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(shader),)));
 </span><span class="boring">        }
 </span><span class="boring">
@@ -3078,7 +3051,7 @@ fixed time step mechanism and referencing assets.</p>
 </span><span class="boring">                    Some(&amp;asset.bytes),
 </span><span class="boring">                )
 </span><span class="boring">                .unwrap();
-</span><span class="boring">            println!("* Texture asset turned into texture: {}", entity);
+</span><span class="boring">            println!("* Texture asset turned into texture: {entity}");
 </span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(texture),)));
 </span><span class="boring">        }
 </span><span class="boring">
@@ -3135,7 +3108,7 @@ fixed time step mechanism and referencing assets.</p>
 </span><span class="boring">        let vertex = asset.vertex.path().clone();
 </span><span class="boring">        let fragment = asset.fragment.path().clone();
 </span><span class="boring">
-</span><span class="boring">        println!("* Shader asset processed: {:#?}", asset);
+</span><span class="boring">        println!("* Shader asset processed: {asset:#?}");
 </span><span class="boring">        Ok(BundleWithDependencies::new((asset,))
 </span><span class="boring">            .dependency(vertex)
 </span><span class="boring">            .dependency(fragment))
@@ -3199,7 +3172,7 @@ fixed time step mechanism and referencing assets.</p>
 </span><span class="boring">        let info = reader.next_frame(&amp;mut buf)?;
 </span><span class="boring">        let bytes = buf[..info.buffer_size()].to_vec();
 </span><span class="boring">
-</span><span class="boring">        println!("* Texture asset processed: {:#?}", info);
+</span><span class="boring">        println!("* Texture asset processed: {info:#?}");
 </span><span class="boring">        Ok(BundleWithDependencies::new((TextureAsset {
 </span><span class="boring">            width: info.width,
 </span><span class="boring">            height: info.height,
@@ -3342,7 +3315,7 @@ fixed time step mechanism and referencing assets.</p>
 </span><span class="boring">                .component::&lt;true, ShaderAsset&gt;(entity)
 </span><span class="boring">                .unwrap();
 </span><span class="boring">            let shader = graphics.shader(&amp;asset.vertex, &amp;asset.fragment).unwrap();
-</span><span class="boring">            println!("* Shader asset turned into shader: {}", entity);
+</span><span class="boring">            println!("* Shader asset turned into shader: {entity}");
 </span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(shader),)));
 </span><span class="boring">        }
 </span><span class="boring">
@@ -3362,7 +3335,7 @@ fixed time step mechanism and referencing assets.</p>
 </span><span class="boring">                    Some(&amp;asset.bytes),
 </span><span class="boring">                )
 </span><span class="boring">                .unwrap();
-</span><span class="boring">            println!("* Texture asset turned into texture: {}", entity);
+</span><span class="boring">            println!("* Texture asset turned into texture: {entity}");
 </span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(texture),)));
 </span><span class="boring">        }
 </span><span class="boring">
@@ -3419,7 +3392,7 @@ fixed time step mechanism and referencing assets.</p>
 </span><span class="boring">        let vertex = asset.vertex.path().clone();
 </span><span class="boring">        let fragment = asset.fragment.path().clone();
 </span><span class="boring">
-</span><span class="boring">        println!("* Shader asset processed: {:#?}", asset);
+</span><span class="boring">        println!("* Shader asset processed: {asset:#?}");
 </span><span class="boring">        Ok(BundleWithDependencies::new((asset,))
 </span><span class="boring">            .dependency(vertex)
 </span><span class="boring">            .dependency(fragment))
@@ -3483,7 +3456,7 @@ fixed time step mechanism and referencing assets.</p>
 </span><span class="boring">        let info = reader.next_frame(&amp;mut buf)?;
 </span><span class="boring">        let bytes = buf[..info.buffer_size()].to_vec();
 </span><span class="boring">
-</span><span class="boring">        println!("* Texture asset processed: {:#?}", info);
+</span><span class="boring">        println!("* Texture asset processed: {info:#?}");
 </span><span class="boring">        Ok(BundleWithDependencies::new((TextureAsset {
 </span><span class="boring">            width: info.width,
 </span><span class="boring">            height: info.height,
@@ -3630,7 +3603,7 @@ texture assets are ready.</p>
 </span><span class="boring">                .component::&lt;true, ShaderAsset&gt;(entity)
 </span><span class="boring">                .unwrap();
 </span><span class="boring">            let shader = graphics.shader(&amp;asset.vertex, &amp;asset.fragment).unwrap();
-</span><span class="boring">            println!("* Shader asset turned into shader: {}", entity);
+</span><span class="boring">            println!("* Shader asset turned into shader: {entity}");
 </span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(shader),)));
 </span><span class="boring">        }
 </span><span class="boring">
@@ -3650,7 +3623,7 @@ texture assets are ready.</p>
 </span><span class="boring">                    Some(&amp;asset.bytes),
 </span><span class="boring">                )
 </span><span class="boring">                .unwrap();
-</span><span class="boring">            println!("* Texture asset turned into texture: {}", entity);
+</span><span class="boring">            println!("* Texture asset turned into texture: {entity}");
 </span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(texture),)));
 </span><span class="boring">        }
 </span><span class="boring">
@@ -3707,7 +3680,7 @@ texture assets are ready.</p>
 </span><span class="boring">        let vertex = asset.vertex.path().clone();
 </span><span class="boring">        let fragment = asset.fragment.path().clone();
 </span><span class="boring">
-</span><span class="boring">        println!("* Shader asset processed: {:#?}", asset);
+</span><span class="boring">        println!("* Shader asset processed: {asset:#?}");
 </span><span class="boring">        Ok(BundleWithDependencies::new((asset,))
 </span><span class="boring">            .dependency(vertex)
 </span><span class="boring">            .dependency(fragment))
@@ -3771,7 +3744,7 @@ texture assets are ready.</p>
 </span><span class="boring">        let info = reader.next_frame(&amp;mut buf)?;
 </span><span class="boring">        let bytes = buf[..info.buffer_size()].to_vec();
 </span><span class="boring">
-</span><span class="boring">        println!("* Texture asset processed: {:#?}", info);
+</span><span class="boring">        println!("* Texture asset processed: {info:#?}");
 </span><span class="boring">        Ok(BundleWithDependencies::new((TextureAsset {
 </span><span class="boring">            width: info.width,
 </span><span class="boring">            height: info.height,
@@ -3916,7 +3889,7 @@ their assets.</p>
                 .component::&lt;true, ShaderAsset&gt;(entity)
                 .unwrap();
             let shader = graphics.shader(&amp;asset.vertex, &amp;asset.fragment).unwrap();
-            println!("* Shader asset turned into shader: {}", entity);
+            println!("* Shader asset turned into shader: {entity}");
             commands.command(InsertCommand::new(entity, (AsyncHandle::new(shader),)));
         }
 
@@ -3936,7 +3909,7 @@ their assets.</p>
                     Some(&amp;asset.bytes),
                 )
                 .unwrap();
-            println!("* Texture asset turned into texture: {}", entity);
+            println!("* Texture asset turned into texture: {entity}");
             commands.command(InsertCommand::new(entity, (AsyncHandle::new(texture),)));
         }
 
@@ -3993,7 +3966,7 @@ their assets.</p>
 </span><span class="boring">        let vertex = asset.vertex.path().clone();
 </span><span class="boring">        let fragment = asset.fragment.path().clone();
 </span><span class="boring">
-</span><span class="boring">        println!("* Shader asset processed: {:#?}", asset);
+</span><span class="boring">        println!("* Shader asset processed: {asset:#?}");
 </span><span class="boring">        Ok(BundleWithDependencies::new((asset,))
 </span><span class="boring">            .dependency(vertex)
 </span><span class="boring">            .dependency(fragment))
@@ -4057,7 +4030,7 @@ their assets.</p>
 </span><span class="boring">        let info = reader.next_frame(&amp;mut buf)?;
 </span><span class="boring">        let bytes = buf[..info.buffer_size()].to_vec();
 </span><span class="boring">
-</span><span class="boring">        println!("* Texture asset processed: {:#?}", info);
+</span><span class="boring">        println!("* Texture asset processed: {info:#?}");
 </span><span class="boring">        Ok(BundleWithDependencies::new((TextureAsset {
 </span><span class="boring">            width: info.width,
 </span><span class="boring">            height: info.height,
@@ -4199,7 +4172,7 @@ their assets.</p>
 </span><span class="boring">                .component::&lt;true, ShaderAsset&gt;(entity)
 </span><span class="boring">                .unwrap();
 </span><span class="boring">            let shader = graphics.shader(&amp;asset.vertex, &amp;asset.fragment).unwrap();
-</span><span class="boring">            println!("* Shader asset turned into shader: {}", entity);
+</span><span class="boring">            println!("* Shader asset turned into shader: {entity}");
 </span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(shader),)));
 </span><span class="boring">        }
 </span><span class="boring">
@@ -4219,7 +4192,7 @@ their assets.</p>
 </span><span class="boring">                    Some(&amp;asset.bytes),
 </span><span class="boring">                )
 </span><span class="boring">                .unwrap();
-</span><span class="boring">            println!("* Texture asset turned into texture: {}", entity);
+</span><span class="boring">            println!("* Texture asset turned into texture: {entity}");
 </span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(texture),)));
 </span><span class="boring">        }
 </span><span class="boring">
@@ -4276,7 +4249,7 @@ their assets.</p>
 </span><span class="boring">        let vertex = asset.vertex.path().clone();
 </span><span class="boring">        let fragment = asset.fragment.path().clone();
 </span><span class="boring">
-</span><span class="boring">        println!("* Shader asset processed: {:#?}", asset);
+</span><span class="boring">        println!("* Shader asset processed: {asset:#?}");
 </span><span class="boring">        Ok(BundleWithDependencies::new((asset,))
 </span><span class="boring">            .dependency(vertex)
 </span><span class="boring">            .dependency(fragment))
@@ -4340,7 +4313,7 @@ impl BundleWithDependenciesProcessor for TextureAssetProcessor {
         let info = reader.next_frame(&amp;mut buf)?;
         let bytes = buf[..info.buffer_size()].to_vec();
 
-        println!("* Texture asset processed: {:#?}", info);
+        println!("* Texture asset processed: {info:#?}");
         Ok(BundleWithDependencies::new((TextureAsset {
             width: info.width,
             height: info.height,
@@ -4484,7 +4457,7 @@ texture dimensions.</p>
 </span><span class="boring">                .component::&lt;true, ShaderAsset&gt;(entity)
 </span><span class="boring">                .unwrap();
 </span><span class="boring">            let shader = graphics.shader(&amp;asset.vertex, &amp;asset.fragment).unwrap();
-</span><span class="boring">            println!("* Shader asset turned into shader: {}", entity);
+</span><span class="boring">            println!("* Shader asset turned into shader: {entity}");
 </span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(shader),)));
 </span><span class="boring">        }
 </span><span class="boring">
@@ -4504,7 +4477,7 @@ texture dimensions.</p>
 </span><span class="boring">                    Some(&amp;asset.bytes),
 </span><span class="boring">                )
 </span><span class="boring">                .unwrap();
-</span><span class="boring">            println!("* Texture asset turned into texture: {}", entity);
+</span><span class="boring">            println!("* Texture asset turned into texture: {entity}");
 </span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(texture),)));
 </span><span class="boring">        }
 </span><span class="boring">
@@ -4561,7 +4534,7 @@ impl BundleWithDependenciesProcessor for ShaderAssetProcessor {
         let vertex = asset.vertex.path().clone();
         let fragment = asset.fragment.path().clone();
 
-        println!("* Shader asset processed: {:#?}", asset);
+        println!("* Shader asset processed: {asset:#?}");
         Ok(BundleWithDependencies::new((asset,))
             .dependency(vertex)
             .dependency(fragment))
@@ -4625,7 +4598,7 @@ impl BundleWithDependenciesProcessor for ShaderAssetProcessor {
 </span><span class="boring">        let info = reader.next_frame(&amp;mut buf)?;
 </span><span class="boring">        let bytes = buf[..info.buffer_size()].to_vec();
 </span><span class="boring">
-</span><span class="boring">        println!("* Texture asset processed: {:#?}", info);
+</span><span class="boring">        println!("* Texture asset processed: {info:#?}");
 </span><span class="boring">        Ok(BundleWithDependencies::new((TextureAsset {
 </span><span class="boring">            width: info.width,
 </span><span class="boring">            height: info.height,

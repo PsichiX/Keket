@@ -303,7 +303,7 @@ use std::{
 </span><span class="boring">                .component::&lt;true, ShaderAsset&gt;(entity)
 </span><span class="boring">                .unwrap();
 </span><span class="boring">            let shader = graphics.shader(&amp;asset.vertex, &amp;asset.fragment).unwrap();
-</span><span class="boring">            println!("* Shader asset turned into shader: {}", entity);
+</span><span class="boring">            println!("* Shader asset turned into shader: {entity}");
 </span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(shader),)));
 </span><span class="boring">        }
 </span><span class="boring">
@@ -323,7 +323,7 @@ use std::{
 </span><span class="boring">                    Some(&amp;asset.bytes),
 </span><span class="boring">                )
 </span><span class="boring">                .unwrap();
-</span><span class="boring">            println!("* Texture asset turned into texture: {}", entity);
+</span><span class="boring">            println!("* Texture asset turned into texture: {entity}");
 </span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(texture),)));
 </span><span class="boring">        }
 </span><span class="boring">
@@ -380,7 +380,7 @@ use std::{
 </span><span class="boring">        let vertex = asset.vertex.path().clone();
 </span><span class="boring">        let fragment = asset.fragment.path().clone();
 </span><span class="boring">
-</span><span class="boring">        println!("* Shader asset processed: {:#?}", asset);
+</span><span class="boring">        println!("* Shader asset processed: {asset:#?}");
 </span><span class="boring">        Ok(BundleWithDependencies::new((asset,))
 </span><span class="boring">            .dependency(vertex)
 </span><span class="boring">            .dependency(fragment))
@@ -444,7 +444,7 @@ use std::{
 </span><span class="boring">        let info = reader.next_frame(&amp;mut buf)?;
 </span><span class="boring">        let bytes = buf[..info.buffer_size()].to_vec();
 </span><span class="boring">
-</span><span class="boring">        println!("* Texture asset processed: {:#?}", info);
+</span><span class="boring">        println!("* Texture asset processed: {info:#?}");
 </span><span class="boring">        Ok(BundleWithDependencies::new((TextureAsset {
 </span><span class="boring">            width: info.width,
 </span><span class="boring">            height: info.height,
@@ -587,7 +587,7 @@ use std::{
 </span><span class="boring">                .component::&lt;true, ShaderAsset&gt;(entity)
 </span><span class="boring">                .unwrap();
 </span><span class="boring">            let shader = graphics.shader(&amp;asset.vertex, &amp;asset.fragment).unwrap();
-</span><span class="boring">            println!("* Shader asset turned into shader: {}", entity);
+</span><span class="boring">            println!("* Shader asset turned into shader: {entity}");
 </span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(shader),)));
 </span><span class="boring">        }
 </span><span class="boring">
@@ -607,7 +607,7 @@ use std::{
 </span><span class="boring">                    Some(&amp;asset.bytes),
 </span><span class="boring">                )
 </span><span class="boring">                .unwrap();
-</span><span class="boring">            println!("* Texture asset turned into texture: {}", entity);
+</span><span class="boring">            println!("* Texture asset turned into texture: {entity}");
 </span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(texture),)));
 </span><span class="boring">        }
 </span><span class="boring">
@@ -664,7 +664,7 @@ use std::{
 </span><span class="boring">        let vertex = asset.vertex.path().clone();
 </span><span class="boring">        let fragment = asset.fragment.path().clone();
 </span><span class="boring">
-</span><span class="boring">        println!("* Shader asset processed: {:#?}", asset);
+</span><span class="boring">        println!("* Shader asset processed: {asset:#?}");
 </span><span class="boring">        Ok(BundleWithDependencies::new((asset,))
 </span><span class="boring">            .dependency(vertex)
 </span><span class="boring">            .dependency(fragment))
@@ -728,7 +728,7 @@ use std::{
 </span><span class="boring">        let info = reader.next_frame(&amp;mut buf)?;
 </span><span class="boring">        let bytes = buf[..info.buffer_size()].to_vec();
 </span><span class="boring">
-</span><span class="boring">        println!("* Texture asset processed: {:#?}", info);
+</span><span class="boring">        println!("* Texture asset processed: {info:#?}");
 </span><span class="boring">        Ok(BundleWithDependencies::new((TextureAsset {
 </span><span class="boring">            width: info.width,
 </span><span class="boring">            height: info.height,
@@ -871,7 +871,7 @@ fixed time step mechanism and referencing assets.</p>
 </span><span class="boring">                .component::&lt;true, ShaderAsset&gt;(entity)
 </span><span class="boring">                .unwrap();
 </span><span class="boring">            let shader = graphics.shader(&amp;asset.vertex, &amp;asset.fragment).unwrap();
-</span><span class="boring">            println!("* Shader asset turned into shader: {}", entity);
+</span><span class="boring">            println!("* Shader asset turned into shader: {entity}");
 </span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(shader),)));
 </span><span class="boring">        }
 </span><span class="boring">
@@ -891,7 +891,7 @@ fixed time step mechanism and referencing assets.</p>
 </span><span class="boring">                    Some(&amp;asset.bytes),
 </span><span class="boring">                )
 </span><span class="boring">                .unwrap();
-</span><span class="boring">            println!("* Texture asset turned into texture: {}", entity);
+</span><span class="boring">            println!("* Texture asset turned into texture: {entity}");
 </span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(texture),)));
 </span><span class="boring">        }
 </span><span class="boring">
@@ -948,7 +948,7 @@ fixed time step mechanism and referencing assets.</p>
 </span><span class="boring">        let vertex = asset.vertex.path().clone();
 </span><span class="boring">        let fragment = asset.fragment.path().clone();
 </span><span class="boring">
-</span><span class="boring">        println!("* Shader asset processed: {:#?}", asset);
+</span><span class="boring">        println!("* Shader asset processed: {asset:#?}");
 </span><span class="boring">        Ok(BundleWithDependencies::new((asset,))
 </span><span class="boring">            .dependency(vertex)
 </span><span class="boring">            .dependency(fragment))
@@ -1012,7 +1012,7 @@ fixed time step mechanism and referencing assets.</p>
 </span><span class="boring">        let info = reader.next_frame(&amp;mut buf)?;
 </span><span class="boring">        let bytes = buf[..info.buffer_size()].to_vec();
 </span><span class="boring">
-</span><span class="boring">        println!("* Texture asset processed: {:#?}", info);
+</span><span class="boring">        println!("* Texture asset processed: {info:#?}");
 </span><span class="boring">        Ok(BundleWithDependencies::new((TextureAsset {
 </span><span class="boring">            width: info.width,
 </span><span class="boring">            height: info.height,
@@ -1155,7 +1155,7 @@ fixed time step mechanism and referencing assets.</p>
 </span><span class="boring">                .component::&lt;true, ShaderAsset&gt;(entity)
 </span><span class="boring">                .unwrap();
 </span><span class="boring">            let shader = graphics.shader(&amp;asset.vertex, &amp;asset.fragment).unwrap();
-</span><span class="boring">            println!("* Shader asset turned into shader: {}", entity);
+</span><span class="boring">            println!("* Shader asset turned into shader: {entity}");
 </span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(shader),)));
 </span><span class="boring">        }
 </span><span class="boring">
@@ -1175,7 +1175,7 @@ fixed time step mechanism and referencing assets.</p>
 </span><span class="boring">                    Some(&amp;asset.bytes),
 </span><span class="boring">                )
 </span><span class="boring">                .unwrap();
-</span><span class="boring">            println!("* Texture asset turned into texture: {}", entity);
+</span><span class="boring">            println!("* Texture asset turned into texture: {entity}");
 </span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(texture),)));
 </span><span class="boring">        }
 </span><span class="boring">
@@ -1232,7 +1232,7 @@ fixed time step mechanism and referencing assets.</p>
 </span><span class="boring">        let vertex = asset.vertex.path().clone();
 </span><span class="boring">        let fragment = asset.fragment.path().clone();
 </span><span class="boring">
-</span><span class="boring">        println!("* Shader asset processed: {:#?}", asset);
+</span><span class="boring">        println!("* Shader asset processed: {asset:#?}");
 </span><span class="boring">        Ok(BundleWithDependencies::new((asset,))
 </span><span class="boring">            .dependency(vertex)
 </span><span class="boring">            .dependency(fragment))
@@ -1296,7 +1296,7 @@ fixed time step mechanism and referencing assets.</p>
 </span><span class="boring">        let info = reader.next_frame(&amp;mut buf)?;
 </span><span class="boring">        let bytes = buf[..info.buffer_size()].to_vec();
 </span><span class="boring">
-</span><span class="boring">        println!("* Texture asset processed: {:#?}", info);
+</span><span class="boring">        println!("* Texture asset processed: {info:#?}");
 </span><span class="boring">        Ok(BundleWithDependencies::new((TextureAsset {
 </span><span class="boring">            width: info.width,
 </span><span class="boring">            height: info.height,
@@ -1443,7 +1443,7 @@ texture assets are ready.</p>
 </span><span class="boring">                .component::&lt;true, ShaderAsset&gt;(entity)
 </span><span class="boring">                .unwrap();
 </span><span class="boring">            let shader = graphics.shader(&amp;asset.vertex, &amp;asset.fragment).unwrap();
-</span><span class="boring">            println!("* Shader asset turned into shader: {}", entity);
+</span><span class="boring">            println!("* Shader asset turned into shader: {entity}");
 </span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(shader),)));
 </span><span class="boring">        }
 </span><span class="boring">
@@ -1463,7 +1463,7 @@ texture assets are ready.</p>
 </span><span class="boring">                    Some(&amp;asset.bytes),
 </span><span class="boring">                )
 </span><span class="boring">                .unwrap();
-</span><span class="boring">            println!("* Texture asset turned into texture: {}", entity);
+</span><span class="boring">            println!("* Texture asset turned into texture: {entity}");
 </span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(texture),)));
 </span><span class="boring">        }
 </span><span class="boring">
@@ -1520,7 +1520,7 @@ texture assets are ready.</p>
 </span><span class="boring">        let vertex = asset.vertex.path().clone();
 </span><span class="boring">        let fragment = asset.fragment.path().clone();
 </span><span class="boring">
-</span><span class="boring">        println!("* Shader asset processed: {:#?}", asset);
+</span><span class="boring">        println!("* Shader asset processed: {asset:#?}");
 </span><span class="boring">        Ok(BundleWithDependencies::new((asset,))
 </span><span class="boring">            .dependency(vertex)
 </span><span class="boring">            .dependency(fragment))
@@ -1584,7 +1584,7 @@ texture assets are ready.</p>
 </span><span class="boring">        let info = reader.next_frame(&amp;mut buf)?;
 </span><span class="boring">        let bytes = buf[..info.buffer_size()].to_vec();
 </span><span class="boring">
-</span><span class="boring">        println!("* Texture asset processed: {:#?}", info);
+</span><span class="boring">        println!("* Texture asset processed: {info:#?}");
 </span><span class="boring">        Ok(BundleWithDependencies::new((TextureAsset {
 </span><span class="boring">            width: info.width,
 </span><span class="boring">            height: info.height,
@@ -1729,7 +1729,7 @@ their assets.</p>
                 .component::&lt;true, ShaderAsset&gt;(entity)
                 .unwrap();
             let shader = graphics.shader(&amp;asset.vertex, &amp;asset.fragment).unwrap();
-            println!("* Shader asset turned into shader: {}", entity);
+            println!("* Shader asset turned into shader: {entity}");
             commands.command(InsertCommand::new(entity, (AsyncHandle::new(shader),)));
         }
 
@@ -1749,7 +1749,7 @@ their assets.</p>
                     Some(&amp;asset.bytes),
                 )
                 .unwrap();
-            println!("* Texture asset turned into texture: {}", entity);
+            println!("* Texture asset turned into texture: {entity}");
             commands.command(InsertCommand::new(entity, (AsyncHandle::new(texture),)));
         }
 
@@ -1806,7 +1806,7 @@ their assets.</p>
 </span><span class="boring">        let vertex = asset.vertex.path().clone();
 </span><span class="boring">        let fragment = asset.fragment.path().clone();
 </span><span class="boring">
-</span><span class="boring">        println!("* Shader asset processed: {:#?}", asset);
+</span><span class="boring">        println!("* Shader asset processed: {asset:#?}");
 </span><span class="boring">        Ok(BundleWithDependencies::new((asset,))
 </span><span class="boring">            .dependency(vertex)
 </span><span class="boring">            .dependency(fragment))
@@ -1870,7 +1870,7 @@ their assets.</p>
 </span><span class="boring">        let info = reader.next_frame(&amp;mut buf)?;
 </span><span class="boring">        let bytes = buf[..info.buffer_size()].to_vec();
 </span><span class="boring">
-</span><span class="boring">        println!("* Texture asset processed: {:#?}", info);
+</span><span class="boring">        println!("* Texture asset processed: {info:#?}");
 </span><span class="boring">        Ok(BundleWithDependencies::new((TextureAsset {
 </span><span class="boring">            width: info.width,
 </span><span class="boring">            height: info.height,
@@ -2012,7 +2012,7 @@ their assets.</p>
 </span><span class="boring">                .component::&lt;true, ShaderAsset&gt;(entity)
 </span><span class="boring">                .unwrap();
 </span><span class="boring">            let shader = graphics.shader(&amp;asset.vertex, &amp;asset.fragment).unwrap();
-</span><span class="boring">            println!("* Shader asset turned into shader: {}", entity);
+</span><span class="boring">            println!("* Shader asset turned into shader: {entity}");
 </span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(shader),)));
 </span><span class="boring">        }
 </span><span class="boring">
@@ -2032,7 +2032,7 @@ their assets.</p>
 </span><span class="boring">                    Some(&amp;asset.bytes),
 </span><span class="boring">                )
 </span><span class="boring">                .unwrap();
-</span><span class="boring">            println!("* Texture asset turned into texture: {}", entity);
+</span><span class="boring">            println!("* Texture asset turned into texture: {entity}");
 </span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(texture),)));
 </span><span class="boring">        }
 </span><span class="boring">
@@ -2089,7 +2089,7 @@ their assets.</p>
 </span><span class="boring">        let vertex = asset.vertex.path().clone();
 </span><span class="boring">        let fragment = asset.fragment.path().clone();
 </span><span class="boring">
-</span><span class="boring">        println!("* Shader asset processed: {:#?}", asset);
+</span><span class="boring">        println!("* Shader asset processed: {asset:#?}");
 </span><span class="boring">        Ok(BundleWithDependencies::new((asset,))
 </span><span class="boring">            .dependency(vertex)
 </span><span class="boring">            .dependency(fragment))
@@ -2153,7 +2153,7 @@ impl BundleWithDependenciesProcessor for TextureAssetProcessor {
         let info = reader.next_frame(&amp;mut buf)?;
         let bytes = buf[..info.buffer_size()].to_vec();
 
-        println!("* Texture asset processed: {:#?}", info);
+        println!("* Texture asset processed: {info:#?}");
         Ok(BundleWithDependencies::new((TextureAsset {
             width: info.width,
             height: info.height,
@@ -2297,7 +2297,7 @@ texture dimensions.</p>
 </span><span class="boring">                .component::&lt;true, ShaderAsset&gt;(entity)
 </span><span class="boring">                .unwrap();
 </span><span class="boring">            let shader = graphics.shader(&amp;asset.vertex, &amp;asset.fragment).unwrap();
-</span><span class="boring">            println!("* Shader asset turned into shader: {}", entity);
+</span><span class="boring">            println!("* Shader asset turned into shader: {entity}");
 </span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(shader),)));
 </span><span class="boring">        }
 </span><span class="boring">
@@ -2317,7 +2317,7 @@ texture dimensions.</p>
 </span><span class="boring">                    Some(&amp;asset.bytes),
 </span><span class="boring">                )
 </span><span class="boring">                .unwrap();
-</span><span class="boring">            println!("* Texture asset turned into texture: {}", entity);
+</span><span class="boring">            println!("* Texture asset turned into texture: {entity}");
 </span><span class="boring">            commands.command(InsertCommand::new(entity, (AsyncHandle::new(texture),)));
 </span><span class="boring">        }
 </span><span class="boring">
@@ -2374,7 +2374,7 @@ impl BundleWithDependenciesProcessor for ShaderAssetProcessor {
         let vertex = asset.vertex.path().clone();
         let fragment = asset.fragment.path().clone();
 
-        println!("* Shader asset processed: {:#?}", asset);
+        println!("* Shader asset processed: {asset:#?}");
         Ok(BundleWithDependencies::new((asset,))
             .dependency(vertex)
             .dependency(fragment))
@@ -2438,7 +2438,7 @@ impl BundleWithDependenciesProcessor for ShaderAssetProcessor {
 </span><span class="boring">        let info = reader.next_frame(&amp;mut buf)?;
 </span><span class="boring">        let bytes = buf[..info.buffer_size()].to_vec();
 </span><span class="boring">
-</span><span class="boring">        println!("* Texture asset processed: {:#?}", info);
+</span><span class="boring">        println!("* Texture asset processed: {info:#?}");
 </span><span class="boring">        Ok(BundleWithDependencies::new((TextureAsset {
 </span><span class="boring">            width: info.width,
 </span><span class="boring">            height: info.height,

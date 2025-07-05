@@ -198,7 +198,7 @@ into typed data, asset handle resolution will happen only at first time.</p>
 </span><span class="boring">    }
 </span><span class="boring">
 </span><span class="boring">    let contents = handle.access::&lt;&amp;CustomAsset&gt;(&amp;database).contents(&amp;database);
-</span><span class="boring">    println!("Custom chain contents: {:?}", contents);
+</span><span class="boring">    println!("Custom chain contents: {contents:?}");
 </span><span class="boring">
 </span><span class="boring">    Ok(())
 </span><span class="boring">}
@@ -265,7 +265,7 @@ impl CustomAsset {
     }
 
     let contents = handle.access::&lt;&amp;CustomAsset&gt;(&amp;database).contents(&amp;database);
-    println!("Custom chain contents: {:?}", contents);
+    println!("Custom chain contents: {contents:?}");
 <span class="boring">
 </span><span class="boring">    Ok(())
 </span><span class="boring">}

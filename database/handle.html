@@ -235,10 +235,7 @@ unloaded/deleted).</p>
 </span><span class="boring">        .storage
 </span><span class="boring">        .query::&lt;true, (&amp;AssetPath, &amp;PathBuf, &amp;Metadata)&gt;()
 </span><span class="boring">    {
-</span><span class="boring">        println!(
-</span><span class="boring">            "Asset: `{}` at location: {:?} has metadata: {:#?}",
-</span><span class="boring">            asset_path, file_path, metadata
-</span><span class="boring">        );
+</span><span class="boring">        println!("Asset: `{asset_path}` at location: {file_path:?} has metadata: {metadata:#?}");
 </span><span class="boring">    }
 </span><span class="boring">
 </span><span class="boring">    Ok(())

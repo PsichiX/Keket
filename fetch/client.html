@@ -210,7 +210,7 @@ binary crate) - a humble beginnings to DDC infrastructure for live development.<
 
     // List all assets from client.
     for (asset_path, url) in database.storage.query::&lt;true, (&amp;AssetPath, &amp;Url)&gt;() {
-        println!("Asset: `{}` at url: `{}`", asset_path, url);
+        println!("Asset: `{asset_path}` at url: `{url}`");
     }
 
     println!("Listening for file changes...");

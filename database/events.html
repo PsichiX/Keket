@@ -198,7 +198,7 @@ to event bindings in asset database.</p>
 </span><span class="boring">
 </span>    // We can bind closures to asset event bindings for any asset progression tracking.
     database.events.bind(|event| {
-        println!("Asset closure event: {:#?}", event);
+        println!("Asset closure event: {event:#?}");
         Ok(())
     });
 
@@ -216,7 +216,7 @@ to event bindings in asset database.</p>
 
     // Read sent events from receiver.
     while let Ok(event) = rx.try_recv() {
-        println!("Group channel event: {:#?}", event);
+        println!("Group channel event: {event:#?}");
     }
 <span class="boring">
 </span><span class="boring">    println!(
