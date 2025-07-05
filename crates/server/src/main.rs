@@ -85,7 +85,7 @@ async fn get_file_handler(path: String) -> Result<impl Reply, Rejection> {
 
     let file_bytes = tokio::fs::read(&file_path).await.unwrap();
 
-    println!("* Requested file: {:?}", file_path);
+    println!("* Requested file: {file_path:?}");
     Ok(Response::builder()
         .header("Content-Type", "application/octet-stream")
         .body(file_bytes)
@@ -108,7 +108,7 @@ async fn put_file_handler(path: String, body: Bytes) -> Result<impl Reply, Rejec
 
     file.write_all(&body).await.unwrap();
 
-    println!("* Created file: {:?}", file_path);
+    println!("* Created file: {file_path:?}");
     Ok(warp::reply::with_status(
         "File saved",
         warp::http::StatusCode::OK,
@@ -123,10 +123,10 @@ async fn delete_file_handler(path: String) -> Result<impl Reply, Rejection> {
     }
 
     if let Err(err) = fs::remove_file(&file_path).await {
-        return Err(warp::reject::custom(MessageError(format!("{}", err))));
+        return Err(warp::reject::custom(MessageError(format!("{err}"))));
     }
 
-    println!("* Deleted file: {:?}", file_path);
+    println!("* Deleted file: {file_path:?}");
     Ok(warp::reply::with_status(
         "File deleted",
         warp::http::StatusCode::OK,
@@ -135,7 +135,7 @@ async fn delete_file_handler(path: String) -> Result<impl Reply, Rejection> {
 
 async fn run_command_handler(path: String, body: PipelineCommand) -> Result<impl Reply, Rejection> {
     body.run(path);
-    println!("* Executed command: {:?}", body);
+    println!("* Executed command: {body:?}");
     Ok(warp::reply::with_status(
         "Executed command",
         warp::http::StatusCode::OK,
@@ -143,12 +143,12 @@ async fn run_command_handler(path: String, body: PipelineCommand) -> Result<impl
 }
 
 async fn client_connected(ws: WebSocket, id: usize, receiver: Receiver<String>) {
-    println!("* WebSocket client connected:{}", id);
+    println!("* WebSocket client connected:{id}");
     let (mut client_tx, _) = ws.split();
     loop {
         let mut disconnected = false;
         while let Ok(path) = receiver.try_recv() {
-            println!("* WebSocket sent changed path: {:?} to: {}", path, id);
+            println!("* WebSocket sent changed path: {path:?} to: {id}");
             if client_tx.send(Message::text(path)).await.is_err() {
                 disconnected = true;
             }
@@ -163,7 +163,7 @@ async fn client_connected(ws: WebSocket, id: usize, receiver: Receiver<String>) 
         }
         if disconnected {
             let _ = client_tx.close().await;
-            println!("* WebSocket client disconnected: {}", id);
+            println!("* WebSocket client disconnected: {id}");
             return;
         }
     }
@@ -200,7 +200,7 @@ async fn main() {
         for event in watcher_rx.into_iter().flatten() {
             if event.kind.is_modify() {
                 for path in event.paths {
-                    println!("* File changed: {:?}", path);
+                    println!("* File changed: {path:?}");
                     let path = path.to_string_lossy();
                     let path = path.as_ref();
                     bindings2.send(path.strip_prefix(&current_dir).unwrap_or(path));
@@ -209,7 +209,7 @@ async fn main() {
         }
     });
 
-    println!("* Start asset server at address: {:?}", address);
+    println!("* Start asset server at address: {address:?}");
     let id_generator = Arc::new(AtomicUsize::default());
     warp::serve(
         warp::path!("assets" / String)
@@ -232,7 +232,7 @@ async fn main() {
                 .and(warp::any().map(move || bindings.clone()))
                 .map(
                     move |ws: warp::ws::Ws, id: usize, bindings: ChangeBindings| {
-                        println!("* WebSocket new client connection: {}", id);
+                        println!("* WebSocket new client connection: {id}");
                         ws.on_upgrade(move |ws| client_connected(ws, id, bindings.receiver()))
                     },
                 )),
@@ -240,7 +240,7 @@ async fn main() {
     .run(
         address
             .parse::<SocketAddr>()
-            .unwrap_or_else(|error| panic!("Invalid IP address: {}. Error: {}", address, error)),
+            .unwrap_or_else(|error| panic!("Invalid IP address: {address}. Error: {error}")),
     )
     .await;
 }

@@ -41,7 +41,7 @@ async fn tokio_load_file_bundle(path: AssetPathStatic) -> Result<DynamicBundle, 
     let mut bundle = DynamicBundle::default();
     bundle
         .add_component(AssetBytesAreReadyToProcess(bytes))
-        .map_err(|_| format!("Failed to add bytes to bundle for asset: {}", path))?;
+        .map_err(|_| format!("Failed to add bytes to bundle for asset: {path}"))?;
     Ok(bundle)
 }
 /* ANCHOR_END: async_read_file */

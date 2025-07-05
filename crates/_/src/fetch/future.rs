@@ -51,7 +51,7 @@ impl AssetFetch for FutureAssetFetch {
         let path: AssetPathStatic = path.into_static();
         self.futures
             .write()
-            .map_err(|error| format!("{}", error))?
+            .map_err(|error| format!("{error}"))?
             .insert(path.clone(), Some((self.future_spawner)(path)));
         let mut bundle = DynamicBundle::default();
         let _ = bundle.add_component(AssetAwaitsAsyncFetch);
@@ -60,7 +60,7 @@ impl AssetFetch for FutureAssetFetch {
 
     fn maintain(&mut self, storage: &mut World) -> Result<(), Box<dyn Error>> {
         let mut cx = Context::from_waker(Waker::noop());
-        let mut futures = self.futures.write().map_err(|error| format!("{}", error))?;
+        let mut futures = self.futures.write().map_err(|error| format!("{error}"))?;
         for (path, future) in futures.iter_mut() {
             if let Some(mut f) = future.take() {
                 match f.as_mut().poll(&mut cx) {

@@ -94,6 +94,7 @@ More examples:
 - [Async loading](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/23_future_fetch.rs)
 - [Async saving](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/24_future_store.rs)
 - [Tokio + Axum web server asset provider](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/25_tokio_axum.rs)
+- [Asset graph](https://github.com/PsichiX/Keket/tree/master/crates/graph/examples/hello_graph.rs)
 - [HTTP fetch engine](https://github.com/PsichiX/Keket/tree/master/crates/http/examples/hello_http.rs)
 - [REDB fetch engine](https://github.com/PsichiX/Keket/tree/master/crates/redb/examples/hello_redb.rs)
 - [Asset server fetch engine](https://github.com/PsichiX/Keket/tree/master/crates/client/examples/hello_client.rs)
@@ -112,7 +113,9 @@ Key concepts:
   - `image://grass.png`
   - `mesh://teapot.gltf?lod=2`
 - `AssetRef` - wrapper around asset path and cached asset handle. Useful for serialization. Allows to resolve asset once and reuse cached handle later.
+- `SmartAssetRef` - Reference-counted version of `AssetRef` that allows automatic unloading assets that aren't referenced anywhere.
 - `AssetFetch` - an engine telling where from asset bytes are loaded. Basic one is `FileAssetFetch`.
+- `AssetStore` - an engine telling where to asset bytes are stored. Basic one is `FileAssetStore`.
 - `AssetProtocol` - an engine telling how fetched asset bytes are decoded into asset components, selected based on asset path protocol part. For example `TextAssetProtocol` or `BytesAssetProtocol`.
 
 ## Use Cases

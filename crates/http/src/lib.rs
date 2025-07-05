@@ -47,18 +47,11 @@ impl AssetFetch for HttpAssetFetch {
                 error
             )
         })?;
-        let mut response = reqwest::blocking::get(url.clone()).map_err(|error| {
-            format!(
-                "Failed to get HTTP content from: `{}`. Error: {}",
-                url, error
-            )
-        })?;
+        let mut response = reqwest::blocking::get(url.clone())
+            .map_err(|error| format!("Failed to get HTTP content from: `{url}`. Error: {error}"))?;
         let mut bytes = vec![];
         response.copy_to(&mut bytes).map_err(|error| {
-            format!(
-                "Failed to read bytes response from: `{}`. Error: {}",
-                url, error
-            )
+            format!("Failed to read bytes response from: `{url}`. Error: {error}")
         })?;
         let mut bundle = DynamicBundle::default();
         let _ = bundle.add_component(AssetBytesAreReadyToProcess(bytes));

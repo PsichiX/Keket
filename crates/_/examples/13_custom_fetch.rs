@@ -44,6 +44,6 @@ impl<const N: usize> AssetFetch for CustomAssetFetch<N> {
                 return Ok(bundle);
             }
         }
-        Err(format!("Missing asset: `{}`", path).into())
+        Err(format!("Missing asset: `{path}`").into())
     }
 }

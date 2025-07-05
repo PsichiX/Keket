@@ -23,10 +23,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Consume asset data or handle error.
     match loader {
         ConsumedSingleAssetLoader::Data(data) => {
-            println!("Lorem Ipsum: {}", data);
+            println!("Lorem Ipsum: {data}");
         }
         ConsumedSingleAssetLoader::Error(error) => {
-            eprintln!("Asset loading error: {}", error);
+            eprintln!("Asset loading error: {error}");
         }
         _ => {}
     }

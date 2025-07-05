@@ -62,21 +62,21 @@ impl AssetFetch for RouterAssetFetch {
         for (rule, fetch, _) in self
             .table
             .read()
-            .map_err(|error| format!("{}", error))?
+            .map_err(|error| format!("{error}"))?
             .iter()
         {
             if rule(&path) {
                 return fetch.load_bytes(path);
             }
         }
-        Err(format!("Could not find route for asset: `{}`", path).into())
+        Err(format!("Could not find route for asset: `{path}`").into())
     }
 
     fn maintain(&mut self, storage: &mut World) -> Result<(), Box<dyn Error>> {
         for (_, fetch, _) in self
             .table
             .write()
-            .map_err(|error| format!("{}", error))?
+            .map_err(|error| format!("{error}"))?
             .iter_mut()
         {
             fetch.maintain(storage)?;

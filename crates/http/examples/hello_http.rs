@@ -43,7 +43,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // List all assets from HTTP.
     for (asset_path, url) in database.storage.query::<true, (&AssetPath, &Url)>() {
-        println!("Asset: `{}` at url: `{}`", asset_path, url);
+        println!("Asset: `{asset_path}` at url: `{url}`");
     }
     /* ANCHOR_END: main */
 

@@ -51,13 +51,11 @@ impl<Fetch: AssetFetch> AssetFetch for DeferredAssetFetch<Fetch> {
         let job = async move {
             fetch.read().map_err(|error|{
                 format!(
-                    "Failed to get read access to inner fetch engine in async fetch for asset: `{}`. Error: {}",
-                    path, error
+                    "Failed to get read access to inner fetch engine in async fetch for asset: `{path}`. Error: {error}"
                 )
             })?.load_bytes(path.clone()).map_err(|error| {
                 format!(
-                    "Failed async fetch for asset: `{}`. Error: {}",
-                    path, error
+                    "Failed async fetch for asset: `{path}`. Error: {error}"
                 )
             })
         };
@@ -68,7 +66,7 @@ impl<Fetch: AssetFetch> AssetFetch for DeferredAssetFetch<Fetch> {
         )?;
         self.job_handles
             .write()
-            .map_err(|error| format!("{}", error))?
+            .map_err(|error| format!("{error}"))?
             .insert(path2, handle);
         let mut bundle = DynamicBundle::default();
         let _ = bundle.add_component(AssetAwaitsAsyncFetch);
@@ -80,18 +78,13 @@ impl<Fetch: AssetFetch> AssetFetch for DeferredAssetFetch<Fetch> {
 
         self.fetch
             .write()
-            .map_err(|error| {
-                format!(
-                    "Failed deferred fetch engine maintainance. Error: {}",
-                    error
-                )
-            })?
+            .map_err(|error| format!("Failed deferred fetch engine maintainance. Error: {error}"))?
             .maintain(storage)?;
 
         let complete = self
             .job_handles
             .read()
-            .map_err(|error| format!("{}", error))?
+            .map_err(|error| format!("{error}"))?
             .iter()
             .filter(|(_, handle)| handle.is_done())
             .map(|(path, _)| path.clone())
@@ -100,7 +93,7 @@ impl<Fetch: AssetFetch> AssetFetch for DeferredAssetFetch<Fetch> {
             let handle = self
                 .job_handles
                 .write()
-                .map_err(|error| format!("{}", error))?
+                .map_err(|error| format!("{error}"))?
                 .remove(&path)
                 .unwrap();
             match handle.try_take() {
@@ -109,10 +102,7 @@ impl<Fetch: AssetFetch> AssetFetch for DeferredAssetFetch<Fetch> {
                         storage.remove::<(AssetAwaitsAsyncFetch,)>(entity)?;
                     }
                     let result = result.map_err(|error| {
-                        format!(
-                            "Async fetch execution of `{}` asset panicked! Error: {}",
-                            path, error
-                        )
+                        format!("Async fetch execution of `{path}` asset panicked! Error: {error}")
                     })?;
                     if let Some(entity) = storage.find_by::<true, _>(&path) {
                         storage.insert(entity, result)?;
@@ -123,15 +113,14 @@ impl<Fetch: AssetFetch> AssetFetch for DeferredAssetFetch<Fetch> {
                         storage.remove::<(AssetAwaitsAsyncFetch,)>(entity)?;
                     }
                     return Err(format!(
-                        "Async fetch execution of `{}` asset failed with undefined error!",
-                        path
+                        "Async fetch execution of `{path}` asset failed with undefined error!"
                     )
                     .into());
                 }
                 None => {
                     self.job_handles
                         .write()
-                        .map_err(|error| format!("{}", error))?
+                        .map_err(|error| format!("{error}"))?
                         .insert(path.clone(), handle);
                 }
             };

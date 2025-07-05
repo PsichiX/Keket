@@ -33,7 +33,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     tokio::spawn(async move {
         loop {
             if let Err(error) = database2.write().await.maintain() {
-                eprintln!("Error maintaining database: {}", error);
+                eprintln!("Error maintaining database: {error}");
             }
             sleep(Duration::from_millis(100)).await;
         }
@@ -61,7 +61,7 @@ async fn tokio_load_file_bundle(path: AssetPathStatic) -> Result<DynamicBundle, 
     let mut bundle = DynamicBundle::default();
     bundle
         .add_component(AssetBytesAreReadyToProcess(bytes))
-        .map_err(|_| format!("Failed to add bytes to bundle for asset: {}", path))?;
+        .map_err(|_| format!("Failed to add bytes to bundle for asset: {path}"))?;
     Ok(bundle)
 }
 
@@ -69,7 +69,7 @@ async fn serve_asset_bytes_handler(
     Path(asset_path): Path<String>,
     State(database): State<Arc<RwLock<AssetDatabase>>>,
 ) -> impl IntoResponse {
-    println!("Received request for bytes asset: {}", asset_path);
+    println!("Received request for bytes asset: {asset_path}");
 
     match get_asset::<Vec<u8>>(format!("bytes://{asset_path}"), database).await {
         Ok(bytes) => Response::builder()
@@ -88,7 +88,7 @@ async fn serve_asset_text_handler(
     Path(asset_path): Path<String>,
     State(database): State<Arc<RwLock<AssetDatabase>>>,
 ) -> impl IntoResponse {
-    println!("Received request for text asset: {}", asset_path);
+    println!("Received request for text asset: {asset_path}");
 
     match get_asset::<String>(format!("text://{asset_path}"), database).await {
         Ok(bytes) => Response::builder()

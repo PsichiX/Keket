@@ -38,8 +38,8 @@ impl ClientAssetFetch {
     /// - `Err(Box<dyn Error>)` if any parsing errors occur.
     pub fn new(address: &str) -> Result<Self, Box<dyn Error>> {
         address.parse::<SocketAddr>()?;
-        let root = format!("http://{}/assets/", address).parse::<Url>()?;
-        let (socket, _) = connect(format!("ws://{}/changes", address))?;
+        let root = format!("http://{address}/assets/").parse::<Url>()?;
+        let (socket, _) = connect(format!("ws://{address}/changes"))?;
         if let MaybeTlsStream::Plain(tcp) = socket.get_ref() {
             tcp.set_nonblocking(true)?;
         }
@@ -57,18 +57,11 @@ impl AssetFetch for ClientAssetFetch {
                 error
             )
         })?;
-        let mut response = reqwest::blocking::get(url.clone()).map_err(|error| {
-            format!(
-                "Failed to get HTTP content from: `{}`. Error: {}",
-                url, error
-            )
-        })?;
+        let mut response = reqwest::blocking::get(url.clone())
+            .map_err(|error| format!("Failed to get HTTP content from: `{url}`. Error: {error}"))?;
         let mut bytes = vec![];
         response.copy_to(&mut bytes).map_err(|error| {
-            format!(
-                "Failed to read bytes response from: `{}`. Error: {}",
-                url, error
-            )
+            format!("Failed to read bytes response from: `{url}`. Error: {error}")
         })?;
         let mut bundle = DynamicBundle::default();
         let _ = bundle.add_component(AssetBytesAreReadyToProcess(bytes));

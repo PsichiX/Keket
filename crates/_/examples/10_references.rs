@@ -21,7 +21,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     let contents = handle.access::<&CustomAsset>(&database).contents(&database);
-    println!("Custom chain contents: {:?}", contents);
+    println!("Custom chain contents: {contents:?}");
     /* ANCHOR_END: main */
 
     Ok(())

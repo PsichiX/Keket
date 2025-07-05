@@ -67,7 +67,7 @@ impl<Partial: ContainerPartialFetch> AssetFetch for ContainerAssetFetch<Partial>
         let bytes = self
             .partial
             .write()
-            .map_err(|error| format!("{}", error))?
+            .map_err(|error| format!("{error}"))?
             .load_bytes(path.clone())?;
         let mut bundle = DynamicBundle::default();
         let _ = bundle.add_component(AssetBytesAreReadyToProcess(bytes));

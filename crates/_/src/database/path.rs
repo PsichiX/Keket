@@ -60,11 +60,11 @@ impl<'a> AssetPath<'a> {
     pub fn from_parts(protocol: &str, path: &str, meta: &str) -> Self {
         let mut result = String::new();
         if !protocol.is_empty() {
-            let _ = write!(&mut result, "{}://", protocol);
+            let _ = write!(&mut result, "{protocol}://");
         }
-        let _ = write!(&mut result, "{}", path);
+        let _ = write!(&mut result, "{path}");
         if !meta.is_empty() {
-            let _ = write!(&mut result, "?{}", meta);
+            let _ = write!(&mut result, "?{meta}");
         }
         Self::new(result)
     }

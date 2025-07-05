@@ -141,7 +141,7 @@ impl State {
                 .component::<true, ShaderAsset>(entity)
                 .unwrap();
             let shader = graphics.shader(&asset.vertex, &asset.fragment).unwrap();
-            println!("* Shader asset turned into shader: {}", entity);
+            println!("* Shader asset turned into shader: {entity}");
             commands.command(InsertCommand::new(entity, (AsyncHandle::new(shader),)));
         }
 
@@ -161,7 +161,7 @@ impl State {
                     Some(&asset.bytes),
                 )
                 .unwrap();
-            println!("* Texture asset turned into texture: {}", entity);
+            println!("* Texture asset turned into texture: {entity}");
             commands.command(InsertCommand::new(entity, (AsyncHandle::new(texture),)));
         }
 
@@ -222,7 +222,7 @@ impl BundleWithDependenciesProcessor for ShaderAssetProcessor {
         let vertex = asset.vertex.path().clone();
         let fragment = asset.fragment.path().clone();
 
-        println!("* Shader asset processed: {:#?}", asset);
+        println!("* Shader asset processed: {asset:#?}");
         Ok(BundleWithDependencies::new((asset,))
             .dependency(vertex)
             .dependency(fragment))
@@ -288,7 +288,7 @@ impl BundleWithDependenciesProcessor for TextureAssetProcessor {
         let info = reader.next_frame(&mut buf)?;
         let bytes = buf[..info.buffer_size()].to_vec();
 
-        println!("* Texture asset processed: {:#?}", info);
+        println!("* Texture asset processed: {info:#?}");
         Ok(BundleWithDependencies::new((TextureAsset {
             width: info.width,
             height: info.height,

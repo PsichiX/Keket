@@ -45,6 +45,8 @@ list-outdated:
 
 update:
   cargo update --manifest-path ./crates/_/Cargo.toml --aggressive
+  cargo update --manifest-path ./crates/graph-derive/Cargo.toml --aggressive
+  cargo update --manifest-path ./crates/graph/Cargo.toml --aggressive
   cargo update --manifest-path ./crates/http/Cargo.toml --aggressive
   cargo update --manifest-path ./crates/client/Cargo.toml --aggressive
   cargo update --manifest-path ./crates/redb/Cargo.toml --aggressive
@@ -58,6 +60,8 @@ book-dev:
 
 publish:
   cargo publish --no-verify --manifest-path ./crates/_/Cargo.toml
+  cargo publish --no-verify --manifest-path ./crates/graph-derive/Cargo.toml
+  cargo publish --no-verify --manifest-path ./crates/graph/Cargo.toml
   cargo publish --no-verify --manifest-path ./crates/http/Cargo.toml
   cargo publish --no-verify --manifest-path ./crates/client/Cargo.toml
   cargo publish --no-verify --manifest-path ./crates/redb/Cargo.toml

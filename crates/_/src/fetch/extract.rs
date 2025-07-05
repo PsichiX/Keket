@@ -103,7 +103,7 @@ pub fn from_asset_extractor<T: Component>(
             source_entity = storage.find_by::<true, _>(&source);
         }
         let Some(source_entity) = source_entity else {
-            return Err(format!("Source asset: `{}` does not exists!", source).into());
+            return Err(format!("Source asset: `{source}` does not exists!").into());
         };
         let Ok(component) = storage.component::<true, T>(source_entity) else {
             return Err(format!(

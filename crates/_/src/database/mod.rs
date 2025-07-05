@@ -37,8 +37,12 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+/// Command type for asset database operations.
 pub type AssetDatabaseCommand = Box<dyn FnOnce(&mut World) + Send + Sync>;
 
+/// Sender for asset database commands.
+///
+/// This is used to send commands to the asset database from external places.
 #[derive(Clone)]
 pub struct AssetDatabaseCommandsSender {
     queue: Arc<Mutex<VecDeque<AssetDatabaseCommand>>>,
@@ -322,7 +326,7 @@ impl AssetDatabase {
                     .find(|protocol| protocol.name() == path.protocol())
                 else {
                     handle.delete(self);
-                    return Err(format!("Missing protocol for asset: `{}`", path).into());
+                    return Err(format!("Missing protocol for asset: `{path}`").into());
                 };
                 let status = protocol.process_asset_bytes(handle, &mut self.storage);
                 if status.is_err() {
@@ -377,7 +381,7 @@ impl AssetDatabase {
         let entity = self
             .storage
             .find_by::<true, _>(&path)
-            .ok_or_else(|| format!("Asset `{}` not found", path))?;
+            .ok_or_else(|| format!("Asset `{path}` not found"))?;
         self.storage.insert(entity, (AssetAwaitsStoring,))?;
         Ok(())
     }

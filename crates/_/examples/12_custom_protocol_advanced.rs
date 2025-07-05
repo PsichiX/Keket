@@ -17,7 +17,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .with_protocol(CustomAssetProtocol)
         .with_fetch(FileAssetFetch::default().with_root("resources"))
         .with_event(|event| {
-            println!("Asset closure event: {:#?}", event);
+            println!("Asset closure event: {event:#?}");
             Ok(())
         });
 
@@ -28,7 +28,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     let contents = handle.access::<&CustomAsset>(&database).contents(&database);
-    println!("Custom chain contents: {:?}", contents);
+    println!("Custom chain contents: {contents:?}");
 
     Ok(())
 }

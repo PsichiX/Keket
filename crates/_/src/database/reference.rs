@@ -63,7 +63,7 @@ impl AssetRef {
     /// # Returns
     /// An error if the handle could not be invalidated.
     pub fn invalidate(&self) -> Result<(), Box<dyn Error>> {
-        *self.handle.write().map_err(|error| format!("{}", error))? = None;
+        *self.handle.write().map_err(|error| format!("{error}"))? = None;
         Ok(())
     }
 
@@ -82,7 +82,7 @@ impl AssetRef {
     pub fn handle(&self) -> Result<AssetHandle, Box<dyn Error>> {
         self.handle
             .read()
-            .map_err(|error| format!("{}", error))?
+            .map_err(|error| format!("{error}"))?
             .ok_or_else(|| format!("Asset with `{}` path is not yet resolved!", self.path).into())
     }
 
@@ -97,7 +97,7 @@ impl AssetRef {
         &'a self,
         database: &'a AssetDatabase,
     ) -> Result<AssetResolved<'a>, Box<dyn Error>> {
-        let mut handle = self.handle.write().map_err(|error| format!("{}", error))?;
+        let mut handle = self.handle.write().map_err(|error| format!("{error}"))?;
         if let Some(result) = handle.as_ref() {
             Ok(AssetResolved::new(*result, database))
         } else {
@@ -120,7 +120,7 @@ impl AssetRef {
         &'a self,
         database: &'a mut AssetDatabase,
     ) -> Result<AssetResolved<'a>, Box<dyn Error>> {
-        let mut handle = self.handle.write().map_err(|error| format!("{}", error))?;
+        let mut handle = self.handle.write().map_err(|error| format!("{error}"))?;
         if let Some(result) = handle.as_ref() {
             Ok(AssetResolved::new(*result, database))
         } else {

@@ -65,10 +65,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .storage
         .query::<true, (&AssetPath, &PathBuf, &Metadata)>()
     {
-        println!(
-            "Asset: `{}` at location: {:?} has metadata: {:#?}",
-            asset_path, file_path, metadata
-        );
+        println!("Asset: `{asset_path}` at location: {file_path:?} has metadata: {metadata:#?}");
     }
     /* ANCHOR_END: fs_query */
     /* ANCHOR_END: main */

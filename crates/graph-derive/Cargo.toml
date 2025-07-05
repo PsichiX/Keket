@@ -1,0 +1,18 @@
+[package]
+name = "keket-graph-derive"
+version = "0.15.1"
+edition = "2024"
+authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
+description = "Asset graph derive macros module for Keket toolkit"
+license = "MIT OR Apache-2.0"
+homepage = "https://github.com/PsichiX/keket"
+repository = "https://github.com/PsichiX/keket"
+documentation = "https://docs.rs/keket-graph-derive"
+readme = "../../README.md"
+
+[dependencies]
+syn = { version = "1", features = ["full"] }
+quote = "1.0"
+
+[lib]
+proc-macro = true

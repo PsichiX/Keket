@@ -7,34 +7,20 @@ use std::{error::Error, path::PathBuf};
 
 fn load_file_bundle(file_path: PathBuf) -> Result<DynamicBundle, Box<dyn Error>> {
     let bytes = std::fs::read(&file_path)
-        .map_err(|error| format!("Failed to load `{:?}` file bytes: {}", file_path, error))?;
+        .map_err(|error| format!("Failed to load `{file_path:?}` file bytes: {error}"))?;
     let metadata = std::fs::metadata(&file_path)?;
     let mut bundle = DynamicBundle::default();
     bundle
         .add_component(AssetBytesAreReadyToProcess(bytes))
-        .map_err(|_| {
-            format!(
-                "Failed to add bytes to bundle for asset file: {:?}",
-                file_path
-            )
-        })?;
-    bundle.add_component(AssetFromFile).map_err(|_| {
-        format!(
-            "Failed to add marker to bundle for asset file: {:?}",
-            file_path
-        )
-    })?;
-    bundle.add_component(metadata).map_err(|_| {
-        format!(
-            "Failed to add metadata to bundle for asset file: {:?}",
-            file_path
-        )
-    })?;
+        .map_err(|_| format!("Failed to add bytes to bundle for asset file: {file_path:?}"))?;
+    bundle
+        .add_component(AssetFromFile)
+        .map_err(|_| format!("Failed to add marker to bundle for asset file: {file_path:?}"))?;
+    bundle
+        .add_component(metadata)
+        .map_err(|_| format!("Failed to add metadata to bundle for asset file: {file_path:?}"))?;
     bundle.add_component(file_path.clone()).map_err(|_| {
-        format!(
-            "Failed to add file system path to bundle for asset file: {:?}",
-            file_path
-        )
+        format!("Failed to add file system path to bundle for asset file: {file_path:?}")
     })?;
     Ok(bundle)
 }
