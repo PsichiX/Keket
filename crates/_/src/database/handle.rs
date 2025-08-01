@@ -6,9 +6,10 @@ use crate::{
 use anput::{
     archetype::Archetype,
     bundle::Bundle,
-    component::Component,
+    commands::Command,
+    component::{Component, ComponentRef, ComponentRefMut},
+    database::WorldDestroyIteratorExt,
     entity::Entity,
-    prelude::{Command, ComponentRef, ComponentRefMut, WorldDestroyIteratorExt},
     query::{Exclude, Include, QueryError, TypedLookupFetch, TypedQueryFetch},
     world::World,
 };

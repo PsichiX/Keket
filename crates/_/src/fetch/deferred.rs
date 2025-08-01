@@ -4,7 +4,7 @@ use crate::{
 };
 use anput::{
     bundle::DynamicBundle,
-    jobs::{JobHandle, JobLocation, JobPriority, Jobs},
+    third_party::anput_jobs::{JobHandle, JobLocation, JobPriority, Jobs},
     world::World,
 };
 use std::{
