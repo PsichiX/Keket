@@ -37,6 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "ayu";
             const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc.js"></script>
@@ -93,10 +94,13 @@
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
+                sidebar_toggle.checked = false;
             }
-            sidebar_toggle.checked = sidebar === 'visible';
-            html.classList.remove('sidebar-visible');
-            html.classList.add("sidebar-" + sidebar);
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -147,7 +151,12 @@
 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -2346,7 +2355,18 @@ In this example we will use <a href="https://github.com/PsichiX/spitfire">Spitfi
     },
 };
 use serde::{Deserialize, Serialize};
-use spitfire::prelude::*;
+use spitfire::{
+    draw::{
+        context::DrawContext,
+        sprite::{Sprite, SpriteTexture},
+        utils::{Drawable, ResourceRef, Vertex},
+    },
+    glow::{
+        app::{App, AppControl, AppState},
+        graphics::{CameraScaling, Graphics, Shader, Texture},
+        renderer::{GlowBlending, GlowTextureFormat},
+    },
+};
 use std::{
     error::Error,
     sync::{Arc, RwLock},
@@ -2630,7 +2650,18 @@ use std::{
 </span><span class="boring">    },
 </span><span class="boring">};
 </span><span class="boring">use serde::{Deserialize, Serialize};
-</span><span class="boring">use spitfire::prelude::*;
+</span><span class="boring">use spitfire::{
+</span><span class="boring">    draw::{
+</span><span class="boring">        context::DrawContext,
+</span><span class="boring">        sprite::{Sprite, SpriteTexture},
+</span><span class="boring">        utils::{Drawable, ResourceRef, Vertex},
+</span><span class="boring">    },
+</span><span class="boring">    glow::{
+</span><span class="boring">        app::{App, AppControl, AppState},
+</span><span class="boring">        graphics::{CameraScaling, Graphics, Shader, Texture},
+</span><span class="boring">        renderer::{GlowBlending, GlowTextureFormat},
+</span><span class="boring">    },
+</span><span class="boring">};
 </span><span class="boring">use std::{
 </span><span class="boring">    error::Error,
 </span><span class="boring">    sync::{Arc, RwLock},
@@ -2914,7 +2945,18 @@ fixed time step mechanism and referencing assets.</p>
 </span><span class="boring">    },
 </span><span class="boring">};
 </span><span class="boring">use serde::{Deserialize, Serialize};
-</span><span class="boring">use spitfire::prelude::*;
+</span><span class="boring">use spitfire::{
+</span><span class="boring">    draw::{
+</span><span class="boring">        context::DrawContext,
+</span><span class="boring">        sprite::{Sprite, SpriteTexture},
+</span><span class="boring">        utils::{Drawable, ResourceRef, Vertex},
+</span><span class="boring">    },
+</span><span class="boring">    glow::{
+</span><span class="boring">        app::{App, AppControl, AppState},
+</span><span class="boring">        graphics::{CameraScaling, Graphics, Shader, Texture},
+</span><span class="boring">        renderer::{GlowBlending, GlowTextureFormat},
+</span><span class="boring">    },
+</span><span class="boring">};
 </span><span class="boring">use std::{
 </span><span class="boring">    error::Error,
 </span><span class="boring">    sync::{Arc, RwLock},
@@ -3198,7 +3240,18 @@ fixed time step mechanism and referencing assets.</p>
 </span><span class="boring">    },
 </span><span class="boring">};
 </span><span class="boring">use serde::{Deserialize, Serialize};
-</span><span class="boring">use spitfire::prelude::*;
+</span><span class="boring">use spitfire::{
+</span><span class="boring">    draw::{
+</span><span class="boring">        context::DrawContext,
+</span><span class="boring">        sprite::{Sprite, SpriteTexture},
+</span><span class="boring">        utils::{Drawable, ResourceRef, Vertex},
+</span><span class="boring">    },
+</span><span class="boring">    glow::{
+</span><span class="boring">        app::{App, AppControl, AppState},
+</span><span class="boring">        graphics::{CameraScaling, Graphics, Shader, Texture},
+</span><span class="boring">        renderer::{GlowBlending, GlowTextureFormat},
+</span><span class="boring">    },
+</span><span class="boring">};
 </span><span class="boring">use std::{
 </span><span class="boring">    error::Error,
 </span><span class="boring">    sync::{Arc, RwLock},
@@ -3486,7 +3539,18 @@ texture assets are ready.</p>
 </span><span class="boring">    },
 </span><span class="boring">};
 </span><span class="boring">use serde::{Deserialize, Serialize};
-</span><span class="boring">use spitfire::prelude::*;
+</span><span class="boring">use spitfire::{
+</span><span class="boring">    draw::{
+</span><span class="boring">        context::DrawContext,
+</span><span class="boring">        sprite::{Sprite, SpriteTexture},
+</span><span class="boring">        utils::{Drawable, ResourceRef, Vertex},
+</span><span class="boring">    },
+</span><span class="boring">    glow::{
+</span><span class="boring">        app::{App, AppControl, AppState},
+</span><span class="boring">        graphics::{CameraScaling, Graphics, Shader, Texture},
+</span><span class="boring">        renderer::{GlowBlending, GlowTextureFormat},
+</span><span class="boring">    },
+</span><span class="boring">};
 </span><span class="boring">use std::{
 </span><span class="boring">    error::Error,
 </span><span class="boring">    sync::{Arc, RwLock},
@@ -3772,7 +3836,18 @@ their assets.</p>
 </span><span class="boring">    },
 </span><span class="boring">};
 </span><span class="boring">use serde::{Deserialize, Serialize};
-</span><span class="boring">use spitfire::prelude::*;
+</span><span class="boring">use spitfire::{
+</span><span class="boring">    draw::{
+</span><span class="boring">        context::DrawContext,
+</span><span class="boring">        sprite::{Sprite, SpriteTexture},
+</span><span class="boring">        utils::{Drawable, ResourceRef, Vertex},
+</span><span class="boring">    },
+</span><span class="boring">    glow::{
+</span><span class="boring">        app::{App, AppControl, AppState},
+</span><span class="boring">        graphics::{CameraScaling, Graphics, Shader, Texture},
+</span><span class="boring">        renderer::{GlowBlending, GlowTextureFormat},
+</span><span class="boring">    },
+</span><span class="boring">};
 </span><span class="boring">use std::{
 </span><span class="boring">    error::Error,
 </span><span class="boring">    sync::{Arc, RwLock},
@@ -4055,7 +4130,18 @@ their assets.</p>
 </span><span class="boring">    },
 </span><span class="boring">};
 </span><span class="boring">use serde::{Deserialize, Serialize};
-</span><span class="boring">use spitfire::prelude::*;
+</span><span class="boring">use spitfire::{
+</span><span class="boring">    draw::{
+</span><span class="boring">        context::DrawContext,
+</span><span class="boring">        sprite::{Sprite, SpriteTexture},
+</span><span class="boring">        utils::{Drawable, ResourceRef, Vertex},
+</span><span class="boring">    },
+</span><span class="boring">    glow::{
+</span><span class="boring">        app::{App, AppControl, AppState},
+</span><span class="boring">        graphics::{CameraScaling, Graphics, Shader, Texture},
+</span><span class="boring">        renderer::{GlowBlending, GlowTextureFormat},
+</span><span class="boring">    },
+</span><span class="boring">};
 </span><span class="boring">use std::{
 </span><span class="boring">    error::Error,
 </span><span class="boring">    sync::{Arc, RwLock},
@@ -4340,7 +4426,18 @@ texture dimensions.</p>
 </span><span class="boring">    },
 </span><span class="boring">};
 </span><span class="boring">use serde::{Deserialize, Serialize};
-</span><span class="boring">use spitfire::prelude::*;
+</span><span class="boring">use spitfire::{
+</span><span class="boring">    draw::{
+</span><span class="boring">        context::DrawContext,
+</span><span class="boring">        sprite::{Sprite, SpriteTexture},
+</span><span class="boring">        utils::{Drawable, ResourceRef, Vertex},
+</span><span class="boring">    },
+</span><span class="boring">    glow::{
+</span><span class="boring">        app::{App, AppControl, AppState},
+</span><span class="boring">        graphics::{CameraScaling, Graphics, Shader, Texture},
+</span><span class="boring">        renderer::{GlowBlending, GlowTextureFormat},
+</span><span class="boring">    },
+</span><span class="boring">};
 </span><span class="boring">use std::{
 </span><span class="boring">    error::Error,
 </span><span class="boring">    sync::{Arc, RwLock},
@@ -4655,6 +4752,7 @@ shader objects.</p>
             window.setTimeout(window.print, 100);
         });
         </script>
+
 
     </div>
     </body>
