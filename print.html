@@ -2420,9 +2420,9 @@ use std::{
 </span><span class="boring">impl AppState&lt;Vertex&gt; for State {
 </span><span class="boring">    fn on_init(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;, _: &amp;mut AppControl) {
 </span><span class="boring">        // Setup scene camera.
-</span><span class="boring">        graphics.color = [0.25, 0.25, 0.25, 1.0];
-</span><span class="boring">        graphics.main_camera.screen_alignment = 0.5.into();
-</span><span class="boring">        graphics.main_camera.scaling = CameraScaling::FitToView {
+</span><span class="boring">        graphics.state.color = [0.25, 0.25, 0.25, 1.0];
+</span><span class="boring">        graphics.state.main_camera.screen_alignment = 0.5.into();
+</span><span class="boring">        graphics.state.main_camera.scaling = CameraScaling::FitToView {
 </span><span class="boring">            size: 1000.0.into(),
 </span><span class="boring">            inside: false,
 </span><span class="boring">        };
@@ -2715,9 +2715,9 @@ use std::{
 </span><span class="boring">impl AppState&lt;Vertex&gt; for State {
 </span><span class="boring">    fn on_init(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;, _: &amp;mut AppControl) {
 </span><span class="boring">        // Setup scene camera.
-</span><span class="boring">        graphics.color = [0.25, 0.25, 0.25, 1.0];
-</span><span class="boring">        graphics.main_camera.screen_alignment = 0.5.into();
-</span><span class="boring">        graphics.main_camera.scaling = CameraScaling::FitToView {
+</span><span class="boring">        graphics.state.color = [0.25, 0.25, 0.25, 1.0];
+</span><span class="boring">        graphics.state.main_camera.screen_alignment = 0.5.into();
+</span><span class="boring">        graphics.state.main_camera.scaling = CameraScaling::FitToView {
 </span><span class="boring">            size: 1000.0.into(),
 </span><span class="boring">            inside: false,
 </span><span class="boring">        };
@@ -3010,9 +3010,9 @@ fixed time step mechanism and referencing assets.</p>
 </span><span class="boring">impl AppState&lt;Vertex&gt; for State {
 </span><span class="boring">    fn on_init(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;, _: &amp;mut AppControl) {
 </span><span class="boring">        // Setup scene camera.
-</span><span class="boring">        graphics.color = [0.25, 0.25, 0.25, 1.0];
-</span><span class="boring">        graphics.main_camera.screen_alignment = 0.5.into();
-</span><span class="boring">        graphics.main_camera.scaling = CameraScaling::FitToView {
+</span><span class="boring">        graphics.state.color = [0.25, 0.25, 0.25, 1.0];
+</span><span class="boring">        graphics.state.main_camera.screen_alignment = 0.5.into();
+</span><span class="boring">        graphics.state.main_camera.scaling = CameraScaling::FitToView {
 </span><span class="boring">            size: 1000.0.into(),
 </span><span class="boring">            inside: false,
 </span><span class="boring">        };
@@ -3305,9 +3305,9 @@ fixed time step mechanism and referencing assets.</p>
 </span><span class="boring">impl AppState&lt;Vertex&gt; for State {
 </span><span class="boring">    fn on_init(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;, _: &amp;mut AppControl) {
 </span><span class="boring">        // Setup scene camera.
-</span><span class="boring">        graphics.color = [0.25, 0.25, 0.25, 1.0];
-</span><span class="boring">        graphics.main_camera.screen_alignment = 0.5.into();
-</span><span class="boring">        graphics.main_camera.scaling = CameraScaling::FitToView {
+</span><span class="boring">        graphics.state.color = [0.25, 0.25, 0.25, 1.0];
+</span><span class="boring">        graphics.state.main_camera.screen_alignment = 0.5.into();
+</span><span class="boring">        graphics.state.main_camera.scaling = CameraScaling::FitToView {
 </span><span class="boring">            size: 1000.0.into(),
 </span><span class="boring">            inside: false,
 </span><span class="boring">        };
@@ -3604,9 +3604,9 @@ texture assets are ready.</p>
 </span>impl AppState&lt;Vertex&gt; for State {
     fn on_init(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;, _: &amp;mut AppControl) {
         // Setup scene camera.
-        graphics.color = [0.25, 0.25, 0.25, 1.0];
-        graphics.main_camera.screen_alignment = 0.5.into();
-        graphics.main_camera.scaling = CameraScaling::FitToView {
+        graphics.state.color = [0.25, 0.25, 0.25, 1.0];
+        graphics.state.main_camera.screen_alignment = 0.5.into();
+        graphics.state.main_camera.scaling = CameraScaling::FitToView {
             size: 1000.0.into(),
             inside: false,
         };
@@ -3901,9 +3901,9 @@ their assets.</p>
 </span><span class="boring">impl AppState&lt;Vertex&gt; for State {
 </span><span class="boring">    fn on_init(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;, _: &amp;mut AppControl) {
 </span><span class="boring">        // Setup scene camera.
-</span><span class="boring">        graphics.color = [0.25, 0.25, 0.25, 1.0];
-</span><span class="boring">        graphics.main_camera.screen_alignment = 0.5.into();
-</span><span class="boring">        graphics.main_camera.scaling = CameraScaling::FitToView {
+</span><span class="boring">        graphics.state.color = [0.25, 0.25, 0.25, 1.0];
+</span><span class="boring">        graphics.state.main_camera.screen_alignment = 0.5.into();
+</span><span class="boring">        graphics.state.main_camera.scaling = CameraScaling::FitToView {
 </span><span class="boring">            size: 1000.0.into(),
 </span><span class="boring">            inside: false,
 </span><span class="boring">        };
@@ -4195,9 +4195,9 @@ their assets.</p>
 </span><span class="boring">impl AppState&lt;Vertex&gt; for State {
 </span><span class="boring">    fn on_init(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;, _: &amp;mut AppControl) {
 </span><span class="boring">        // Setup scene camera.
-</span><span class="boring">        graphics.color = [0.25, 0.25, 0.25, 1.0];
-</span><span class="boring">        graphics.main_camera.screen_alignment = 0.5.into();
-</span><span class="boring">        graphics.main_camera.scaling = CameraScaling::FitToView {
+</span><span class="boring">        graphics.state.color = [0.25, 0.25, 0.25, 1.0];
+</span><span class="boring">        graphics.state.main_camera.screen_alignment = 0.5.into();
+</span><span class="boring">        graphics.state.main_camera.scaling = CameraScaling::FitToView {
 </span><span class="boring">            size: 1000.0.into(),
 </span><span class="boring">            inside: false,
 </span><span class="boring">        };
@@ -4491,9 +4491,9 @@ texture dimensions.</p>
 </span><span class="boring">impl AppState&lt;Vertex&gt; for State {
 </span><span class="boring">    fn on_init(&amp;mut self, graphics: &amp;mut Graphics&lt;Vertex&gt;, _: &amp;mut AppControl) {
 </span><span class="boring">        // Setup scene camera.
-</span><span class="boring">        graphics.color = [0.25, 0.25, 0.25, 1.0];
-</span><span class="boring">        graphics.main_camera.screen_alignment = 0.5.into();
-</span><span class="boring">        graphics.main_camera.scaling = CameraScaling::FitToView {
+</span><span class="boring">        graphics.state.color = [0.25, 0.25, 0.25, 1.0];
+</span><span class="boring">        graphics.state.main_camera.screen_alignment = 0.5.into();
+</span><span class="boring">        graphics.state.main_camera.scaling = CameraScaling::FitToView {
 </span><span class="boring">            size: 1000.0.into(),
 </span><span class="boring">            inside: false,
 </span><span class="boring">        };
