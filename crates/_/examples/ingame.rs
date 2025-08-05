@@ -87,9 +87,9 @@ impl Default for State {
 impl AppState<Vertex> for State {
     fn on_init(&mut self, graphics: &mut Graphics<Vertex>, _: &mut AppControl) {
         // Setup scene camera.
-        graphics.color = [0.25, 0.25, 0.25, 1.0];
-        graphics.main_camera.screen_alignment = 0.5.into();
-        graphics.main_camera.scaling = CameraScaling::FitToView {
+        graphics.state.color = [0.25, 0.25, 0.25, 1.0];
+        graphics.state.main_camera.screen_alignment = 0.5.into();
+        graphics.state.main_camera.scaling = CameraScaling::FitToView {
             size: 1000.0.into(),
             inside: false,
         };

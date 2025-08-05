@@ -1,6 +1,6 @@
 [package]
 name = "keket-graph-derive"
-version = "0.15.2"
+version = "0.15.3"
 edition = "2024"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 description = "Asset graph derive macros module for Keket toolkit"
