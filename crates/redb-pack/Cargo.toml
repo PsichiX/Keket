@@ -5,4 +5,4 @@ edition = "2024"
 publish = false
 
 [dependencies]
-redb = "2.4"
+redb = "3.0"

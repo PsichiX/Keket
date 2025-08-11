@@ -1,6 +1,6 @@
 [package]
 name = "keket-redb"
-version = "0.15.3"
+version = "0.15.4"
 edition = "2024"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 description = "REDB asset fetch for Keket toolkit"
@@ -12,7 +12,7 @@ readme = "../../README.md"
 
 [dependencies]
 keket = { version = "0.15", path = "../_" }
-redb = "2.4"
+redb = "3.0"
 
 [dev-dependencies]
 serde_json = "1"

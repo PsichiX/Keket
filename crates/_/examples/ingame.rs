@@ -122,15 +122,14 @@ impl AppState<Vertex> for State {
         self.context.push_blending(GlowBlending::Alpha);
 
         // Draw sprite only if texture asset is loaded.
-        if let Ok(texture) = self.ferris_texture.resolve(&self.assets) {
-            if let Some(texture) = texture
+        if let Ok(texture) = self.ferris_texture.resolve(&self.assets)
+            && let Some(texture) = texture
                 .access_checked::<&AsyncHandle<Texture>>()
                 .map(|handle| handle.to_ref())
-            {
-                Sprite::single(SpriteTexture::new("u_image".into(), texture))
-                    .pivot(0.5.into())
-                    .draw(&mut self.context, graphics);
-            }
+        {
+            Sprite::single(SpriteTexture::new("u_image".into(), texture))
+                .pivot(0.5.into())
+                .draw(&mut self.context, graphics);
         }
 
         // Commit drawn objects.

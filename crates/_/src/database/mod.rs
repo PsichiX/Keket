@@ -329,17 +329,16 @@ impl AssetDatabase {
                     return Err(format!("Missing protocol for asset: `{path}`").into());
                 };
                 let status = protocol.process_asset_bytes(handle, &mut self.storage);
-                if status.is_err() {
-                    if let Ok(mut bindings) = self
+                if status.is_err()
+                    && let Ok(mut bindings) = self
                         .storage
                         .component_mut::<true, AssetEventBindings>(handle.entity())
-                    {
-                        bindings.dispatch(AssetEvent {
-                            handle,
-                            kind: AssetEventKind::BytesProcessingFailed,
-                            path: path.clone(),
-                        })?;
-                    }
+                {
+                    bindings.dispatch(AssetEvent {
+                        handle,
+                        kind: AssetEventKind::BytesProcessingFailed,
+                        path: path.clone(),
+                    })?;
                 }
                 if !self.allow_asset_progression_failures {
                     status?;
@@ -743,20 +742,19 @@ impl AssetDatabase {
                 .collect::<Vec<_>>();
             for handle in to_process {
                 let status = protocol.process_asset_bytes(handle, &mut self.storage);
-                if status.is_err() {
-                    if let Ok(mut bindings) = self
+                if status.is_err()
+                    && let Ok(mut bindings) = self
                         .storage
                         .component_mut::<true, AssetEventBindings>(handle.entity())
-                    {
-                        bindings.dispatch(AssetEvent {
-                            handle,
-                            kind: AssetEventKind::BytesProcessingFailed,
-                            path: self
-                                .storage
-                                .component::<true, AssetPathStatic>(handle.entity())?
-                                .clone(),
-                        })?;
-                    }
+                {
+                    bindings.dispatch(AssetEvent {
+                        handle,
+                        kind: AssetEventKind::BytesProcessingFailed,
+                        path: self
+                            .storage
+                            .component::<true, AssetPathStatic>(handle.entity())?
+                            .clone(),
+                    })?;
                 }
                 if !self.allow_asset_progression_failures {
                     status?;

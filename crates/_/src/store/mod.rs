@@ -70,16 +70,15 @@ impl AssetStoreEngine {
         storage: &mut World,
     ) -> Result<(), Box<dyn Error>> {
         let result = self.store.save_bytes(path.clone(), bytes);
-        if result.is_err() {
-            if let Ok(mut bindings) =
+        if result.is_err()
+            && let Ok(mut bindings) =
                 storage.component_mut::<true, AssetEventBindings>(handle.entity())
-            {
-                bindings.dispatch(AssetEvent {
-                    handle,
-                    kind: AssetEventKind::BytesStoringFailed,
-                    path: path.into_static(),
-                })?;
-            }
+        {
+            bindings.dispatch(AssetEvent {
+                handle,
+                kind: AssetEventKind::BytesStoringFailed,
+                path: path.into_static(),
+            })?;
         }
         storage.insert(handle.entity(), result?)?;
         Ok(())

@@ -155,7 +155,7 @@ async fn client_connected(ws: WebSocket, id: usize, receiver: Receiver<String>) 
         }
         tokio::time::sleep(Duration::from_secs(1)).await;
         if client_tx
-            .send(Message::ping(id.to_be_bytes()))
+            .send(Message::ping(id.to_be_bytes().to_vec()))
             .await
             .is_err()
         {

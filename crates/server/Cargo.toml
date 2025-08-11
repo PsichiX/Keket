@@ -1,6 +1,6 @@
 [package]
 name = "keket-server"
-version = "0.15.3"
+version = "0.15.4"
 edition = "2024"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 description = "Asset server for Keket toolkit"
@@ -11,7 +11,7 @@ documentation = "https://docs.rs/keket-server"
 readme = "../../README.md"
 
 [dependencies]
-warp = "0.3"
+warp = { version = "0.4", features = ["websocket", "server"] }
 tokio = { version = "1", features = ["full"] }
 tokio-util = "0.7"
 bytes = "1"

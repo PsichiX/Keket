@@ -43,7 +43,7 @@ impl AssetHandle {
     ///
     /// # Returns
     /// An `AssetInspector` instance for inspecting the asset.
-    pub fn inspect(self, database: &AssetDatabase) -> AssetInspector {
+    pub fn inspect(self, database: &'_ AssetDatabase) -> AssetInspector<'_> {
         AssetInspector::new(database, self)
     }
 
@@ -56,8 +56,8 @@ impl AssetHandle {
     /// A `Result` containing the asset path component reference or an error.
     pub fn path(
         self,
-        database: &AssetDatabase,
-    ) -> Result<ComponentRef<true, AssetPathStatic>, Box<dyn Error>> {
+        database: &'_ AssetDatabase,
+    ) -> Result<ComponentRef<'_, true, AssetPathStatic>, Box<dyn Error>> {
         Ok(database
             .storage
             .component::<true, AssetPathStatic>(self.entity)?)
@@ -219,8 +219,8 @@ impl AssetHandle {
     /// A mutable reference to the component.
     pub fn ensure<T: Component + Default>(
         self,
-        database: &mut AssetDatabase,
-    ) -> Result<ComponentRefMut<true, T>, Box<dyn Error>> {
+        database: &'_ mut AssetDatabase,
+    ) -> Result<ComponentRefMut<'_, true, T>, Box<dyn Error>> {
         if !database.storage.has_entity_component::<T>(self.entity) {
             database.storage.insert(self.entity, (T::default(),))?;
         }

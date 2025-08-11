@@ -1,5 +1,5 @@
 use keket::{database::path::AssetPath, fetch::container::ContainerPartialFetch};
-use redb::{Database, TableDefinition};
+use redb::{Database, ReadableDatabase, TableDefinition};
 use std::error::Error;
 
 pub mod third_party {
