@@ -295,15 +295,14 @@ use std::{
 </span><span class="boring">        self.context.push_blending(GlowBlending::Alpha);
 </span><span class="boring">
 </span><span class="boring">        // Draw sprite only if texture asset is loaded.
-</span><span class="boring">        if let Ok(texture) = self.ferris_texture.resolve(&amp;self.assets) {
-</span><span class="boring">            if let Some(texture) = texture
+</span><span class="boring">        if let Ok(texture) = self.ferris_texture.resolve(&amp;self.assets)
+</span><span class="boring">            &amp;&amp; let Some(texture) = texture
 </span><span class="boring">                .access_checked::&lt;&amp;AsyncHandle&lt;Texture&gt;&gt;()
 </span><span class="boring">                .map(|handle| handle.to_ref())
-</span><span class="boring">            {
-</span><span class="boring">                Sprite::single(SpriteTexture::new("u_image".into(), texture))
-</span><span class="boring">                    .pivot(0.5.into())
-</span><span class="boring">                    .draw(&amp;mut self.context, graphics);
-</span><span class="boring">            }
+</span><span class="boring">        {
+</span><span class="boring">            Sprite::single(SpriteTexture::new("u_image".into(), texture))
+</span><span class="boring">                .pivot(0.5.into())
+</span><span class="boring">                .draw(&amp;mut self.context, graphics);
 </span><span class="boring">        }
 </span><span class="boring">
 </span><span class="boring">        // Commit drawn objects.
@@ -590,15 +589,14 @@ use std::{
 </span><span class="boring">        self.context.push_blending(GlowBlending::Alpha);
 </span><span class="boring">
 </span><span class="boring">        // Draw sprite only if texture asset is loaded.
-</span><span class="boring">        if let Ok(texture) = self.ferris_texture.resolve(&amp;self.assets) {
-</span><span class="boring">            if let Some(texture) = texture
+</span><span class="boring">        if let Ok(texture) = self.ferris_texture.resolve(&amp;self.assets)
+</span><span class="boring">            &amp;&amp; let Some(texture) = texture
 </span><span class="boring">                .access_checked::&lt;&amp;AsyncHandle&lt;Texture&gt;&gt;()
 </span><span class="boring">                .map(|handle| handle.to_ref())
-</span><span class="boring">            {
-</span><span class="boring">                Sprite::single(SpriteTexture::new("u_image".into(), texture))
-</span><span class="boring">                    .pivot(0.5.into())
-</span><span class="boring">                    .draw(&amp;mut self.context, graphics);
-</span><span class="boring">            }
+</span><span class="boring">        {
+</span><span class="boring">            Sprite::single(SpriteTexture::new("u_image".into(), texture))
+</span><span class="boring">                .pivot(0.5.into())
+</span><span class="boring">                .draw(&amp;mut self.context, graphics);
 </span><span class="boring">        }
 </span><span class="boring">
 </span><span class="boring">        // Commit drawn objects.
@@ -885,15 +883,14 @@ fixed time step mechanism and referencing assets.</p>
 </span><span class="boring">        self.context.push_blending(GlowBlending::Alpha);
 </span><span class="boring">
 </span><span class="boring">        // Draw sprite only if texture asset is loaded.
-</span><span class="boring">        if let Ok(texture) = self.ferris_texture.resolve(&amp;self.assets) {
-</span><span class="boring">            if let Some(texture) = texture
+</span><span class="boring">        if let Ok(texture) = self.ferris_texture.resolve(&amp;self.assets)
+</span><span class="boring">            &amp;&amp; let Some(texture) = texture
 </span><span class="boring">                .access_checked::&lt;&amp;AsyncHandle&lt;Texture&gt;&gt;()
 </span><span class="boring">                .map(|handle| handle.to_ref())
-</span><span class="boring">            {
-</span><span class="boring">                Sprite::single(SpriteTexture::new("u_image".into(), texture))
-</span><span class="boring">                    .pivot(0.5.into())
-</span><span class="boring">                    .draw(&amp;mut self.context, graphics);
-</span><span class="boring">            }
+</span><span class="boring">        {
+</span><span class="boring">            Sprite::single(SpriteTexture::new("u_image".into(), texture))
+</span><span class="boring">                .pivot(0.5.into())
+</span><span class="boring">                .draw(&amp;mut self.context, graphics);
 </span><span class="boring">        }
 </span><span class="boring">
 </span><span class="boring">        // Commit drawn objects.
@@ -1180,15 +1177,14 @@ fixed time step mechanism and referencing assets.</p>
 </span><span class="boring">        self.context.push_blending(GlowBlending::Alpha);
 </span><span class="boring">
 </span><span class="boring">        // Draw sprite only if texture asset is loaded.
-</span><span class="boring">        if let Ok(texture) = self.ferris_texture.resolve(&amp;self.assets) {
-</span><span class="boring">            if let Some(texture) = texture
+</span><span class="boring">        if let Ok(texture) = self.ferris_texture.resolve(&amp;self.assets)
+</span><span class="boring">            &amp;&amp; let Some(texture) = texture
 </span><span class="boring">                .access_checked::&lt;&amp;AsyncHandle&lt;Texture&gt;&gt;()
 </span><span class="boring">                .map(|handle| handle.to_ref())
-</span><span class="boring">            {
-</span><span class="boring">                Sprite::single(SpriteTexture::new("u_image".into(), texture))
-</span><span class="boring">                    .pivot(0.5.into())
-</span><span class="boring">                    .draw(&amp;mut self.context, graphics);
-</span><span class="boring">            }
+</span><span class="boring">        {
+</span><span class="boring">            Sprite::single(SpriteTexture::new("u_image".into(), texture))
+</span><span class="boring">                .pivot(0.5.into())
+</span><span class="boring">                .draw(&amp;mut self.context, graphics);
 </span><span class="boring">        }
 </span><span class="boring">
 </span><span class="boring">        // Commit drawn objects.
@@ -1479,15 +1475,14 @@ texture assets are ready.</p>
         self.context.push_blending(GlowBlending::Alpha);
 
         // Draw sprite only if texture asset is loaded.
-        if let Ok(texture) = self.ferris_texture.resolve(&amp;self.assets) {
-            if let Some(texture) = texture
+        if let Ok(texture) = self.ferris_texture.resolve(&amp;self.assets)
+            &amp;&amp; let Some(texture) = texture
                 .access_checked::&lt;&amp;AsyncHandle&lt;Texture&gt;&gt;()
                 .map(|handle| handle.to_ref())
-            {
-                Sprite::single(SpriteTexture::new("u_image".into(), texture))
-                    .pivot(0.5.into())
-                    .draw(&amp;mut self.context, graphics);
-            }
+        {
+            Sprite::single(SpriteTexture::new("u_image".into(), texture))
+                .pivot(0.5.into())
+                .draw(&amp;mut self.context, graphics);
         }
 
         // Commit drawn objects.
@@ -1776,15 +1771,14 @@ their assets.</p>
 </span><span class="boring">        self.context.push_blending(GlowBlending::Alpha);
 </span><span class="boring">
 </span><span class="boring">        // Draw sprite only if texture asset is loaded.
-</span><span class="boring">        if let Ok(texture) = self.ferris_texture.resolve(&amp;self.assets) {
-</span><span class="boring">            if let Some(texture) = texture
+</span><span class="boring">        if let Ok(texture) = self.ferris_texture.resolve(&amp;self.assets)
+</span><span class="boring">            &amp;&amp; let Some(texture) = texture
 </span><span class="boring">                .access_checked::&lt;&amp;AsyncHandle&lt;Texture&gt;&gt;()
 </span><span class="boring">                .map(|handle| handle.to_ref())
-</span><span class="boring">            {
-</span><span class="boring">                Sprite::single(SpriteTexture::new("u_image".into(), texture))
-</span><span class="boring">                    .pivot(0.5.into())
-</span><span class="boring">                    .draw(&amp;mut self.context, graphics);
-</span><span class="boring">            }
+</span><span class="boring">        {
+</span><span class="boring">            Sprite::single(SpriteTexture::new("u_image".into(), texture))
+</span><span class="boring">                .pivot(0.5.into())
+</span><span class="boring">                .draw(&amp;mut self.context, graphics);
 </span><span class="boring">        }
 </span><span class="boring">
 </span><span class="boring">        // Commit drawn objects.
@@ -2070,15 +2064,14 @@ their assets.</p>
 </span><span class="boring">        self.context.push_blending(GlowBlending::Alpha);
 </span><span class="boring">
 </span><span class="boring">        // Draw sprite only if texture asset is loaded.
-</span><span class="boring">        if let Ok(texture) = self.ferris_texture.resolve(&amp;self.assets) {
-</span><span class="boring">            if let Some(texture) = texture
+</span><span class="boring">        if let Ok(texture) = self.ferris_texture.resolve(&amp;self.assets)
+</span><span class="boring">            &amp;&amp; let Some(texture) = texture
 </span><span class="boring">                .access_checked::&lt;&amp;AsyncHandle&lt;Texture&gt;&gt;()
 </span><span class="boring">                .map(|handle| handle.to_ref())
-</span><span class="boring">            {
-</span><span class="boring">                Sprite::single(SpriteTexture::new("u_image".into(), texture))
-</span><span class="boring">                    .pivot(0.5.into())
-</span><span class="boring">                    .draw(&amp;mut self.context, graphics);
-</span><span class="boring">            }
+</span><span class="boring">        {
+</span><span class="boring">            Sprite::single(SpriteTexture::new("u_image".into(), texture))
+</span><span class="boring">                .pivot(0.5.into())
+</span><span class="boring">                .draw(&amp;mut self.context, graphics);
 </span><span class="boring">        }
 </span><span class="boring">
 </span><span class="boring">        // Commit drawn objects.
@@ -2366,15 +2359,14 @@ texture dimensions.</p>
 </span><span class="boring">        self.context.push_blending(GlowBlending::Alpha);
 </span><span class="boring">
 </span><span class="boring">        // Draw sprite only if texture asset is loaded.
-</span><span class="boring">        if let Ok(texture) = self.ferris_texture.resolve(&amp;self.assets) {
-</span><span class="boring">            if let Some(texture) = texture
+</span><span class="boring">        if let Ok(texture) = self.ferris_texture.resolve(&amp;self.assets)
+</span><span class="boring">            &amp;&amp; let Some(texture) = texture
 </span><span class="boring">                .access_checked::&lt;&amp;AsyncHandle&lt;Texture&gt;&gt;()
 </span><span class="boring">                .map(|handle| handle.to_ref())
-</span><span class="boring">            {
-</span><span class="boring">                Sprite::single(SpriteTexture::new("u_image".into(), texture))
-</span><span class="boring">                    .pivot(0.5.into())
-</span><span class="boring">                    .draw(&amp;mut self.context, graphics);
-</span><span class="boring">            }
+</span><span class="boring">        {
+</span><span class="boring">            Sprite::single(SpriteTexture::new("u_image".into(), texture))
+</span><span class="boring">                .pivot(0.5.into())
+</span><span class="boring">                .draw(&amp;mut self.context, graphics);
 </span><span class="boring">        }
 </span><span class="boring">
 </span><span class="boring">        // Commit drawn objects.
