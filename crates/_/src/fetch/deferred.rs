@@ -4,7 +4,10 @@ use crate::{
 };
 use anput::{
     bundle::DynamicBundle,
-    third_party::anput_jobs::{JobHandle, JobLocation, JobPriority, Jobs},
+    third_party::{
+        anput_jobs::{JobHandle, JobLocation, JobPriority, Jobs},
+        intuicio_data::managed::ManagedValue,
+    },
     world::World,
 };
 use std::{
@@ -21,7 +24,7 @@ use std::{
 /// being processed only when the task has finished.
 pub struct DeferredAssetFetch<Fetch: AssetFetch> {
     fetch: Arc<RwLock<Fetch>>,
-    jobs: Jobs,
+    jobs: ManagedValue<Jobs>,
     #[allow(clippy::type_complexity)]
     job_handles: RwLock<HashMap<AssetPathStatic, JobHandle<Result<DynamicBundle, String>>>>,
 }
@@ -37,9 +40,21 @@ impl<Fetch: AssetFetch> DeferredAssetFetch<Fetch> {
     pub fn new(fetch: Fetch) -> Self {
         Self {
             fetch: Arc::new(RwLock::new(fetch)),
-            jobs: Default::default(),
+            jobs: ManagedValue::Owned(Default::default()),
             job_handles: Default::default(),
         }
+    }
+
+    /// Sets the jobs for the deferred asset fetcher.
+    ///
+    /// # Arguments
+    /// - `jobs`: The jobs runner to be managed by the deferred asset fetcher.
+    ///
+    /// # Returns
+    /// - A new `DeferredAssetFetch` instance with the updated jobs.
+    pub fn jobs(mut self, jobs: impl Into<ManagedValue<Jobs>>) -> Self {
+        self.jobs = jobs.into();
+        self
     }
 }
 
@@ -59,7 +74,10 @@ impl<Fetch: AssetFetch> AssetFetch for DeferredAssetFetch<Fetch> {
                 )
             })
         };
-        let handle = self.jobs.spawn_on(
+        let jobs = self.jobs.read().ok_or_else(|| {
+            format!("Failed to get read access to jobs runner in async fetch for asset: `{path2}`")
+        })?;
+        let handle = jobs.spawn_on(
             JobLocation::other_than_current_thread(),
             JobPriority::Normal,
             job,
@@ -74,7 +92,11 @@ impl<Fetch: AssetFetch> AssetFetch for DeferredAssetFetch<Fetch> {
     }
 
     fn maintain(&mut self, storage: &mut World) -> Result<(), Box<dyn Error>> {
-        self.jobs.run_local();
+        if let ManagedValue::Owned(jobs) = &self.jobs {
+            jobs.read()
+                .ok_or("Failed to get read access to jobs runner in deferred fetch maintainance.")?
+                .run_local();
+        }
 
         self.fetch
             .write()
