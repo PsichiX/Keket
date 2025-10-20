@@ -3,13 +3,9 @@ use crate::{
     fetch::{AssetAwaitsAsyncFetch, AssetFetch},
 };
 use anput::{
-    bundle::DynamicBundle,
-    third_party::{
-        anput_jobs::{JobHandle, JobLocation, JobPriority, Jobs},
-        intuicio_data::managed::ManagedValue,
-    },
-    world::World,
+    bundle::DynamicBundle, third_party::intuicio_data::managed::ManagedValue, world::World,
 };
+use moirai::{JobHandle, JobLocation, JobPriority, Jobs};
 use std::{
     collections::HashMap,
     error::Error,
