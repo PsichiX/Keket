@@ -1,6 +1,6 @@
 [package]
 name = "keket-graph"
-version = "0.15.8"
+version = "0.15.9"
 edition = "2024"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 description = "Asset graph module for Keket toolkit"
