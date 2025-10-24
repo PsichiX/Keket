@@ -38,9 +38,10 @@ impl AssetProtocol for GroupAssetProtocol {
         storage.remove::<(AssetBytesAreReadyToProcess,)>(handle.entity())?;
         for line in std::str::from_utf8(&bytes)?
             .lines()
-            .filter(|line| !line.trim().is_empty() || line.trim().starts_with('#'))
+            .map(|line| line.trim())
+            .filter(|line| !line.is_empty() || !line.starts_with('#') || !line.starts_with(';'))
         {
-            let path = AssetPath::new(line.trim().to_owned()).into_static();
+            let path = AssetPath::new(line.to_owned()).into_static();
             let entity = if let Some(entity) = storage.find_by::<true, _>(&path) {
                 entity
             } else {
