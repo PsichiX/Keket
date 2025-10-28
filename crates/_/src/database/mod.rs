@@ -1,17 +1,17 @@
 pub mod events;
 pub mod handle;
 pub mod inspector;
-pub mod loading;
 pub mod path;
 pub mod reference;
 pub mod tags;
+pub mod tracker;
 
 use crate::{
     database::{
         events::{AssetEvent, AssetEventBindings, AssetEventKind, AssetEventListener},
         handle::{AssetDependency, AssetHandle},
-        loading::AssetsLoadingStatus,
         path::{AssetPath, AssetPathStatic},
+        tracker::AssetsStatus,
     },
     fetch::{
         AssetAwaitsAsyncFetch, AssetAwaitsResolution, AssetBytesAreReadyToProcess, AssetFetch,
@@ -529,7 +529,7 @@ impl AssetDatabase {
     ///
     /// # Arguments
     /// - `out_status`: A mutable reference to output `AssetsLoadingStatus`.
-    pub fn report_loading_status(&self, out_status: &mut AssetsLoadingStatus) {
+    pub fn report_loading_status(&self, out_status: &mut AssetsStatus) {
         out_status.clear();
         for (
             handle,

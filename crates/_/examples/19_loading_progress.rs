@@ -1,7 +1,7 @@
 use keket::{
     database::{
         AssetDatabase,
-        loading::{AssetsLoadingStatus, AssetsLoadingTracker},
+        tracker::{AssetsStatus, AssetsTracker},
     },
     fetch::{deferred::DeferredAssetFetch, file::FileAssetFetch},
     protocol::bytes::BytesAssetProtocol,
@@ -19,7 +19,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Create tracker to track specific assets loading status.
     // We schedule them to load later at first database maintainance
     // to not load them too quickly.
-    let tracker = AssetsLoadingTracker::default().with_many([
+    let tracker = AssetsTracker::default().with_many([
         database.schedule("bytes://dlc.zip")?,
         database.schedule("bytes://ferris.png")?,
         database.schedule("bytes://main.zip")?,
@@ -30,7 +30,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Its structure tells level of detail for particular categories. Each
     // category can be either amount or list of assets. Here we use amount
     // for every category, because we track just numeric progress.
-    let mut status = AssetsLoadingStatus::amount();
+    let mut status = AssetsStatus::amount();
 
     // Track progress as long as database is busy.
     while database.is_busy() {

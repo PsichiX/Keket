@@ -2,32 +2,32 @@ use crate::database::{AssetDatabase, handle::AssetHandle, path::AssetPathStatic}
 use anput::component::Component;
 use std::{collections::HashSet, error::Error};
 
-/// A struct to track the loading status of assets in the database.
+/// A struct to track status of assets in the database.
 #[derive(Debug, Default, Clone)]
-pub struct AssetsLoadingTracker {
+pub struct AssetsTracker {
     handles: HashSet<AssetHandle>,
 }
 
-impl AssetsLoadingTracker {
-    /// Creates a modified `AssetsLoadingTracker` instance.
+impl AssetsTracker {
+    /// Creates a modified `AssetsTracker` instance.
     ///
     /// # Arguments
     /// - `handle`: An `AssetHandle` to track.
     ///
     /// # Returns
-    /// A modified `AssetsLoadingTracker` instance with the specified handle tracked.
+    /// A modified `AssetsTracker` instance with the specified handle tracked.
     pub fn with(mut self, handle: AssetHandle) -> Self {
         self.track(handle);
         self
     }
 
-    /// Creates a modified `AssetsLoadingTracker` instance with multiple handles.
+    /// Creates a modified `AssetsTracker` instance with multiple handles.
     ///
     /// # Arguments
     /// - `handles`: An iterable collection of `AssetHandle` to track.
     ///
     /// # Returns
-    /// A modified `AssetsLoadingTracker` instance with the specified handles tracked.
+    /// A modified `AssetsTracker` instance with the specified handles tracked.
     pub fn with_many(mut self, handles: impl IntoIterator<Item = AssetHandle>) -> Self {
         self.track_many(handles);
         self
@@ -82,15 +82,21 @@ impl AssetsLoadingTracker {
         self.handles.iter().copied()
     }
 
-    /// Reports the status of assets in the database.
+    /// Reports the status of tracked assets in the database.
     ///
     /// # Arguments
-    /// - `out_status`: A mutable reference to output `AssetsLoadingStatus`.
-    pub fn report(&self, database: &AssetDatabase, out_status: &mut AssetsLoadingStatus) {
+    /// - `out_status`: A mutable reference to output `AssetsStatus`.
+    pub fn report(&self, database: &AssetDatabase, out_status: &mut AssetsStatus) {
         out_status.clear();
         for handle in &self.handles {
             if handle.does_exists(database) {
-                if handle.awaits_resolution(database) {
+                if handle.awaits_storing(database) {
+                    out_status.awaiting_storing.add(*handle);
+                } else if handle.bytes_are_ready_to_store(database) {
+                    out_status.with_bytes_ready_to_store.add(*handle);
+                } else if handle.awaits_async_store(database) {
+                    out_status.awaiting_async_store.add(*handle);
+                } else if handle.awaits_resolution(database) {
                     out_status.awaiting_resolution.add(*handle);
                 } else if handle.bytes_are_ready_to_process(database) {
                     out_status.with_bytes_ready_to_process.add(*handle);
@@ -104,93 +110,102 @@ impl AssetsLoadingTracker {
     }
 }
 
-/// A struct to represent the loading status of assets category.
+/// A struct to represent status of assets category.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum AssetsLoadingStatusCategory {
+pub enum AssetsStatusCategory {
     Amount(usize),
     List(Vec<AssetHandle>),
 }
 
-impl Default for AssetsLoadingStatusCategory {
+impl Default for AssetsStatusCategory {
     fn default() -> Self {
-        AssetsLoadingStatusCategory::amount()
+        AssetsStatusCategory::amount()
     }
 }
 
-impl AssetsLoadingStatusCategory {
-    /// Creates an empty `AssetsLoadingStatusCategory` as amount variant.
+impl AssetsStatusCategory {
+    /// Creates an empty `AssetsStatusCategory` as amount variant.
     pub fn amount() -> Self {
-        AssetsLoadingStatusCategory::Amount(0)
+        AssetsStatusCategory::Amount(0)
     }
 
-    /// Creates an empty `AssetsLoadingStatusCategory` as list variant.
+    /// Creates an empty `AssetsStatusCategory` as list variant.
     pub fn list() -> Self {
-        AssetsLoadingStatusCategory::List(Default::default())
+        AssetsStatusCategory::List(Default::default())
     }
 
     /// Tells number of assets in the category.
     pub fn len(&self) -> usize {
         match self {
-            AssetsLoadingStatusCategory::Amount(len) => *len,
-            AssetsLoadingStatusCategory::List(list) => list.len(),
+            AssetsStatusCategory::Amount(len) => *len,
+            AssetsStatusCategory::List(list) => list.len(),
         }
     }
 
     /// Tells if the category is empty.
     pub fn is_empty(&self) -> bool {
         match self {
-            AssetsLoadingStatusCategory::Amount(len) => *len == 0,
-            AssetsLoadingStatusCategory::List(list) => list.is_empty(),
+            AssetsStatusCategory::Amount(len) => *len == 0,
+            AssetsStatusCategory::List(list) => list.is_empty(),
         }
     }
 
     /// Clears the category.
     pub fn clear(&mut self) {
         match self {
-            AssetsLoadingStatusCategory::Amount(len) => *len = 0,
-            AssetsLoadingStatusCategory::List(list) => list.clear(),
+            AssetsStatusCategory::Amount(len) => *len = 0,
+            AssetsStatusCategory::List(list) => list.clear(),
         }
     }
 
     /// Adds an asset handle to the category.
     pub fn add(&mut self, handle: AssetHandle) {
         match self {
-            AssetsLoadingStatusCategory::Amount(len) => *len += 1,
-            AssetsLoadingStatusCategory::List(list) => list.push(handle),
+            AssetsStatusCategory::Amount(len) => *len += 1,
+            AssetsStatusCategory::List(list) => list.push(handle),
         }
     }
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct AssetsLoadingStatus {
-    pub awaiting_resolution: AssetsLoadingStatusCategory,
-    pub with_bytes_ready_to_process: AssetsLoadingStatusCategory,
-    pub awaiting_async_fetch: AssetsLoadingStatusCategory,
-    pub ready_to_use: AssetsLoadingStatusCategory,
+pub struct AssetsStatus {
+    pub awaiting_storing: AssetsStatusCategory,
+    pub with_bytes_ready_to_store: AssetsStatusCategory,
+    pub awaiting_async_store: AssetsStatusCategory,
+    pub awaiting_resolution: AssetsStatusCategory,
+    pub with_bytes_ready_to_process: AssetsStatusCategory,
+    pub awaiting_async_fetch: AssetsStatusCategory,
+    pub ready_to_use: AssetsStatusCategory,
 }
 
-impl AssetsLoadingStatus {
-    /// Creates a new `AssetsLoadingStatus` instance with all categories as amount variants.
+impl AssetsStatus {
+    /// Creates a new `AssetsStatus` instance with all categories as amount variants.
     pub fn amount() -> Self {
-        AssetsLoadingStatus {
-            awaiting_resolution: AssetsLoadingStatusCategory::amount(),
-            with_bytes_ready_to_process: AssetsLoadingStatusCategory::amount(),
-            awaiting_async_fetch: AssetsLoadingStatusCategory::amount(),
-            ready_to_use: AssetsLoadingStatusCategory::amount(),
+        AssetsStatus {
+            awaiting_storing: AssetsStatusCategory::amount(),
+            with_bytes_ready_to_store: AssetsStatusCategory::amount(),
+            awaiting_async_store: AssetsStatusCategory::amount(),
+            awaiting_resolution: AssetsStatusCategory::amount(),
+            with_bytes_ready_to_process: AssetsStatusCategory::amount(),
+            awaiting_async_fetch: AssetsStatusCategory::amount(),
+            ready_to_use: AssetsStatusCategory::amount(),
         }
     }
 
-    /// Creates a new `AssetsLoadingStatus` instance with all categories as list variants.
+    /// Creates a new `AssetsStatus` instance with all categories as list variants.
     pub fn list() -> Self {
-        AssetsLoadingStatus {
-            awaiting_resolution: AssetsLoadingStatusCategory::list(),
-            with_bytes_ready_to_process: AssetsLoadingStatusCategory::list(),
-            awaiting_async_fetch: AssetsLoadingStatusCategory::list(),
-            ready_to_use: AssetsLoadingStatusCategory::list(),
+        AssetsStatus {
+            awaiting_storing: AssetsStatusCategory::list(),
+            with_bytes_ready_to_store: AssetsStatusCategory::list(),
+            awaiting_async_store: AssetsStatusCategory::list(),
+            awaiting_resolution: AssetsStatusCategory::list(),
+            with_bytes_ready_to_process: AssetsStatusCategory::list(),
+            awaiting_async_fetch: AssetsStatusCategory::list(),
+            ready_to_use: AssetsStatusCategory::list(),
         }
     }
 
-    /// Clears all categories in the loading status.
+    /// Clears all categories in status.
     pub fn clear(&mut self) {
         self.awaiting_resolution.clear();
         self.with_bytes_ready_to_process.clear();
@@ -198,12 +213,15 @@ impl AssetsLoadingStatus {
         self.ready_to_use.clear();
     }
 
-    /// Returns the progress of the loading status.
+    /// Returns the progress of status.
     ///
     /// # Returns
-    /// An `AssetsLoadingProgress` struct representing the progress of the loading status.
-    pub fn progress(&self) -> AssetsLoadingProgress {
-        AssetsLoadingProgress {
+    /// An `AssetsProgress` struct representing the progress of status.
+    pub fn progress(&self) -> AssetsProgress {
+        AssetsProgress {
+            awaiting_storing: self.awaiting_storing.len(),
+            with_bytes_ready_to_store: self.with_bytes_ready_to_store.len(),
+            awaiting_async_store: self.awaiting_async_store.len(),
             awaiting_resolution: self.awaiting_resolution.len(),
             with_bytes_ready_to_process: self.with_bytes_ready_to_process.len(),
             awaiting_async_fetch: self.awaiting_async_fetch.len(),
@@ -212,37 +230,72 @@ impl AssetsLoadingStatus {
     }
 }
 
-/// A struct to represent the loading progress of assets.
+/// A struct to represent progress of assets.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AssetsLoadingProgress {
+pub struct AssetsProgress {
+    pub awaiting_storing: usize,
+    pub with_bytes_ready_to_store: usize,
+    pub awaiting_async_store: usize,
     pub awaiting_resolution: usize,
     pub with_bytes_ready_to_process: usize,
     pub awaiting_async_fetch: usize,
     pub ready_to_use: usize,
 }
 
-impl AssetsLoadingProgress {
-    /// Returns the total number of assets in the loading progress.
+impl AssetsProgress {
+    /// Creates a new `AssetsProgress` instance with only storing-related fields.
+    pub fn only_storing(&self) -> Self {
+        AssetsProgress {
+            awaiting_storing: self.awaiting_storing,
+            with_bytes_ready_to_store: self.with_bytes_ready_to_store,
+            awaiting_async_store: self.awaiting_async_store,
+            awaiting_resolution: 0,
+            with_bytes_ready_to_process: 0,
+            awaiting_async_fetch: 0,
+            ready_to_use: 0,
+        }
+    }
+
+    /// Creates a new `AssetsProgress` instance with only fetching-related fields.
+    pub fn only_fetching(&self) -> Self {
+        AssetsProgress {
+            awaiting_storing: 0,
+            with_bytes_ready_to_store: 0,
+            awaiting_async_store: 0,
+            awaiting_resolution: self.awaiting_resolution,
+            with_bytes_ready_to_process: self.with_bytes_ready_to_process,
+            awaiting_async_fetch: self.awaiting_async_fetch,
+            ready_to_use: self.ready_to_use,
+        }
+    }
+
+    /// Returns the total number of assets in progress.
     pub fn total(&self) -> usize {
-        self.awaiting_resolution
+        self.awaiting_storing
+            + self.with_bytes_ready_to_store
+            + self.awaiting_async_store
+            + self.awaiting_resolution
             + self.with_bytes_ready_to_process
             + self.awaiting_async_fetch
             + self.ready_to_use
     }
 
-    /// Tells if the loading progress is complete.
+    /// Tells if progress is complete.
     pub fn is_complete(&self) -> bool {
-        self.awaiting_resolution == 0
+        self.awaiting_storing == 0
+            && self.with_bytes_ready_to_store == 0
+            && self.awaiting_async_store == 0
+            && self.awaiting_resolution == 0
             && self.with_bytes_ready_to_process == 0
             && self.awaiting_async_fetch == 0
     }
 
-    /// Tells if the loading progress is in progress.
+    /// Tells if progress is in progress.
     pub fn is_in_progress(&self) -> bool {
         !self.is_complete()
     }
 
-    /// Returns the factor of the loading progress (0-1).
+    /// Returns the factor of progress (0-1).
     pub fn factor(&self) -> f32 {
         let total = self.total();
         if total == 0 {
