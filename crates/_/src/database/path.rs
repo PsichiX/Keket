@@ -2,6 +2,7 @@ use crate::database::{AssetDatabase, handle::AssetHandle};
 use serde::{Deserialize, Serialize};
 use std::{
     borrow::Cow,
+    cmp::Ordering,
     error::Error,
     fmt::Write,
     hash::{Hash, Hasher},
@@ -170,6 +171,18 @@ impl<'a> AssetPath<'a> {
     /// Searches for the asset in the given `AssetDatabase`.
     pub fn find(&self, database: &AssetDatabase) -> Option<AssetHandle> {
         database.find(self.clone().into_static())
+    }
+}
+
+impl PartialOrd for AssetPath<'_> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for AssetPath<'_> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.content.cmp(&other.content)
     }
 }
 

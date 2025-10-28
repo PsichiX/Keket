@@ -60,7 +60,7 @@ impl<Fetch: AssetFetch> AssetFetch for DeferredAssetFetch<Fetch> {
         let path2 = path.clone();
         let fetch = self.fetch.clone();
         let job = async move {
-            fetch.read().map_err(|error|{
+            fetch.read().map_err(|error| {
                 format!(
                     "Failed to get read access to inner fetch engine in async fetch for asset: `{path}`. Error: {error}"
                 )

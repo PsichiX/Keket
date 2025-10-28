@@ -9,6 +9,7 @@ pub mod future;
 pub mod hotreload;
 pub mod rewrite;
 pub mod router;
+pub mod throttled;
 
 use crate::database::{
     events::{AssetEvent, AssetEventBindings, AssetEventKind},

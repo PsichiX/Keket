@@ -94,6 +94,7 @@ More examples:
 - [Async loading](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/23_future_fetch.rs)
 - [Async saving](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/24_future_store.rs)
 - [Tokio + Axum web server asset provider](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/25_tokio_axum.rs)
+- [Throttled loading](https://github.com/PsichiX/Keket/tree/master/crates/_/examples/26_throttled_fetch.rs)
 - [Asset graph](https://github.com/PsichiX/Keket/tree/master/crates/graph/examples/hello_graph.rs)
 - [HTTP fetch engine](https://github.com/PsichiX/Keket/tree/master/crates/http/examples/hello_http.rs)
 - [REDB fetch engine](https://github.com/PsichiX/Keket/tree/master/crates/redb/examples/hello_redb.rs)
