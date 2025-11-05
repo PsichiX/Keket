@@ -57,13 +57,13 @@ impl<Fetch: AssetFetch> AssetFetch for ThrottledAssetFetch<Fetch> {
             .maintain(storage)?;
 
         let mut number = 0;
-        // TODO: make it work for web wasm!
         let timer = Instant::now();
-        while let Some(path) = self.awaiting.write().map_err(|error| {
+        let mut awaiting = self.awaiting.write().map_err(|error| {
             format!(
                 "Failed to get write access to awaiting fetches during throttled fetch maintainance. Error: {error}")
             }
-        )?.pop_last() {
+        )?;
+        while let Some(path) = awaiting.pop_first() {
             let bundle = self.fetch
                 .write()
                 .map_err(|error| {
@@ -85,7 +85,8 @@ impl<Fetch: AssetFetch> AssetFetch for ThrottledAssetFetch<Fetch> {
                     }
                     return Err(format!(
                         "Throttled fetch execution of `{path}` asset failed with error: {e}"
-                    ).into());
+                    )
+                    .into());
                 }
             }
             number += 1;

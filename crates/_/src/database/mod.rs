@@ -260,7 +260,7 @@ impl AssetDatabase {
         self.storage.find_by::<true, _>(&path).map(AssetHandle::new)
     }
 
-    /// Schedules an asset to be resolved later.
+    /// Schedules an asset to be resolved later if not already existing.
     ///
     /// # Arguments
     /// - `path`: The path of the asset to schedule.
@@ -272,6 +272,9 @@ impl AssetDatabase {
         path: impl Into<AssetPathStatic>,
     ) -> Result<AssetHandle, Box<dyn Error>> {
         let path = path.into();
+        if let Some(entity) = self.storage.find_by::<true, _>(&path) {
+            return Ok(AssetHandle::new(entity));
+        }
         Ok(AssetHandle::new(
             self.storage.spawn((path, AssetAwaitsResolution))?,
         ))
@@ -292,6 +295,7 @@ impl AssetDatabase {
         bundle: impl Bundle,
     ) -> Result<AssetHandle, Box<dyn Error>> {
         let path = path.into();
+        self.unload(path.clone());
         Ok(AssetHandle::new(
             self.storage.spawn(BundleChain((path,), bundle))?,
         ))

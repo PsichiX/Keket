@@ -1,5 +1,9 @@
 use crate::{
-    database::{AssetDatabase, inspector::AssetInspector, path::AssetPathStatic},
+    database::{
+        AssetDatabase,
+        inspector::AssetInspector,
+        path::{AssetPath, AssetPathStatic},
+    },
     fetch::{AssetAwaitsAsyncFetch, AssetAwaitsResolution, AssetBytesAreReadyToProcess},
     store::{AssetAwaitsAsyncStore, AssetAwaitsStoring, AssetBytesAreReadyToStore},
 };
@@ -11,6 +15,7 @@ use anput::{
     database::WorldDestroyIteratorExt,
     entity::Entity,
     query::{Exclude, Include, QueryError, TypedLookupFetch, TypedQueryFetch},
+    third_party::intuicio_data::type_hash::TypeHash,
     world::World,
 };
 use std::{error::Error, future::pending};
@@ -84,6 +89,14 @@ impl AssetHandle {
     /// # Returns
     /// A `Result` indicating success or failure.
     pub fn refresh(self, database: &mut AssetDatabase) -> Result<(), Box<dyn Error>> {
+        let columns = database
+            .storage
+            .row::<true>(self.entity)?
+            .columns()
+            .filter(|info| info.type_hash() != TypeHash::of::<AssetPath>())
+            .cloned()
+            .collect::<Vec<_>>();
+        database.storage.remove_raw(self.entity, columns)?;
         database
             .storage
             .insert(self.entity, (AssetAwaitsResolution,))?;
@@ -277,6 +290,12 @@ impl AssetHandle {
             .storage
             .traverse_outgoing::<true, AssetDependency>([self.entity])
             .map(|(_, entity)| Self { entity })
+    }
+}
+
+impl std::fmt::Display for AssetHandle {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.entity)
     }
 }
 
