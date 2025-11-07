@@ -183,7 +183,7 @@
 binary crate) - a humble beginnings to DDC infrastructure for live development.</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
 </span><span class="boring">    database::{AssetDatabase, handle::AssetHandle, path::AssetPath},
-</span><span class="boring">    fetch::deferred::DeferredAssetFetch,
+</span><span class="boring">    fetch::{AssetAwaitsAsyncFetch, deferred::DeferredAssetFetch},
 </span><span class="boring">    protocol::{bytes::BytesAssetProtocol, text::TextAssetProtocol},
 </span><span class="boring">};
 </span><span class="boring">use keket_client::{ClientAssetFetch, third_party::reqwest::Url};
@@ -208,8 +208,8 @@ binary crate) - a humble beginnings to DDC infrastructure for live development.<
         println!("Waiting for database to be free");
         println!(
             "Loading:\n- Lorem Ipsum: {}\n- Bytes: {}",
-            lorem.awaits_async_fetch(&amp;database),
-            trash.awaits_async_fetch(&amp;database)
+            lorem.has::&lt;AssetAwaitsAsyncFetch&gt;(&amp;database),
+            trash.has::&lt;AssetAwaitsAsyncFetch&gt;(&amp;database)
         );
         database.maintain()?;
     }

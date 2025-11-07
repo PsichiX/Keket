@@ -182,7 +182,7 @@
 <p><code>HttpAssetFetch</code> allows to fetch bytes with HTTP sources.</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
 </span><span class="boring">    database::{AssetDatabase, path::AssetPath},
-</span><span class="boring">    fetch::deferred::DeferredAssetFetch,
+</span><span class="boring">    fetch::{AssetAwaitsAsyncFetch, deferred::DeferredAssetFetch},
 </span><span class="boring">    protocol::{bundle::BundleAssetProtocol, bytes::BytesAssetProtocol, text::TextAssetProtocol},
 </span><span class="boring">};
 </span><span class="boring">use keket_http::{HttpAssetFetch, third_party::reqwest::Url};
@@ -211,9 +211,9 @@
         println!("Waiting for database to be free");
         println!(
             "Loading:\n- Lorem Ipsum: {}\n- JSON: {}\n- Bytes: {}",
-            lorem.awaits_async_fetch(&amp;database),
-            json.awaits_async_fetch(&amp;database),
-            trash.awaits_async_fetch(&amp;database)
+            lorem.has::&lt;AssetAwaitsAsyncFetch&gt;(&amp;database),
+            json.has::&lt;AssetAwaitsAsyncFetch&gt;(&amp;database),
+            trash.has::&lt;AssetAwaitsAsyncFetch&gt;(&amp;database)
         );
         database.maintain()?;
     }

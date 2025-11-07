@@ -1064,7 +1064,7 @@ thread(s). It is encouraged to use it for heavy latency fetch engines like file
 system or network fetch engines.</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
 </span><span class="boring">    database::AssetDatabase,
-</span><span class="boring">    fetch::{deferred::DeferredAssetFetch, file::FileAssetFetch},
+</span><span class="boring">    fetch::{AssetAwaitsAsyncFetch, deferred::DeferredAssetFetch, file::FileAssetFetch},
 </span><span class="boring">    protocol::bytes::BytesAssetProtocol,
 </span><span class="boring">};
 </span><span class="boring">use std::error::Error;
@@ -1080,7 +1080,7 @@ system or network fetch engines.</p>
     let package = database.ensure("bytes://package.zip")?;
 
     // Simulate waiting for asset bytes loading to complete.
-    while package.awaits_async_fetch(&amp;database) {
+    while package.has::&lt;AssetAwaitsAsyncFetch&gt;(&amp;database) {
         println!("Package awaits async fetch done");
         database.maintain()?;
     }
@@ -1484,7 +1484,7 @@ specialize extraction with specific asset as source.</p>
 <p><code>HttpAssetFetch</code> allows to fetch bytes with HTTP sources.</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
 </span><span class="boring">    database::{AssetDatabase, path::AssetPath},
-</span><span class="boring">    fetch::deferred::DeferredAssetFetch,
+</span><span class="boring">    fetch::{AssetAwaitsAsyncFetch, deferred::DeferredAssetFetch},
 </span><span class="boring">    protocol::{bundle::BundleAssetProtocol, bytes::BytesAssetProtocol, text::TextAssetProtocol},
 </span><span class="boring">};
 </span><span class="boring">use keket_http::{HttpAssetFetch, third_party::reqwest::Url};
@@ -1513,9 +1513,9 @@ specialize extraction with specific asset as source.</p>
         println!("Waiting for database to be free");
         println!(
             "Loading:\n- Lorem Ipsum: {}\n- JSON: {}\n- Bytes: {}",
-            lorem.awaits_async_fetch(&amp;database),
-            json.awaits_async_fetch(&amp;database),
-            trash.awaits_async_fetch(&amp;database)
+            lorem.has::&lt;AssetAwaitsAsyncFetch&gt;(&amp;database),
+            json.has::&lt;AssetAwaitsAsyncFetch&gt;(&amp;database),
+            trash.has::&lt;AssetAwaitsAsyncFetch&gt;(&amp;database)
         );
         database.maintain()?;
     }
@@ -1585,7 +1585,7 @@ to run REDB fetching jobs in background.</p>
 binary crate) - a humble beginnings to DDC infrastructure for live development.</p>
 <pre><code class="language-rust ignore"><span class="boring">use keket::{
 </span><span class="boring">    database::{AssetDatabase, handle::AssetHandle, path::AssetPath},
-</span><span class="boring">    fetch::deferred::DeferredAssetFetch,
+</span><span class="boring">    fetch::{AssetAwaitsAsyncFetch, deferred::DeferredAssetFetch},
 </span><span class="boring">    protocol::{bytes::BytesAssetProtocol, text::TextAssetProtocol},
 </span><span class="boring">};
 </span><span class="boring">use keket_client::{ClientAssetFetch, third_party::reqwest::Url};
@@ -1610,8 +1610,8 @@ binary crate) - a humble beginnings to DDC infrastructure for live development.<
         println!("Waiting for database to be free");
         println!(
             "Loading:\n- Lorem Ipsum: {}\n- Bytes: {}",
-            lorem.awaits_async_fetch(&amp;database),
-            trash.awaits_async_fetch(&amp;database)
+            lorem.has::&lt;AssetAwaitsAsyncFetch&gt;(&amp;database),
+            trash.has::&lt;AssetAwaitsAsyncFetch&gt;(&amp;database)
         );
         database.maintain()?;
     }
