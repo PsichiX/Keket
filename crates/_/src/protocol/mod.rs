@@ -1,5 +1,6 @@
 pub mod bundle;
 pub mod bytes;
+pub mod future;
 pub mod group;
 pub mod text;
 

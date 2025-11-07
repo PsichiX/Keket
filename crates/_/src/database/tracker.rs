@@ -1,4 +1,8 @@
-use crate::database::{AssetDatabase, handle::AssetHandle, path::AssetPathStatic};
+use crate::{
+    database::{AssetDatabase, handle::AssetHandle, path::AssetPathStatic},
+    fetch::{AssetAwaitsAsyncFetch, AssetAwaitsResolution, AssetBytesAreReadyToProcess},
+    store::{AssetAwaitsAsyncStore, AssetAwaitsStoring, AssetBytesAreReadyToStore},
+};
 use anput::component::Component;
 use std::{collections::HashSet, error::Error};
 
@@ -90,17 +94,17 @@ impl AssetsTracker {
         out_status.clear();
         for handle in &self.handles {
             if handle.does_exists(database) {
-                if handle.awaits_storing(database) {
+                if handle.has::<AssetAwaitsStoring>(database) {
                     out_status.awaiting_storing.add(*handle);
-                } else if handle.bytes_are_ready_to_store(database) {
+                } else if handle.has::<AssetBytesAreReadyToStore>(database) {
                     out_status.with_bytes_ready_to_store.add(*handle);
-                } else if handle.awaits_async_store(database) {
+                } else if handle.has::<AssetAwaitsAsyncStore>(database) {
                     out_status.awaiting_async_store.add(*handle);
-                } else if handle.awaits_resolution(database) {
+                } else if handle.has::<AssetAwaitsResolution>(database) {
                     out_status.awaiting_resolution.add(*handle);
-                } else if handle.bytes_are_ready_to_process(database) {
+                } else if handle.has::<AssetBytesAreReadyToProcess>(database) {
                     out_status.with_bytes_ready_to_process.add(*handle);
-                } else if handle.awaits_async_fetch(database) {
+                } else if handle.has::<AssetAwaitsAsyncFetch>(database) {
                     out_status.awaiting_async_fetch.add(*handle);
                 } else {
                     out_status.ready_to_use.add(*handle);

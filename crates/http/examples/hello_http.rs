@@ -1,6 +1,6 @@
 use keket::{
     database::{AssetDatabase, path::AssetPath},
-    fetch::deferred::DeferredAssetFetch,
+    fetch::{AssetAwaitsAsyncFetch, deferred::DeferredAssetFetch},
     protocol::{bundle::BundleAssetProtocol, bytes::BytesAssetProtocol, text::TextAssetProtocol},
 };
 use keket_http::{HttpAssetFetch, third_party::reqwest::Url};
@@ -30,9 +30,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("Waiting for database to be free");
         println!(
             "Loading:\n- Lorem Ipsum: {}\n- JSON: {}\n- Bytes: {}",
-            lorem.awaits_async_fetch(&database),
-            json.awaits_async_fetch(&database),
-            trash.awaits_async_fetch(&database)
+            lorem.has::<AssetAwaitsAsyncFetch>(&database),
+            json.has::<AssetAwaitsAsyncFetch>(&database),
+            trash.has::<AssetAwaitsAsyncFetch>(&database)
         );
         database.maintain()?;
     }

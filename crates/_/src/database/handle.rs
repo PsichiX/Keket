@@ -5,7 +5,8 @@ use crate::{
         path::{AssetPath, AssetPathStatic},
     },
     fetch::{AssetAwaitsAsyncFetch, AssetAwaitsResolution, AssetBytesAreReadyToProcess},
-    store::{AssetAwaitsAsyncStore, AssetAwaitsStoring, AssetBytesAreReadyToStore},
+    protocol::future::AssetAwaitsAsyncProcessing,
+    store::AssetAwaitsStoring,
 };
 use anput::{
     archetype::Archetype,
@@ -127,39 +128,9 @@ impl AssetHandle {
         database.storage.has_entity(self.entity)
     }
 
-    /// Checks if the asset is marked for storing its bytes.
-    pub fn awaits_storing(self, database: &AssetDatabase) -> bool {
-        self.access_checked::<(Entity, Include<AssetAwaitsStoring>)>(database)
-            .is_some()
-    }
-
-    /// Checks if the asset is marked for storing its bytes and is not already stored.
-    pub fn bytes_are_ready_to_store(self, database: &AssetDatabase) -> bool {
-        self.access_checked::<(Entity, Include<AssetBytesAreReadyToStore>)>(database)
-            .is_some()
-    }
-
-    /// Checks if the asset is awaiting an async store.
-    pub fn awaits_async_store(self, database: &AssetDatabase) -> bool {
-        self.access_checked::<(Entity, Include<AssetAwaitsAsyncStore>)>(database)
-            .is_some()
-    }
-
-    /// Checks if the asset is awaiting resolution.
-    pub fn awaits_resolution(self, database: &AssetDatabase) -> bool {
-        self.access_checked::<(Entity, Include<AssetAwaitsResolution>)>(database)
-            .is_some()
-    }
-
-    /// Checks if the asset bytes are ready for processing.
-    pub fn bytes_are_ready_to_process(self, database: &AssetDatabase) -> bool {
-        self.access_checked::<(Entity, Include<AssetBytesAreReadyToProcess>)>(database)
-            .is_some()
-    }
-
-    /// Checks if the asset is awaiting an async fetch.
-    pub fn awaits_async_fetch(self, database: &AssetDatabase) -> bool {
-        self.access_checked::<(Entity, Include<AssetAwaitsAsyncFetch>)>(database)
+    /// Checks if the asset has given component.
+    pub fn has<T: Component>(self, database: &AssetDatabase) -> bool {
+        self.access_checked::<(Entity, Include<T>)>(database)
             .is_some()
     }
 
@@ -173,6 +144,7 @@ impl AssetHandle {
             Exclude<AssetAwaitsResolution>,
             Exclude<AssetBytesAreReadyToProcess>,
             Exclude<AssetAwaitsAsyncFetch>,
+            Exclude<AssetAwaitsAsyncProcessing>,
         )>();
         database
             .storage

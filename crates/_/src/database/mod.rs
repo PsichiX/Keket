@@ -17,7 +17,10 @@ use crate::{
         AssetAwaitsAsyncFetch, AssetAwaitsResolution, AssetBytesAreReadyToProcess, AssetFetch,
         AssetFetchEngine,
     },
-    protocol::AssetProtocol,
+    protocol::{
+        AssetProtocol,
+        future::{AssetAwaitsAsyncProcessing, AssetAwaitsAsyncProducing},
+    },
     store::{
         AssetAwaitsAsyncStore, AssetAwaitsStoring, AssetBytesAreReadyToStore, AssetStore,
         AssetStoreEngine,
@@ -26,6 +29,7 @@ use crate::{
 use anput::{
     bundle::{Bundle, BundleChain},
     commands::Command,
+    component::Component,
     database::WorldDestroyIteratorExt,
     entity::Entity,
     query::Include,
@@ -323,7 +327,7 @@ impl AssetDatabase {
             if !self.allow_asset_progression_failures {
                 status?;
             }
-            if handle.bytes_are_ready_to_process(self) {
+            if handle.has::<AssetBytesAreReadyToProcess>(self) {
                 let Some(protocol) = self
                     .protocols
                     .iter_mut()
@@ -438,82 +442,22 @@ impl AssetDatabase {
         self.ensure(path)
     }
 
-    /// Returns an iterator over all assets waiting for resolution.
+    /// Returns an iterator over all assets with a specific component.
     ///
     /// # Returns
     /// An iterator that yields `AssetHandle` instances.
-    pub fn assets_awaiting_resolution(&self) -> impl Iterator<Item = AssetHandle> + '_ {
+    pub fn assets_with<T: Component>(&self) -> impl Iterator<Item = AssetHandle> + '_ {
         self.storage
-            .query::<true, (Entity, Include<AssetAwaitsResolution>)>()
+            .query::<true, (Entity, Include<T>)>()
             .map(|(entity, _)| AssetHandle::new(entity))
     }
 
-    /// Returns an iterator over all assets whose bytes are ready to process.
+    /// Checks if there are any assets with a specific component.
     ///
     /// # Returns
-    /// An iterator that yields `AssetHandle` instances.
-    pub fn assets_with_bytes_ready_to_process(&self) -> impl Iterator<Item = AssetHandle> + '_ {
-        self.storage
-            .query::<true, (Entity, Include<AssetBytesAreReadyToProcess>)>()
-            .map(|(entity, _)| AssetHandle::new(entity))
-    }
-
-    /// Returns an iterator over all assets awaiting async fetch.
-    ///
-    /// # Returns
-    /// An iterator that yields `AssetHandle` instances.
-    pub fn assets_awaiting_async_fetch(&self) -> impl Iterator<Item = AssetHandle> + '_ {
-        self.storage
-            .query::<true, (Entity, Include<AssetAwaitsAsyncFetch>)>()
-            .map(|(entity, _)| AssetHandle::new(entity))
-    }
-
-    /// Checks if there are any assets awaiting storing.
-    ///
-    /// # Returns
-    /// `true` if assets are awaiting storing, otherwise `false`.
-    pub fn does_await_storing(&self) -> bool {
-        self.storage.has_component::<AssetAwaitsStoring>()
-    }
-
-    /// Checks if there are any assets with bytes ready to store.
-    ///
-    /// # Returns
-    /// `true` if assets are ready to store, otherwise `false`.
-    pub fn has_bytes_ready_to_store(&self) -> bool {
-        self.storage.has_component::<AssetBytesAreReadyToStore>()
-    }
-
-    /// Checks if there are assets awaiting async store.
-    ///
-    /// # Returns
-    /// `true` if async stores are awaiting completion, otherwise `false`.
-    pub fn does_await_async_store(&self) -> bool {
-        self.storage.has_component::<AssetAwaitsAsyncStore>()
-    }
-
-    /// Checks if there are any assets awaiting resolution.
-    ///
-    /// # Returns
-    /// `true` if assets are awaiting resolution, otherwise `false`.
-    pub fn does_await_resolution(&self) -> bool {
-        self.storage.has_component::<AssetAwaitsResolution>()
-    }
-
-    /// Checks if there are assets with bytes ready to process.
-    ///
-    /// # Returns
-    /// `true` if assets are ready to process, otherwise `false`.
-    pub fn has_bytes_ready_to_process(&self) -> bool {
-        self.storage.has_component::<AssetBytesAreReadyToProcess>()
-    }
-
-    /// Checks if there are assets awaiting async fetch.
-    ///
-    /// # Returns
-    /// `true` if async fetches are awaiting completion, otherwise `false`.
-    pub fn does_await_async_fetch(&self) -> bool {
-        self.storage.has_component::<AssetAwaitsAsyncFetch>()
+    /// `true` if there is at least one asset with the component, otherwise `false
+    pub fn has<T: Component>(&self) -> bool {
+        self.storage.has_component::<T>()
     }
 
     /// Determines if the asset database is currently busy with tasks.
@@ -527,6 +471,8 @@ impl AssetDatabase {
             || self.storage.has_component::<AssetAwaitsStoring>()
             || self.storage.has_component::<AssetBytesAreReadyToStore>()
             || self.storage.has_component::<AssetAwaitsAsyncStore>()
+            || self.storage.has_component::<AssetAwaitsAsyncProcessing>()
+            || self.storage.has_component::<AssetAwaitsAsyncProducing>()
     }
 
     /// Reports the status of assets in the database.

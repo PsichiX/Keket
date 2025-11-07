@@ -1,6 +1,6 @@
 use keket::{
     database::AssetDatabase,
-    fetch::{deferred::DeferredAssetFetch, file::FileAssetFetch},
+    fetch::{AssetAwaitsAsyncFetch, deferred::DeferredAssetFetch, file::FileAssetFetch},
     protocol::bytes::BytesAssetProtocol,
 };
 use std::error::Error;
@@ -17,7 +17,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let package = database.ensure("bytes://package.zip")?;
 
     // Simulate waiting for asset bytes loading to complete.
-    while package.awaits_async_fetch(&database) {
+    while package.has::<AssetAwaitsAsyncFetch>(&database) {
         println!("Package awaits async fetch done");
         database.maintain()?;
     }
