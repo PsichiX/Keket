@@ -8,7 +8,9 @@ use std::error::Error;
 fn main() -> Result<(), Box<dyn Error>> {
     /* ANCHOR: main */
     let mut database = AssetDatabase::default()
-        .with_protocol(FutureAssetProtocol::new("lines").process(|_, bytes| process_lines(bytes)))
+        .with_protocol(
+            FutureAssetProtocol::new("lines").process(|_, _, bytes| process_lines(bytes)),
+        )
         .with_fetch(FileAssetFetch::default().with_root("resources"));
 
     let lines = database.schedule("lines://lorem.txt")?;

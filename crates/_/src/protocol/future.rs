@@ -3,7 +3,7 @@ use crate::{
     protocol::AssetProtocol,
     store::AssetBytesAreReadyToStore,
 };
-use anput::{bundle::DynamicBundle, world::World};
+use anput::{bundle::DynamicBundle, commands::SharedCommandBuffer, world::World};
 use std::{
     collections::HashMap,
     error::Error,
@@ -23,12 +23,18 @@ type AssetProtocolProduceFuture =
 pub struct FutureAssetProtocol {
     name: String,
     #[allow(clippy::type_complexity)]
-    process_future_spawner:
-        Option<Box<dyn Fn(AssetInspector, Vec<u8>) -> AssetProtocolProcessFuture + Send + Sync>>,
+    process_future_spawner: Option<
+        Box<
+            dyn Fn(AssetInspector, SharedCommandBuffer, Vec<u8>) -> AssetProtocolProcessFuture
+                + Send
+                + Sync,
+        >,
+    >,
     #[allow(clippy::type_complexity)]
     produce_future_spawner:
         Option<Box<dyn Fn(AssetInspector) -> AssetProtocolProduceFuture + Send + Sync>>,
-    process_futures: RwLock<HashMap<AssetHandle, Option<AssetProtocolProcessFuture>>>,
+    process_futures:
+        RwLock<HashMap<AssetHandle, Option<(AssetProtocolProcessFuture, SharedCommandBuffer)>>>,
     produce_futures: RwLock<HashMap<AssetHandle, Option<AssetProtocolProduceFuture>>>,
 }
 
@@ -45,14 +51,18 @@ impl FutureAssetProtocol {
 
     pub fn process<Fut>(
         mut self,
-        future_spawner: impl Fn(AssetInspector, Vec<u8>) -> Fut + Send + Sync + 'static,
+        future_spawner: impl Fn(AssetInspector, SharedCommandBuffer, Vec<u8>) -> Fut
+        + Send
+        + Sync
+        + 'static,
     ) -> Self
     where
         Fut: Future<Output = Result<DynamicBundle, Box<dyn Error>>> + Send + Sync + 'static,
     {
-        self.process_future_spawner = Some(Box::new(move |inspector, bytes| {
-            Box::pin(future_spawner(inspector, bytes))
-        }));
+        self.process_future_spawner =
+            Some(Box::new(move |inspector, shared_command_buffer, bytes| {
+                Box::pin(future_spawner(inspector, shared_command_buffer, bytes))
+            }));
         self
     }
 
@@ -85,10 +95,17 @@ impl AssetProtocol for FutureAssetProtocol {
             return Ok(());
         };
         let inspector = AssetInspector::new_raw(storage, handle.entity());
+        let commands = SharedCommandBuffer::default();
         self.process_futures
             .write()
             .map_err(|error| format!("{error}"))?
-            .insert(handle, Some((future_spawner)(inspector, bytes)));
+            .insert(
+                handle,
+                Some((
+                    (future_spawner)(inspector, commands.clone(), bytes),
+                    commands,
+                )),
+            );
         storage.insert(handle.entity(), (AssetAwaitsAsyncProcessing,))?;
         Ok(())
     }
@@ -121,17 +138,19 @@ impl AssetProtocol for FutureAssetProtocol {
             .write()
             .map_err(|error| format!("{error}"))?;
         for (handle, future) in futures.iter_mut() {
-            if let Some(mut f) = future.take() {
+            if let Some((mut f, mut commands)) = future.take() {
                 match f.as_mut().poll(&mut cx) {
                     Poll::Ready(Ok(result)) => {
                         storage.remove::<(AssetAwaitsAsyncProcessing,)>(handle.entity())?;
                         storage.insert(handle.entity(), result)?;
+                        commands.with(|commands| commands.execute(storage));
                     }
                     Poll::Ready(Err(e)) => {
                         return Err(e);
                     }
                     Poll::Pending => {
-                        *future = Some(f);
+                        commands.with(|commands| commands.execute(storage));
+                        *future = Some((f, commands));
                     }
                 }
             }

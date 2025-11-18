@@ -41,6 +41,11 @@ impl<'a> AssetInspector<'a> {
         Self { storage, entity }
     }
 
+    /// Returns a reference to the underlying storage.
+    pub fn storage(&self) -> &'a World {
+        self.storage
+    }
+
     /// Returns the assigned asset handle.
     pub fn handle(&self) -> AssetHandle {
         AssetHandle::new(self.entity)
