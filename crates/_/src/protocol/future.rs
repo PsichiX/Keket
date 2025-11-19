@@ -3,12 +3,14 @@ use crate::{
     protocol::AssetProtocol,
     store::AssetBytesAreReadyToStore,
 };
-use anput::{bundle::DynamicBundle, commands::SharedCommandBuffer, world::World};
+use anput::{
+    bundle::DynamicBundle, third_party::intuicio_data::managed::ManagedLazy, world::World,
+};
 use std::{
     collections::HashMap,
     error::Error,
     pin::Pin,
-    sync::RwLock,
+    sync::{Arc, RwLock},
     task::{Context, Poll, Waker},
 };
 
@@ -20,12 +22,21 @@ type AssetProtocolProcessFuture =
 type AssetProtocolProduceFuture =
     Pin<Box<dyn Future<Output = Result<Vec<u8>, Box<dyn Error>>> + Send + Sync>>;
 
+#[derive(Clone)]
+pub struct FutureStorageAccess(Arc<RwLock<ManagedLazy<World>>>);
+
+impl FutureStorageAccess {
+    pub fn access(&self) -> Result<ManagedLazy<World>, Box<dyn Error>> {
+        Ok(self.0.read().map_err(|error| format!("{error}"))?.clone())
+    }
+}
+
 pub struct FutureAssetProtocol {
     name: String,
     #[allow(clippy::type_complexity)]
     process_future_spawner: Option<
         Box<
-            dyn Fn(AssetInspector, SharedCommandBuffer, Vec<u8>) -> AssetProtocolProcessFuture
+            dyn Fn(AssetHandle, FutureStorageAccess, Vec<u8>) -> AssetProtocolProcessFuture
                 + Send
                 + Sync,
         >,
@@ -34,7 +45,7 @@ pub struct FutureAssetProtocol {
     produce_future_spawner:
         Option<Box<dyn Fn(AssetInspector) -> AssetProtocolProduceFuture + Send + Sync>>,
     process_futures:
-        RwLock<HashMap<AssetHandle, Option<(AssetProtocolProcessFuture, SharedCommandBuffer)>>>,
+        RwLock<HashMap<AssetHandle, Option<(AssetProtocolProcessFuture, FutureStorageAccess)>>>,
     produce_futures: RwLock<HashMap<AssetHandle, Option<AssetProtocolProduceFuture>>>,
 }
 
@@ -51,7 +62,7 @@ impl FutureAssetProtocol {
 
     pub fn process<Fut>(
         mut self,
-        future_spawner: impl Fn(AssetInspector, SharedCommandBuffer, Vec<u8>) -> Fut
+        future_spawner: impl Fn(AssetHandle, FutureStorageAccess, Vec<u8>) -> Fut
         + Send
         + Sync
         + 'static,
@@ -59,10 +70,9 @@ impl FutureAssetProtocol {
     where
         Fut: Future<Output = Result<DynamicBundle, Box<dyn Error>>> + Send + Sync + 'static,
     {
-        self.process_future_spawner =
-            Some(Box::new(move |inspector, shared_command_buffer, bytes| {
-                Box::pin(future_spawner(inspector, shared_command_buffer, bytes))
-            }));
+        self.process_future_spawner = Some(Box::new(move |handle, access, bytes| {
+            Box::pin(future_spawner(handle, access, bytes))
+        }));
         self
     }
 
@@ -94,17 +104,14 @@ impl AssetProtocol for FutureAssetProtocol {
         let Some(future_spawner) = self.process_future_spawner.as_ref() else {
             return Ok(());
         };
-        let inspector = AssetInspector::new_raw(storage, handle.entity());
-        let commands = SharedCommandBuffer::default();
+        let (lazy, _lifetime) = ManagedLazy::make(storage);
+        let access = FutureStorageAccess(Arc::new(RwLock::new(lazy)));
         self.process_futures
             .write()
             .map_err(|error| format!("{error}"))?
             .insert(
                 handle,
-                Some((
-                    (future_spawner)(inspector, commands.clone(), bytes),
-                    commands,
-                )),
+                Some(((future_spawner)(handle, access.clone(), bytes), access)),
             );
         storage.insert(handle.entity(), (AssetAwaitsAsyncProcessing,))?;
         Ok(())
@@ -138,19 +145,19 @@ impl AssetProtocol for FutureAssetProtocol {
             .write()
             .map_err(|error| format!("{error}"))?;
         for (handle, future) in futures.iter_mut() {
-            if let Some((mut f, mut commands)) = future.take() {
+            if let Some((mut f, access)) = future.take() {
+                let (lazy, _lifetime) = ManagedLazy::make(storage);
+                *access.0.write().map_err(|error| format!("{error}"))? = lazy;
                 match f.as_mut().poll(&mut cx) {
                     Poll::Ready(Ok(result)) => {
                         storage.remove::<(AssetAwaitsAsyncProcessing,)>(handle.entity())?;
                         storage.insert(handle.entity(), result)?;
-                        commands.with(|commands| commands.execute(storage));
                     }
                     Poll::Ready(Err(e)) => {
                         return Err(e);
                     }
                     Poll::Pending => {
-                        commands.with(|commands| commands.execute(storage));
-                        *future = Some((f, commands));
+                        *future = Some((f, access));
                     }
                 }
             }
