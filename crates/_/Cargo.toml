@@ -1,6 +1,6 @@
 [package]
 name = "keket"
-version = "0.19.1"
+version = "0.19.2"
 edition = "2024"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 description = "Database-like Asset management on top of ECS storage"
@@ -16,7 +16,7 @@ hotreload = ["notify"]
 
 [dependencies]
 anput = "0.22"
-moirai = "0.3"
+moirai = "0.4"
 serde = { version = "1", features = ["derive"] }
 notify = { version = "8.0", optional = true }
 
