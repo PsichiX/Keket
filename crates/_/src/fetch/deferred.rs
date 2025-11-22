@@ -5,7 +5,7 @@ use crate::{
 use anput::{
     bundle::DynamicBundle, third_party::intuicio_data::managed::ManagedValue, world::World,
 };
-use moirai::{JobHandle, JobLocation, JobPriority, Jobs};
+use moirai::jobs::{JobHandle, JobLocation, Jobs};
 use std::{
     collections::HashMap,
     error::Error,
@@ -73,11 +73,7 @@ impl<Fetch: AssetFetch> AssetFetch for DeferredAssetFetch<Fetch> {
         let jobs = self.jobs.read().ok_or_else(|| {
             format!("Failed to get read access to jobs runner in async fetch for asset: `{path2}`")
         })?;
-        let handle = jobs.spawn_on(
-            JobLocation::other_than_current_thread(),
-            JobPriority::Normal,
-            job,
-        )?;
+        let handle = jobs.spawn(JobLocation::other_than_current_thread(), job)?;
         self.job_handles
             .write()
             .map_err(|error| format!("{error}"))?

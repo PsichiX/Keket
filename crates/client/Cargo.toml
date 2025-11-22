@@ -1,6 +1,6 @@
 [package]
 name = "keket-client"
-version = "0.19.0"
+version = "0.19.1"
 edition = "2024"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 description = "Asset server client fetch engine for Keket toolkit"
