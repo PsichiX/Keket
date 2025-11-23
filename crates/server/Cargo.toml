@@ -1,6 +1,6 @@
 [package]
 name = "keket-server"
-version = "0.19.2"
+version = "0.19.3"
 edition = "2024"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 description = "Asset server for Keket toolkit"
