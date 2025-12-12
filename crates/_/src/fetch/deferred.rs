@@ -73,7 +73,7 @@ impl<Fetch: AssetFetch> AssetFetch for DeferredAssetFetch<Fetch> {
         let jobs = self.jobs.read().ok_or_else(|| {
             format!("Failed to get read access to jobs runner in async fetch for asset: `{path2}`")
         })?;
-        let handle = jobs.spawn(JobLocation::other_than_current_thread(), job)?;
+        let handle = jobs.spawn(JobLocation::other_than_current_thread(), job);
         self.job_handles
             .write()
             .map_err(|error| format!("{error}"))?
