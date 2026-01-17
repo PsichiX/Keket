@@ -1,6 +1,6 @@
 [package]
 name = "keket-graph"
-version = "0.19.4"
+version = "0.20.1"
 edition = "2024"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 description = "Asset graph module for Keket toolkit"
@@ -14,13 +14,13 @@ readme = "../../README.md"
 derive = ["keket-graph-derive"]
 
 [dependencies]
-keket = { version = "0.19", path = "../_" }
+keket = { version = "0.20", path = "../_" }
 serde = { version = "1", features = ["derive"] }
-keket-graph-derive = { version = "0.19", path = "../graph-derive", optional = true }
+keket-graph-derive = { version = "0.20", path = "../graph-derive", optional = true }
 
 [dev-dependencies]
 serde_json = "1"
-keket-graph-derive = { version = "0.19", path = "../graph-derive" }
+keket-graph-derive = { version = "0.20", path = "../graph-derive" }
 
 [[example]]
 doc-scrape-examples = true

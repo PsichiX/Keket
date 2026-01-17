@@ -24,7 +24,7 @@ checks:
 redb-pack:
   cargo run --manifest-path ./crates/redb-pack/Cargo.toml
 
-hot_reloading:
+hot-reloading:
   cargo run --manifest-path ./crates/_/Cargo.toml --example 07_hot_reloading
 
 ingame:

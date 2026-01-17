@@ -5,7 +5,10 @@ use crate::{
 use anput::{
     bundle::DynamicBundle, third_party::intuicio_data::managed::ManagedValue, world::World,
 };
-use moirai::jobs::{JobHandle, JobLocation, Jobs};
+use moirai::{
+    job::{JobHandle, JobLocation, JobResult},
+    jobs::Jobs,
+};
 use std::{
     collections::HashMap,
     error::Error,
@@ -110,8 +113,8 @@ impl<Fetch: AssetFetch> AssetFetch for DeferredAssetFetch<Fetch> {
                 .map_err(|error| format!("{error}"))?
                 .remove(&path)
                 .unwrap();
-            match handle.try_take() {
-                Some(Some(result)) => {
+            match handle.take() {
+                JobResult::Completed(result) => {
                     if let Some(entity) = storage.find_by::<true, _>(&path) {
                         storage.remove::<(AssetAwaitsAsyncFetch,)>(entity)?;
                     }
@@ -122,7 +125,7 @@ impl<Fetch: AssetFetch> AssetFetch for DeferredAssetFetch<Fetch> {
                         storage.insert(entity, result)?;
                     }
                 }
-                Some(None) => {
+                JobResult::Cancelled | JobResult::Consumed => {
                     if let Some(entity) = storage.find_by::<true, _>(&path) {
                         storage.remove::<(AssetAwaitsAsyncFetch,)>(entity)?;
                     }
@@ -131,7 +134,7 @@ impl<Fetch: AssetFetch> AssetFetch for DeferredAssetFetch<Fetch> {
                     )
                     .into());
                 }
-                None => {
+                JobResult::InProgress => {
                     self.job_handles
                         .write()
                         .map_err(|error| format!("{error}"))?

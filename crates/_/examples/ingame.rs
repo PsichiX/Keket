@@ -28,6 +28,7 @@ use spitfire::{
 };
 use std::{
     error::Error,
+    io::Cursor,
     sync::{Arc, RwLock},
     time::Instant,
 };
@@ -292,9 +293,9 @@ impl BundleWithDependenciesProcessor for TextureAssetProcessor {
         bytes: Vec<u8>,
     ) -> Result<BundleWithDependencies<Self::Bundle>, Box<dyn Error>> {
         // Decode PNG image into texture size and bitmap bytes.
-        let decoder = png::Decoder::new(bytes.as_slice());
+        let decoder = png::Decoder::new(Cursor::new(bytes));
         let mut reader = decoder.read_info()?;
-        let mut buf = vec![0; reader.output_buffer_size()];
+        let mut buf = vec![0; reader.output_buffer_size().unwrap_or_default()];
         let info = reader.next_frame(&mut buf)?;
         let bytes = buf[..info.buffer_size()].to_vec();
 
