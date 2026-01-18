@@ -3,7 +3,7 @@ use crate::{
     fetch::{AssetAwaitsAsyncFetch, AssetFetch},
 };
 use anput::{
-    bundle::DynamicBundle, third_party::intuicio_data::managed::ManagedValue, world::World,
+    bundle::DynamicBundle, third_party::intuicio_data::managed::value::ManagedValue, world::World,
 };
 use moirai::{
     job::{JobHandle, JobLocation, JobResult},
