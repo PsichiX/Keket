@@ -2,13 +2,16 @@ use crate::{
     database::{
         handle::{AssetDependency, AssetHandle},
         inspector::AssetInspector,
-        path::AssetPathStatic,
+        path::{AssetPath, AssetPathStatic},
     },
     fetch::AssetAwaitsResolution,
     protocol::AssetProtocol,
     store::AssetAwaitsStoring,
 };
-use anput::{bundle::Bundle, world::World};
+use anput::{
+    bundle::{Bundle, DynamicBundle},
+    world::World,
+};
 use std::error::Error;
 
 /// Represents a bundle of assets combined with their dependencies.
@@ -132,6 +135,21 @@ pub trait BundleWithDependenciesProcessor: Send + Sync {
     /// Returned bundle of asset components.
     type Bundle: Bundle;
 
+    /// Extracts a `DynamicBundle` from the given `AssetPath`.
+    ///
+    /// For details see `AssetProtocol::extract_bundle_from_path`.
+    #[allow(unused_variables)]
+    fn extract_bundle_from_path(&self, path: &AssetPath) -> Result<DynamicBundle, Box<dyn Error>> {
+        Ok(Default::default())
+    }
+
+    /// Rewrites the asset path before spawning asset in storage.
+    ///
+    /// For details see `AssetProtocol::rewrite_path`.
+    fn rewrite_path(&self, path: AssetPathStatic) -> Result<AssetPathStatic, Box<dyn Error>> {
+        Ok(path)
+    }
+
     /// Processes a vector of bytes and returns a `BundleWithDependencies`.
     fn process_bytes(
         &mut self,
@@ -211,6 +229,14 @@ impl<Processor: BundleWithDependenciesProcessor> BundleAssetProtocol<Processor> 
 impl<Processor: BundleWithDependenciesProcessor> AssetProtocol for BundleAssetProtocol<Processor> {
     fn name(&self) -> &str {
         &self.name
+    }
+
+    fn extract_bundle_from_path(&self, path: &AssetPath) -> Result<DynamicBundle, Box<dyn Error>> {
+        self.processor.extract_bundle_from_path(path)
+    }
+
+    fn rewrite_path(&self, path: AssetPathStatic) -> Result<AssetPathStatic, Box<dyn Error>> {
+        self.processor.rewrite_path(path)
     }
 
     fn process_bytes(

@@ -5,10 +5,14 @@ pub mod group;
 pub mod text;
 
 use crate::{
-    database::handle::AssetHandle, fetch::AssetBytesAreReadyToProcess,
+    database::{
+        handle::AssetHandle,
+        path::{AssetPath, AssetPathStatic},
+    },
+    fetch::AssetBytesAreReadyToProcess,
     store::AssetBytesAreReadyToStore,
 };
-use anput::world::World;
+use anput::{bundle::DynamicBundle, world::World};
 use std::error::Error;
 
 /// Trait defining the protocol for processing and handling assets.
@@ -20,6 +24,45 @@ pub trait AssetProtocol: Send + Sync {
     ///
     /// This name can be used for identification or debugging purposes.
     fn name(&self) -> &str;
+
+    /// Extracts a dynamic bundle from the given asset path.
+    ///
+    /// This function is optional to override. It is called when an asset is
+    /// being spawned with a specific path, allowing implementers to extract
+    /// relevant initial configuration components, usually from path meta data.
+    ///
+    /// # Arguments
+    /// - `path`: The asset path from which to extract the bundle.
+    ///
+    /// # Returns
+    /// - `Ok(DynamicBundle)` containing the extracted bundle.
+    /// - An error wrapped in `Box<dyn Error>` if extraction fails.
+    ///
+    /// # Default Implementation
+    /// Returns an empty `DynamicBundle`.
+    #[allow(unused_variables)]
+    fn extract_bundle_from_path(&self, path: &AssetPath) -> Result<DynamicBundle, Box<dyn Error>> {
+        Ok(Default::default())
+    }
+
+    /// Rewrites the asset path before spawning asset in storage.
+    ///
+    /// This function is optional to override. It is called before an asset is
+    /// spawned in storage, allowing implementers to modify or rewrite the path
+    /// as needed.
+    ///
+    /// # Arguments
+    /// - `path`: The original asset path.
+    ///
+    /// # Returns
+    /// - `Ok(AssetPathStatic)` containing the rewritten path.
+    /// - An error wrapped in `Box<dyn Error>` if rewriting fails.
+    ///
+    /// # Default Implementation
+    /// Returns the original path unchanged.
+    fn rewrite_path(&self, path: AssetPathStatic) -> Result<AssetPathStatic, Box<dyn Error>> {
+        Ok(path)
+    }
 
     /// Processes the raw byte data of an asset.
     ///

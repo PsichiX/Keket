@@ -276,12 +276,23 @@ impl AssetDatabase {
         path: impl Into<AssetPathStatic>,
     ) -> Result<AssetHandle, Box<dyn Error>> {
         let path = path.into();
+        let Some(protocol) = self
+            .protocols
+            .iter_mut()
+            .find(|protocol| protocol.name() == path.protocol())
+        else {
+            return Err(format!("Missing protocol for asset: `{path}`").into());
+        };
+        let path = protocol.rewrite_path(path)?;
         if let Some(entity) = self.storage.find_by::<true, _>(&path) {
             return Ok(AssetHandle::new(entity));
         }
-        Ok(AssetHandle::new(
-            self.storage.spawn((path, AssetAwaitsResolution))?,
-        ))
+        let entity = self.storage.spawn((path.clone(), AssetAwaitsResolution))?;
+        let extracted_bundle = protocol.extract_bundle_from_path(&path)?;
+        if !extracted_bundle.is_empty() {
+            self.storage.insert(entity, extracted_bundle)?;
+        }
+        Ok(AssetHandle::new(entity))
     }
 
     /// Adds an asset to database, already resolved.
@@ -299,10 +310,33 @@ impl AssetDatabase {
         bundle: impl Bundle,
     ) -> Result<AssetHandle, Box<dyn Error>> {
         let path = path.into();
-        self.unload(path.clone());
-        Ok(AssetHandle::new(
-            self.storage.spawn(BundleChain((path,), bundle))?,
-        ))
+        let Some(protocol) = self
+            .protocols
+            .iter_mut()
+            .find(|protocol| protocol.name() == path.protocol())
+        else {
+            return Err(format!("Missing protocol for asset: `{path}`").into());
+        };
+        let path = protocol.rewrite_path(path)?;
+        // NOTE: inlined `unload()` here to avoid double borrow of `self`.
+        {
+            let to_remove = self
+                .storage
+                .query::<true, (Entity, &AssetPath)>()
+                .filter(|(_, p)| *p == &path)
+                .map(|(entity, _)| entity);
+            self.storage
+                .traverse_outgoing::<true, AssetDependency>(to_remove)
+                .map(|(_, entity)| entity)
+                .to_despawn_command()
+                .execute(&mut self.storage)
+        };
+        let entity = self.storage.spawn(BundleChain((path.clone(),), bundle))?;
+        let extracted_bundle = protocol.extract_bundle_from_path(&path)?;
+        if !extracted_bundle.is_empty() {
+            self.storage.insert(entity, extracted_bundle)?;
+        }
+        Ok(AssetHandle::new(entity))
     }
 
     /// Ensures an asset exists or is scheduled for resolution.
@@ -317,25 +351,33 @@ impl AssetDatabase {
         path: impl Into<AssetPathStatic>,
     ) -> Result<AssetHandle, Box<dyn Error>> {
         let path = path.into();
+        let Some(protocol) = self
+            .protocols
+            .iter_mut()
+            .find(|protocol| protocol.name() == path.protocol())
+        else {
+            return Err(format!("Missing protocol for asset: `{path}`").into());
+        };
+        let path = protocol.rewrite_path(path)?;
         if let Some(entity) = self.storage.find_by::<true, _>(&path) {
             return Ok(AssetHandle::new(entity));
         }
         if let Some(fetch) = self.fetch_stack.last_mut() {
             let entity = self.storage.spawn((path.clone(),))?;
+            let extracted_bundle = protocol.extract_bundle_from_path(&path)?;
+            if !extracted_bundle.is_empty() {
+                self.storage.insert(entity, extracted_bundle)?;
+            }
             let handle = AssetHandle::new(entity);
             let status = fetch.load_bytes(handle, path.clone(), &mut self.storage);
             if !self.allow_asset_progression_failures {
                 status?;
             }
-            if handle.has::<AssetBytesAreReadyToProcess>(self) {
-                let Some(protocol) = self
-                    .protocols
-                    .iter_mut()
-                    .find(|protocol| protocol.name() == path.protocol())
-                else {
-                    handle.delete(self);
-                    return Err(format!("Missing protocol for asset: `{path}`").into());
-                };
+            if self
+                .storage
+                .component::<true, AssetBytesAreReadyToProcess>(entity)
+                .is_ok()
+            {
                 let status = protocol.process_asset_bytes(handle, &mut self.storage);
                 if status.is_err()
                     && let Ok(mut bindings) = self
