@@ -10,7 +10,12 @@ use std::error::Error;
 pub struct FallbackAssetFetch<Fetch: AssetFetch> {
     fetch: Fetch,
     /// A list of fallback asset paths to try if the primary fetch fails.
+    /// If the protocol of the requested asset path matches the protocol of a
+    /// fallback asset path, the fallback asset will be loaded instead.
     pub assets: Vec<AssetPathStatic>,
+    /// A list of factory functions that can generate fallback assets based on the requested asset path.
+    #[allow(clippy::type_complexity)]
+    pub factories: Vec<Box<dyn Fn(&AssetPath) -> Option<DynamicBundle> + Send + Sync>>,
 }
 
 impl<Fetch: AssetFetch> FallbackAssetFetch<Fetch> {
@@ -25,6 +30,7 @@ impl<Fetch: AssetFetch> FallbackAssetFetch<Fetch> {
         Self {
             fetch,
             assets: Default::default(),
+            factories: Default::default(),
         }
     }
 
@@ -39,12 +45,34 @@ impl<Fetch: AssetFetch> FallbackAssetFetch<Fetch> {
         self.assets.push(path.into());
         self
     }
+
+    /// Adds a factory function to generate fallback assets based on the
+    /// requested asset path.
+    ///
+    /// # Arguments
+    /// - `factory`: The factory function taking asset path and producing
+    ///   dynamic bundle if factory succeeds.
+    ///
+    /// # Returns
+    /// - The updated `FallbackAssetFetch` instance.
+    pub fn factory(
+        mut self,
+        factory: impl Fn(&AssetPath) -> Option<DynamicBundle> + Send + Sync + 'static,
+    ) -> Self {
+        self.factories.push(Box::new(factory));
+        self
+    }
 }
 
 impl<Fetch: AssetFetch> AssetFetch for FallbackAssetFetch<Fetch> {
     fn load_bytes(&self, path: AssetPath) -> Result<DynamicBundle, Box<dyn Error>> {
         let mut status = self.fetch.load_bytes(path.clone());
         if status.is_err() {
+            for factory in &self.factories {
+                if let Some(bundle) = factory(&path) {
+                    return Ok(bundle);
+                }
+            }
             for asset in &self.assets {
                 if asset.protocol() == path.protocol() {
                     status = self.fetch.load_bytes(asset.clone());
