@@ -71,7 +71,7 @@ impl AssetFetch for ExtractAssetFetch {
         for (entity, path) in to_extract {
             (self.extract)(entity, path, storage, &mut commands)?;
         }
-        commands.execute(storage);
+        commands.execute(storage)?;
         Ok(())
     }
 }

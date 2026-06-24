@@ -73,13 +73,13 @@ impl AssetHandle {
     ///
     /// # Arguments
     /// - `database`: A mutable reference to the asset database.
-    pub fn delete(self, database: &mut AssetDatabase) {
+    pub fn delete(self, database: &mut AssetDatabase) -> Result<(), Box<dyn Error>> {
         database
             .storage
             .traverse_outgoing::<true, AssetDependency>([self.entity])
             .map(|(_, entity)| entity)
             .to_despawn_command()
-            .execute(&mut database.storage);
+            .execute(&mut database.storage)
     }
 
     /// Refreshes the asset, marking it for resolution.

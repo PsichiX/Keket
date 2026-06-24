@@ -373,7 +373,7 @@ impl<T: Component + Default> ConsumedSingleAssetLoader<T> {
                 };
                 let data = std::mem::take(&mut *component);
                 drop(component);
-                handle.delete(database);
+                let _ = handle.delete(database);
                 *self = ConsumedSingleAssetLoader::Data(data);
             }
             _ => {}

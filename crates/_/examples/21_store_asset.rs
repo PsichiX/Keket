@@ -27,7 +27,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     // Delete spawned asset from database just to show it will load from storage.
-    before.delete(&mut database);
+    before.delete(&mut database).unwrap();
     assert!(!before.does_exists(&database));
 
     // Load the asset from storage, we get previously saved asset content.

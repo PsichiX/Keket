@@ -329,7 +329,7 @@ impl AssetDatabase {
                 .traverse_outgoing::<true, AssetDependency>(to_remove)
                 .map(|(_, entity)| entity)
                 .to_despawn_command()
-                .execute(&mut self.storage)
+                .execute(&mut self.storage)?;
         };
         let entity = self.storage.spawn(BundleChain((path.clone(),), bundle))?;
         let extracted_bundle = protocol.extract_bundle_from_path(&path)?;
@@ -404,7 +404,7 @@ impl AssetDatabase {
     ///
     /// # Arguments
     /// - `path`: The path of the asset to unload.
-    pub fn unload<'a>(&mut self, path: impl Into<AssetPath<'a>>) {
+    pub fn unload<'a>(&mut self, path: impl Into<AssetPath<'a>>) -> Result<(), Box<dyn Error>> {
         let path = path.into();
         let to_remove = self
             .storage
@@ -440,7 +440,10 @@ impl AssetDatabase {
     ///
     /// # Arguments
     /// - `path`: The path of the asset to unload.
-    pub fn dereference_or_unload<'a>(&mut self, path: impl Into<AssetPath<'a>>) {
+    pub fn dereference_or_unload<'a>(
+        &mut self,
+        path: impl Into<AssetPath<'a>>,
+    ) -> Result<(), Box<dyn Error>> {
         let path = path.into();
         let to_remove = self
             .storage
@@ -465,7 +468,7 @@ impl AssetDatabase {
             .traverse_outgoing::<true, AssetDependency>(to_remove)
             .map(|(_, entity)| entity)
             .to_despawn_command()
-            .execute(&mut self.storage);
+            .execute(&mut self.storage)
     }
 
     /// Reloads an asset by unloading and ensuring it is reloaded.
@@ -480,7 +483,7 @@ impl AssetDatabase {
         path: impl Into<AssetPathStatic>,
     ) -> Result<AssetHandle, Box<dyn Error>> {
         let path = path.into();
-        self.unload(path.clone());
+        self.unload(path.clone())?;
         self.ensure(path)
     }
 
@@ -594,7 +597,7 @@ impl AssetDatabase {
             None
         };
         if let Some(despawn) = despawn {
-            despawn.execute(&mut self.storage);
+            despawn.execute(&mut self.storage)?;
         }
         {
             let mut lookup = self

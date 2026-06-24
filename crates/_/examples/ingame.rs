@@ -176,7 +176,7 @@ impl State {
             commands.command(InsertCommand::new(entity, (AsyncHandle::new(texture),)));
         }
 
-        commands.execute(&mut self.assets.storage);
+        commands.execute(&mut self.assets.storage).unwrap();
         self.assets.maintain().unwrap();
     }
 }
@@ -268,7 +268,7 @@ impl BundleWithDependenciesProcessor for ShaderAssetProcessor {
         }
         drop(lookup);
 
-        commands.execute(storage);
+        commands.execute(storage).unwrap();
 
         Ok(())
     }

@@ -52,7 +52,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         database.maintain()?;
     }
 
-    before.delete(&mut database);
+    before.delete(&mut database).unwrap();
     assert!(!before.does_exists(&database));
 
     // Load the asset from storage, we get previously saved asset content.
